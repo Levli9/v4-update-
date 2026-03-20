@@ -1,0 +1,42 @@
+# Compiled classes
+target/
+*.class
+
+# Database files
+data/*.db
+!data/*.backup
+
+# JAR files (too large for GitHub)
+*.jar
+lib/
+
+# Videos (large files)
+videos/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+*.iml
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+*.bak
+
+# Maven
+.mvn/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
