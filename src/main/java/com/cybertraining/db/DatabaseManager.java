@@ -275,6 +275,21 @@ public class DatabaseManager {
         }
     }
 
+    public boolean updatePasswordByEmail(String email, String hashedPassword) {
+        String sql = "UPDATE users SET password = ? WHERE LOWER(email) = LOWER(?)";
+        try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setString(1, hashedPassword);
+            ps.setString(2, email.trim());
+            int rowsAffected = ps.executeUpdate();
+            System.out.println("[DB] Password update: " + rowsAffected + " row(s) affected for email: " + email);
+            return rowsAffected > 0;
+        } catch (SQLException e) {
+            System.err.println("[DB] Failed to update password by email: " + e.getMessage());
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     public User authenticate(String username, String password, String roleDisplay) {
         // roleDisplay is ignored for now; keep backward compatible
         return authenticate(username, password);

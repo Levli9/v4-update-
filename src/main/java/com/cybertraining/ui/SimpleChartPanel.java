@@ -54,9 +54,18 @@ public class SimpleChartPanel extends JPanel {
     }
 
     private void drawPie(Graphics2D g2, int w, int h) {
-        int size = Math.min(w, h) - 20;
-        int cx = (w - size) / 2;
-        int cy = (h - size) / 2;
+        int padding = 12;
+        boolean compactMode = w < 320;
+        int legendWidth = compactMode ? 0 : 145;
+
+        int pieAreaW = Math.max(1, w - (padding * 2) - legendWidth - (compactMode ? 0 : 10));
+        int pieAreaH = Math.max(1, h - (padding * 2));
+        int safeInset = 8;
+        int size = Math.max(1, Math.min(pieAreaW, pieAreaH) - safeInset);
+        if (size <= 0) return;
+
+        int cx = padding + Math.max(0, (pieAreaW - size) / 2);
+        int cy = padding + Math.max(0, (pieAreaH - size) / 2);
 
         int total = data.values().stream().mapToInt(Integer::intValue).sum();
         if (total <= 0) return;
@@ -71,8 +80,8 @@ public class SimpleChartPanel extends JPanel {
         }
 
         // Draw legend
-        int lx = Math.max(cx + size + 8, w - 140);
-        int ly = cy - 8;
+        int lx = compactMode ? padding : (cx + size + 12);
+        int ly = compactMode ? (cy + size + 12) : (padding + 6);
         i = 0;
         g2.setFont(new Font("SansSerif", Font.PLAIN, 11));
         for (Map.Entry<String,Integer> e : data.entrySet()) {
@@ -87,26 +96,27 @@ public class SimpleChartPanel extends JPanel {
     private void drawBar(Graphics2D g2, int w, int h) {
         int margin = 18;
         int chartW = w - 2*margin;
-        int chartH = h - 2*margin - 20;
+        int chartH = h - 2*margin - 24;
         int bx = margin;
-        int by = margin + 20;
+        int by = margin + 10;
 
         int total = data.values().stream().mapToInt(Integer::intValue).sum();
         int bars = data.size();
         if (bars == 0) return;
-        int barW = Math.max(8, chartW / (bars * 2));
+        int barW = Math.max(16, chartW / Math.max(1, bars * 2));
+        int spacing = Math.max(10, barW / 2);
 
         int i = 0;
         g2.setFont(new Font("SansSerif", Font.PLAIN, 12));
         for (Map.Entry<String,Integer> e : data.entrySet()) {
             double frac = total == 0 ? 0 : (e.getValue() / (double) total);
             int hbar = (int) Math.round(frac * chartH);
-            int x = bx + i * (barW * 2);
+            int x = bx + i * (barW + spacing);
             int y = by + (chartH - hbar);
             g2.setColor(palette[i % palette.length]);
             g2.fillRect(x, y, barW, hbar);
             g2.setColor(new Color(255,255,255,200));
-            g2.drawString(e.getKey(), x, by + chartH + 16);
+            g2.drawString(e.getKey(), x, by + chartH + 18);
             i++;
         }
     }

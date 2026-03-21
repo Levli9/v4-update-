@@ -4,15 +4,25 @@ import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 
 
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
+import javax.swing.JList;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
+import javax.swing.JTextArea;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.border.EmptyBorder;
 import javax.swing.JPanel;
@@ -23,17 +33,38 @@ import com.cybertraining.model.User;
 public class ManagerDashboardFrame extends JFrame {
     private DatabaseManager db;
     private javax.swing.Timer refreshTimer;
+    private javax.swing.Timer clockTimer;
     private JLabel avgValueLabel, completionValueLabel, highRiskValueLabel, monthlyValueLabel;
+    private JLabel liveDateTimeLabel;
     private DefaultTableModel tableModel;
 
     // filter controls (kept as fields so refreshMetrics can read them)
     private javax.swing.JComboBox<String> deptCombo;
     private javax.swing.JComboBox<String> dateRangeCombo;
     private javax.swing.JComboBox<String> courseCombo;
+    private javax.swing.JComboBox<String> employeeCombo;
+    private final java.util.Map<String, Integer> employeeOptionToId = new java.util.LinkedHashMap<>();
 
     // chart panels (kept so we can replace data on refresh)
     private SimpleChartPanel pieChart;
     private SimpleChartPanel barChart;
+
+    // insights panels (live text)
+    private JTextArea trendTextArea;
+
+    private static final String[] PORTAL_TOPICS = {
+        "מהי תקיפת סייבר?",
+        "מהי אבטחת סייבר?",
+        "תוכנות זדוניות (Malware)",
+        "פישינג (Phishing)",
+        "Man-in-the-Middle",
+        "תקיפת סיסמאות",
+        "שיטות הגנה בסייבר",
+        "השפעת תקיפות סייבר",
+        "APT — איום מתקדם מתמשך",
+        "מתקפת DDoS",
+        "SQL Injection"
+    };
 
     /**
      * @param db
@@ -74,14 +105,22 @@ public class ManagerDashboardFrame extends JFrame {
         welcomeLabel.setForeground(AppTheme.MUTED);
         welcomeLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
 
+        liveDateTimeLabel = new JLabel("");
+        liveDateTimeLabel.setFont(AppTheme.TEXT_FONT);
+        liveDateTimeLabel.setForeground(AppTheme.MUTED);
+        liveDateTimeLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+
         JPanel headerContent = new JPanel();
         headerContent.setOpaque(false);
         headerContent.setLayout(new BoxLayout(headerContent, BoxLayout.Y_AXIS));
         headerTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
         welcomeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        liveDateTimeLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
         headerContent.add(headerTitle);
         headerContent.add(Box.createVerticalStrut(5));
         headerContent.add(welcomeLabel);
+        headerContent.add(Box.createVerticalStrut(3));
+        headerContent.add(liveDateTimeLabel);
         header.add(headerContent, BorderLayout.CENTER);
 
         bg.add(header, BorderLayout.NORTH);
@@ -106,6 +145,21 @@ public class ManagerDashboardFrame extends JFrame {
         left.add(filterHeader);
         left.add(Box.createVerticalStrut(20));
 
+        // --- Employee filter ---
+        JLabel employeeLabel = AppTheme.createFieldLabel("עובד");
+        employeeLabel.setMaximumSize(new Dimension(220, 24));
+        employeeLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
+        left.add(employeeLabel);
+        left.add(Box.createVerticalStrut(6));
+        employeeCombo = new javax.swing.JComboBox<>();
+        employeeCombo.setMaximumSize(new Dimension(220, 36));
+        employeeCombo.setPreferredSize(new Dimension(220, 36));
+        styleFilterCombo(employeeCombo);
+        populateEmployeeCombo();
+        employeeCombo.addActionListener(e -> refreshMetrics());
+        left.add(employeeCombo);
+        left.add(Box.createVerticalStrut(20));
+
         // --- Department filter ---
         JLabel deptLabel = AppTheme.createFieldLabel("מחלקה");
         deptLabel.setMaximumSize(new Dimension(220, 24));
@@ -115,8 +169,7 @@ public class ManagerDashboardFrame extends JFrame {
         deptCombo = new javax.swing.JComboBox<>(new String[]{"כל המחלקות", "מכירות", "פיתוח", "משאבי אנוש", "לוגיסטיקה", "תמיכה"});
         deptCombo.setMaximumSize(new Dimension(220, 36));
         deptCombo.setPreferredSize(new Dimension(220, 36));
-        deptCombo.setBackground(AppTheme.INPUT_BG);
-        deptCombo.setForeground(AppTheme.TEXT);
+        styleFilterCombo(deptCombo);
         deptCombo.addActionListener(e -> refreshMetrics());
         left.add(deptCombo);
         left.add(Box.createVerticalStrut(20));
@@ -132,8 +185,7 @@ public class ManagerDashboardFrame extends JFrame {
         });
         dateRangeCombo.setMaximumSize(new Dimension(220, 36));
         dateRangeCombo.setPreferredSize(new Dimension(220, 36));
-        dateRangeCombo.setBackground(AppTheme.INPUT_BG);
-        dateRangeCombo.setForeground(AppTheme.TEXT);
+        styleFilterCombo(dateRangeCombo);
         dateRangeCombo.addActionListener(e -> refreshMetrics());
         left.add(dateRangeCombo);
         left.add(Box.createVerticalStrut(20));
@@ -149,8 +201,7 @@ public class ManagerDashboardFrame extends JFrame {
         });
         courseCombo.setMaximumSize(new Dimension(220, 36));
         courseCombo.setPreferredSize(new Dimension(220, 36));
-        courseCombo.setBackground(AppTheme.INPUT_BG);
-        courseCombo.setForeground(AppTheme.TEXT);
+        styleFilterCombo(courseCombo);
         courseCombo.addActionListener(e -> refreshMetrics());
         courseCombo.setSelectedIndex(0); // Default to "כל ההדרכות" (All trainings)
         left.add(courseCombo);
@@ -170,7 +221,7 @@ public class ManagerDashboardFrame extends JFrame {
         JPanel cardsRow = new JPanel(new java.awt.GridLayout(1, 4, 18, 0));
         cardsRow.setOpaque(false);
         cardsRow.setAlignmentX(Component.CENTER_ALIGNMENT);
-        cardsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 140));
+        cardsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 150));
         cardsRow.setBorder(new EmptyBorder(10, 0, 10, 0));
         // load live metrics into cards (labels kept as fields for refresh)
         cardsRow.add(dashboardCard("📈 ציון ארגוני ממוצע", "--", "#54A0FF"));
@@ -183,6 +234,7 @@ public class ManagerDashboardFrame extends JFrame {
         JPanel chartsRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 12));
         chartsRow.setOpaque(false);
         chartsRow.setAlignmentX(Component.CENTER_ALIGNMENT);
+        chartsRow.setMaximumSize(new Dimension(Integer.MAX_VALUE, 350));
 
         // prepare data from results
         java.util.List<com.cybertraining.model.Result> allResults = db.getResults();
@@ -200,15 +252,7 @@ public class ManagerDashboardFrame extends JFrame {
         java.util.Map<Integer, Long> latestTs = new java.util.HashMap<>();
 
         for (com.cybertraining.model.Result r : allResults) {
-            // Check course filter
-            boolean courseMatches = false;
-            String selectedCourse = (String) courseCombo.getSelectedItem();
-            if ("כל ההדרכות".equals(selectedCourse)) {
-                courseMatches = true; // Include all courses
-            } else if ("יסודות אבטחת מידע".equals(selectedCourse)) {
-                courseMatches = r.getCourse() != null && r.getCourse().getId() == 1;
-            }
-            if (!courseMatches) continue;
+            if (!matchesFilters(r)) continue;
             validResults++;
             int s = r.getScore();
             if (s < 50) distribution.put("0-49", distribution.get("0-49") + 1);
@@ -228,26 +272,18 @@ public class ManagerDashboardFrame extends JFrame {
 
 
         SimpleChartPanel pie = new SimpleChartPanel(SimpleChartPanel.Type.PIE, distribution);
-        pie.setPreferredSize(new Dimension(420, 240));
+        pie.setPreferredSize(new Dimension(400, 250));
         SimpleChartPanel bar = new SimpleChartPanel(SimpleChartPanel.Type.BAR, distribution);
-        bar.setPreferredSize(new Dimension(420, 240));
-        chartsRow.add(bar);
-        chartsRow.add(pie);
+        bar.setPreferredSize(new Dimension(400, 250));
+        chartsRow.add(chartCard("📊 התפלגות ציונים (עמודות)", bar, 430, 290));
+        chartsRow.add(chartCard("🥧 התפלגות ציונים (עוגה)", pie, 430, 290));
 
         // assign to fields for refresh
         this.pieChart = pie;
         this.barChart = bar;
 
-        // small trend placeholder (reuse chartPlaceholder area)
-        chartsRow.add(chartPlaceholder("מגמת ביצועים ארגונית", 240, 200));
+        chartsRow.add(createLiveTextCard("📈 מגמת ביצועים ארגונית", 320, 290, true));
         right.add(chartsRow);
-
-        // Heatmap / summary row
-        JPanel heatRow = new JPanel(new FlowLayout(FlowLayout.CENTER, 12, 6));
-        heatRow.setOpaque(false);
-        heatRow.setAlignmentX(Component.CENTER_ALIGNMENT);
-        heatRow.add(chartPlaceholder("📋 חוזקות וחולשות לפי נושא", 960, 120));
-        right.add(heatRow);
 
         // Bottom area: employees list with attempts and recent results
         right.add(Box.createVerticalStrut(16));
@@ -280,8 +316,8 @@ public class ManagerDashboardFrame extends JFrame {
             int sc = latestScore.getOrDefault(uid, 0);
             long ts = latestTs.getOrDefault(uid, 0L);
             String status = sc >= 70 ? "עובר" : "זקוק לשיפור";
-            String rec = sc >= 85 ? "אין צורך" : (sc >= 70 ? "חיזוק קצר" : "הדרכה מחודשת");
-            String ttxt = ts == 0 ? "-" : new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(new java.util.Date(ts*1000));
+            String rec = sc < 70 ? "לשנן את החומר (דחוף)" : (sc < 90 ? "לשנן את החומר" : "אין צורך");
+            String ttxt = ts == 0 ? "-" : new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(normalizeTimestampToMillis(ts)));
             tableModel.addRow(new Object[]{name, dept, att, sc, status, rec, ttxt});
         }
 
@@ -307,8 +343,16 @@ public class ManagerDashboardFrame extends JFrame {
         right.add(tableCard);
 
         // start auto-refresh timer (every 3 seconds)
-        refreshTimer = new javax.swing.Timer(3000, e -> refreshMetrics());
+        refreshTimer = new javax.swing.Timer(1000, e -> refreshMetrics());
         refreshTimer.start();
+
+        // live date/time in header
+        updateLiveDateTime();
+        clockTimer = new javax.swing.Timer(1000, e -> updateLiveDateTime());
+        clockTimer.start();
+
+        // first paint should show actual data immediately
+        refreshMetrics();
 
         main.add(right, BorderLayout.CENTER);
 
@@ -319,10 +363,38 @@ public class ManagerDashboardFrame extends JFrame {
     }
 
     private void refreshMetrics() {
+        java.util.List<com.cybertraining.model.Result> filteredResults = getFilteredResults();
+
         // update KPI labels
-        double avg = db.getAverageScoreForCourse(1);
-        int completion = db.getCompletionRateForCourse(1);
-        int highRisk = db.countHighRiskEmployees(1, 50);
+        java.util.List<com.cybertraining.model.Result> allResultsForKpi = filteredResults;
+        java.util.Map<Integer, Integer> latestScoreByUser = new java.util.HashMap<>();
+        java.util.Map<Integer, Long> latestTsByUser = new java.util.HashMap<>();
+        int scoreSum = 0;
+        int scoreCount = 0;
+        int completionUsers = 0;
+
+        for (com.cybertraining.model.Result r : allResultsForKpi) {
+
+            scoreSum += r.getScore();
+            scoreCount++;
+
+            com.cybertraining.model.User u = r.getUser();
+            if (u == null) continue;
+            int uid = u.getId();
+            if (!latestTsByUser.containsKey(uid) || r.getTimestamp() > latestTsByUser.get(uid)) {
+                latestTsByUser.put(uid, r.getTimestamp());
+                latestScoreByUser.put(uid, r.getScore());
+            }
+        }
+
+        completionUsers = latestScoreByUser.size();
+        double avg = scoreCount == 0 ? 0 : ((double) scoreSum / scoreCount);
+        int totalUsers = Math.max(1, db.getUserCount());
+        int completion = (int) Math.round((completionUsers * 100.0) / totalUsers);
+        int highRisk = 0;
+        for (Integer sc : latestScoreByUser.values()) {
+            if (sc < 50) highRisk++;
+        }
         int monthly = db.getMonthlyProgressPercent(1);
         if (avgValueLabel != null) avgValueLabel.setText(String.format("%d%%", (int)Math.round(avg)));
         if (completionValueLabel != null) completionValueLabel.setText(String.format("%d%%", completion));
@@ -330,7 +402,7 @@ public class ManagerDashboardFrame extends JFrame {
         if (monthlyValueLabel != null) monthlyValueLabel.setText((monthly >= 0 ? "+" : "") + monthly + "%");
 
         // refresh table rows and recalculate distribution for charts
-        java.util.List<com.cybertraining.model.Result> allResults = db.getResults();
+        java.util.List<com.cybertraining.model.Result> allResults = filteredResults;
         java.util.Map<Integer, Integer> attempts = new java.util.HashMap<>();
         java.util.Map<Integer, Integer> latestScore = new java.util.HashMap<>();
         java.util.Map<Integer, Long> latestTs = new java.util.HashMap<>();
@@ -343,15 +415,6 @@ public class ManagerDashboardFrame extends JFrame {
         distribution.put("85-100", 0);
 
         for (com.cybertraining.model.Result r : allResults) {
-            // Check course filter
-            boolean courseMatches = false;
-            String selectedCourse = (String) courseCombo.getSelectedItem();
-            if ("כל ההדרכות".equals(selectedCourse)) {
-                courseMatches = true; // Include all courses
-            } else if ("יסודות אבטחת מידע".equals(selectedCourse)) {
-                courseMatches = r.getCourse() != null && r.getCourse().getId() == 1;
-            }
-            if (!courseMatches) continue;
             int s = r.getScore();
             if (s < 50) distribution.put("0-49", distribution.get("0-49") + 1);
             else if (s < 70) distribution.put("50-69", distribution.get("50-69") + 1);
@@ -385,16 +448,288 @@ public class ManagerDashboardFrame extends JFrame {
             int sc = latestScore.getOrDefault(uid, 0);
             long ts = latestTs.getOrDefault(uid, 0L);
             String status = sc >= 70 ? "עובר" : "זקוק לשיפור";
-            String rec = sc >= 85 ? "אין צורך" : (sc >= 70 ? "חיזוק קצר" : "הדרכה מחודשת");
-            String ttxt = ts == 0 ? "-" : new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(new java.util.Date(ts*1000));
+            String rec = sc < 70 ? "לשנן את החומר (דחוף)" : (sc < 90 ? "לשנן את החומר" : "אין צורך");
+            String ttxt = ts == 0 ? "-" : new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(new java.util.Date(normalizeTimestampToMillis(ts)));
             tableModel.addRow(new Object[]{name, dept, att, sc, status, rec, ttxt});
         }
+
+        updateInsights(filteredResults, latestScore, latestTs, attempts, distribution);
     }
 
     @Override
     public void dispose() {
         if (refreshTimer != null && refreshTimer.isRunning()) refreshTimer.stop();
+        if (clockTimer != null && clockTimer.isRunning()) clockTimer.stop();
         super.dispose();
+    }
+
+    private boolean matchesFilters(com.cybertraining.model.Result r) {
+        if (r == null) return false;
+
+        Integer selectedEmployeeId = getSelectedEmployeeId();
+        if (selectedEmployeeId != null) {
+            com.cybertraining.model.User ru = r.getUser();
+            if (ru == null || ru.getId() != selectedEmployeeId) return false;
+        }
+
+        String selectedCourse = (String) courseCombo.getSelectedItem();
+        if (!"כל ההדרכות".equals(selectedCourse)) {
+            if ("יסודות אבטחת מידע".equals(selectedCourse)) {
+                if (r.getCourse() == null || r.getCourse().getId() != 1) return false;
+            }
+        }
+
+        String selectedDept = (String) deptCombo.getSelectedItem();
+        if (selectedDept != null && !"כל המחלקות".equals(selectedDept)) {
+            com.cybertraining.model.User user = r.getUser();
+            String dept = user != null ? user.getDepartment() : null;
+            if (dept == null || !selectedDept.equals(dept)) return false;
+        }
+
+        return matchesDateRange(r.getTimestamp());
+    }
+
+    private boolean matchesDateRange(long timestampRaw) {
+        if (dateRangeCombo == null) return true;
+        String selected = (String) dateRangeCombo.getSelectedItem();
+        if (selected == null || "הכל".equals(selected)) return true;
+
+        long now = Instant.now().toEpochMilli();
+        long minTs;
+        switch (selected) {
+            case "7 ימים אחרונים":
+                minTs = now - (7L * 24L * 60L * 60L * 1000L);
+                break;
+            case "30 ימים אחרונים":
+                minTs = now - (30L * 24L * 60L * 60L * 1000L);
+                break;
+            case "90 ימים אחרונים":
+                minTs = now - (90L * 24L * 60L * 60L * 1000L);
+                break;
+            case "שנה אחרונה":
+                minTs = now - (365L * 24L * 60L * 60L * 1000L);
+                break;
+            default:
+                return true;
+        }
+        long tsMillis = normalizeTimestampToMillis(timestampRaw);
+        return tsMillis >= minTs;
+    }
+
+    private long normalizeTimestampToMillis(long timestampRaw) {
+        if (timestampRaw <= 0) return 0L;
+        // Heuristic: epoch seconds are around 1e9, epoch millis are around 1e12
+        return timestampRaw < 100_000_000_000L ? (timestampRaw * 1000L) : timestampRaw;
+    }
+
+    private void updateLiveDateTime() {
+        if (liveDateTimeLabel == null) return;
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss", new Locale("he", "IL"));
+        String nowText = LocalDateTime.now(ZoneId.systemDefault()).format(formatter);
+        liveDateTimeLabel.setText("🕒 " + nowText);
+    }
+
+    private void styleFilterCombo(javax.swing.JComboBox<String> combo) {
+        combo.setBackground(java.awt.Color.WHITE);
+        combo.setForeground(java.awt.Color.BLACK);
+        combo.setFocusable(false);
+
+        DefaultListCellRenderer renderer = new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                Component c = super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                if (isSelected) {
+                    c.setBackground(new java.awt.Color(220, 235, 255));
+                    c.setForeground(java.awt.Color.BLACK);
+                } else {
+                    c.setBackground(java.awt.Color.WHITE);
+                    c.setForeground(java.awt.Color.BLACK);
+                }
+                return c;
+            }
+        };
+        combo.setRenderer(renderer);
+    }
+
+    private void populateEmployeeCombo() {
+        if (employeeCombo == null) return;
+        Object oldSelection = employeeCombo.getSelectedItem();
+
+        employeeOptionToId.clear();
+        DefaultComboBoxModel<String> model = new DefaultComboBoxModel<>();
+        model.addElement("כל העובדים");
+
+        java.util.Map<Integer, com.cybertraining.model.User> usersById = new java.util.LinkedHashMap<>();
+        for (com.cybertraining.model.Result r : db.getResults()) {
+            com.cybertraining.model.User u = r.getUser();
+            if (u != null) usersById.put(u.getId(), u);
+        }
+
+        java.util.List<com.cybertraining.model.User> users = new java.util.ArrayList<>(usersById.values());
+        users.sort(java.util.Comparator.comparing(u -> {
+            String n = u.getName();
+            return n == null ? "" : n;
+        }));
+
+        for (com.cybertraining.model.User u : users) {
+            if (u.isManager()) continue;
+            String displayName = (u.getName() == null || u.getName().trim().isEmpty()) ? u.getUsername() : u.getName();
+            String option = displayName + " • " + u.getUsername();
+            model.addElement(option);
+            employeeOptionToId.put(option, u.getId());
+        }
+
+        employeeCombo.setModel(model);
+        if (oldSelection != null) {
+            employeeCombo.setSelectedItem(oldSelection);
+            if (employeeCombo.getSelectedIndex() < 0) employeeCombo.setSelectedIndex(0);
+        } else {
+            employeeCombo.setSelectedIndex(0);
+        }
+    }
+
+    private Integer getSelectedEmployeeId() {
+        if (employeeCombo == null) return null;
+        Object selected = employeeCombo.getSelectedItem();
+        if (selected == null) return null;
+        String key = selected.toString();
+        if ("כל העובדים".equals(key)) return null;
+        return employeeOptionToId.get(key);
+    }
+
+    private java.util.List<com.cybertraining.model.Result> getFilteredResults() {
+        java.util.List<com.cybertraining.model.Result> filtered = new java.util.ArrayList<>();
+        for (com.cybertraining.model.Result r : db.getResults()) {
+            if (matchesFilters(r)) filtered.add(r);
+        }
+        return filtered;
+    }
+
+    private JPanel chartCard(String title, JPanel chart, int w, int h) {
+        JPanel card = AppTheme.cardPanel();
+        card.setLayout(new BorderLayout());
+        card.setPreferredSize(new Dimension(w, h));
+        card.setBorder(new EmptyBorder(10, 12, 10, 12));
+
+        JLabel t = new JLabel(title, javax.swing.SwingConstants.CENTER);
+        t.setFont(AppTheme.SUBTITLE);
+        t.setForeground(AppTheme.TEXT);
+        card.add(t, BorderLayout.NORTH);
+        card.add(chart, BorderLayout.CENTER);
+        return card;
+    }
+
+    private JPanel createLiveTextCard(String title, int w, int h, boolean trendCard) {
+        JPanel p = AppTheme.cardPanel();
+        p.setPreferredSize(new Dimension(w, h));
+        p.setLayout(new BorderLayout(0, 8));
+        p.setBorder(new EmptyBorder(12, 15, 12, 15));
+
+        JLabel t = new JLabel(title, javax.swing.SwingConstants.CENTER);
+        t.setFont(AppTheme.SUBTITLE);
+        t.setForeground(AppTheme.TEXT);
+        p.add(t, BorderLayout.NORTH);
+
+        JTextArea area = new JTextArea();
+        area.setEditable(false);
+        area.setLineWrap(true);
+        area.setWrapStyleWord(true);
+        area.setFont(AppTheme.TEXT_FONT);
+        area.setBackground(new java.awt.Color(40, 45, 70));
+        area.setForeground(AppTheme.TEXT);
+        area.setBorder(new EmptyBorder(10, 10, 10, 10));
+
+        JScrollPane sc = new JScrollPane(area);
+        sc.setBorder(null);
+        sc.getViewport().setBackground(new java.awt.Color(40, 45, 70));
+        p.add(sc, BorderLayout.CENTER);
+
+        if (trendCard) trendTextArea = area;
+        return p;
+    }
+
+    private void updateInsights(
+            java.util.List<com.cybertraining.model.Result> filteredResults,
+            java.util.Map<Integer, Integer> latestScore,
+            java.util.Map<Integer, Long> latestTs,
+            java.util.Map<Integer, Integer> attempts,
+            java.util.Map<String, Integer> distribution) {
+
+        if (trendTextArea == null) return;
+
+        Integer selectedEmployeeId = getSelectedEmployeeId();
+        if (selectedEmployeeId != null) {
+            com.cybertraining.model.User user = db.getUserById(selectedEmployeeId);
+            String userName = user != null ? user.getName() : "עובד";
+            int latest = latestScore.getOrDefault(selectedEmployeeId, 0);
+            int tries = attempts.getOrDefault(selectedEmployeeId, 0);
+
+            java.util.List<com.cybertraining.model.Result> personal = new java.util.ArrayList<>();
+            for (com.cybertraining.model.Result r : filteredResults) {
+                com.cybertraining.model.User ru = r.getUser();
+                if (ru != null && ru.getId() == selectedEmployeeId) personal.add(r);
+            }
+            personal.sort((a, b) -> Long.compare(b.getTimestamp(), a.getTimestamp()));
+
+            int avg = 0;
+            if (!personal.isEmpty()) {
+                int sum = 0;
+                for (com.cybertraining.model.Result r : personal) sum += r.getScore();
+                avg = Math.round((float) sum / personal.size());
+            }
+
+            String pass = latest >= 70 ? "עובר" : "לא עובר";
+            String rec = latest < 70 ? "לשנן את החומר (דחוף)" : (latest < 90 ? "לשנן את החומר" : "אין צורך");
+            String trend = "יציב";
+            if (personal.size() >= 2) {
+                int d = personal.get(0).getScore() - personal.get(1).getScore();
+                if (d > 0) trend = "במגמת שיפור (" + (d >= 0 ? "+" : "") + d + ")";
+                else if (d < 0) trend = "במגמת ירידה (" + d + ")";
+            }
+
+            long lastTs = latestTs.getOrDefault(selectedEmployeeId, 0L);
+            String lastTime = lastTs <= 0 ? "-" : new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(new java.util.Date(normalizeTimestampToMillis(lastTs)));
+
+            trendTextArea.setText(
+                "עובד: " + userName + "\n"
+                + "ציון אחרון: " + latest + "\n"
+                + "סטטוס מעבר (70): " + pass + "\n"
+                + "המלצה: " + rec + "\n"
+                + "ממוצע אישי בטווח: " + avg + "\n"
+                + "מס' ניסיונות: " + tries + "\n"
+                + "מגמה: " + trend + "\n"
+                + "ניסיון אחרון: " + lastTime
+            );
+
+            return;
+        }
+
+        int totalResults = filteredResults.size();
+        int passCount = 0;
+        int lowCount = 0;
+        int sum = 0;
+        for (Integer s : latestScore.values()) {
+            sum += s;
+            if (s >= 70) passCount++;
+            if (s < 70) lowCount++;
+        }
+        int activeEmployees = latestScore.size();
+        int avg = activeEmployees == 0 ? 0 : Math.round((float) sum / activeEmployees);
+        int passRate = activeEmployees == 0 ? 0 : Math.round((passCount * 100f) / activeEmployees);
+
+        Integer highBand = distribution.getOrDefault("85-100", 0);
+        Integer midBand = distribution.getOrDefault("70-84", 0);
+
+        trendTextArea.setText(
+            "תוצאות בטווח המסונן: " + totalResults + "\n"
+            + "עובדים פעילים: " + activeEmployees + "\n"
+            + "ממוצע ציון אחרון: " + avg + "\n"
+            + "אחוז מעבר (70): " + passRate + "%\n"
+            + "מתחת ל-70: " + lowCount + " עובדים\n"
+            + "85-100: " + highBand + " תוצאות | 70-84: " + midBand + " תוצאות"
+        );
+
+        // strengths/weaknesses section removed from this screen per request
     }
 
     private JPanel dashboardCard(String title, String mainValue, String colorHex) {
@@ -438,32 +773,5 @@ public class ManagerDashboardFrame extends JFrame {
         return p;
     }
 
-    private JPanel chartPlaceholder(String title, int w, int h) {
-        JPanel p = AppTheme.cardPanel();
-        p.setPreferredSize(new Dimension(w, h));
-        p.setLayout(new BoxLayout(p, BoxLayout.Y_AXIS));
-        p.setBorder(new EmptyBorder(12, 15, 12, 15));
 
-        JLabel t = new JLabel(title);
-        t.setFont(AppTheme.SUBTITLE);
-        t.setForeground(AppTheme.TEXT);
-        t.setAlignmentX(Component.CENTER_ALIGNMENT);
-        p.add(t);
-        p.add(Box.createVerticalStrut(8));
-
-        JPanel box = new JPanel();
-        box.setBackground(new java.awt.Color(40, 45, 70));
-        box.setPreferredSize(new Dimension(w - 30, h - 50));
-        box.setMaximumSize(new Dimension(w - 30, h - 50));
-
-        JLabel placeholder = new JLabel("בקרוב...");
-        placeholder.setForeground(AppTheme.MUTED);
-        placeholder.setFont(AppTheme.TEXT_FONT);
-        box.add(placeholder);
-
-        p.add(box);
-        return p;
-    }
-
-    
 }

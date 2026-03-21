@@ -160,8 +160,13 @@ public class AppTheme {
     public static void applyFrameSettings(javax.swing.JFrame frame, String title, int width, int height) {
         frame.setTitle(title);
         frame.setSize(width, height);
+        frame.setMinimumSize(new Dimension(width, height));
         frame.setLocationRelativeTo(null);
         frame.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
+        try {
+            frame.setExtendedState(javax.swing.JFrame.MAXIMIZED_BOTH);
+        } catch (Exception ignored) {
+        }
     }
 
     public static void applyDefaultFrame(javax.swing.JFrame frame, String title) {

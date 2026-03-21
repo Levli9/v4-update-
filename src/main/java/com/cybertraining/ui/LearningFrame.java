@@ -514,23 +514,19 @@ public class LearningFrame extends JFrame {
             return;
         }
 
-        // Resolve video path to a file:// URI
-        java.io.File videoFile;
-        String videoUri = vid;
-        if (!vid.startsWith("file:") && !vid.startsWith("http")) {
-            videoFile = new java.io.File(vid);
-            if (!videoFile.isAbsolute()) {
-                videoFile = new java.io.File(System.getProperty("user.dir"), vid);
-            }
-            videoUri = videoFile.toURI().toString();
-        } else {
-            videoFile = new java.io.File(vid);
+        String videoUri = resolveVideoUri(vid);
+        if (videoUri == null) {
+            System.err.println("Video file not found: " + vid);
+            return;
         }
 
         // Load subtitle entries from .he.srt file
         java.util.List<double[]> subTimes = new java.util.ArrayList<>();
         java.util.List<String> subTexts = new java.util.ArrayList<>();
-        loadSubtitles(videoFile.getAbsolutePath(), subTimes, subTexts);
+        String subtitleBasePath = toLocalPath(videoUri);
+        if (subtitleBasePath != null) {
+            loadSubtitles(subtitleBasePath, subTimes, subTexts);
+        }
 
         javafx.embed.swing.JFXPanel fxPanel = new javafx.embed.swing.JFXPanel();
         currentFxPanel = fxPanel;
@@ -540,6 +536,7 @@ public class LearningFrame extends JFrame {
         javafx.application.Platform.runLater(() -> {
             try {
                 javafx.scene.media.Media media = new javafx.scene.media.Media(finalUri);
+                media.setOnError(() -> System.err.println("Media error: " + media.getError()));
                 javafx.scene.media.MediaPlayer player = new javafx.scene.media.MediaPlayer(media);
                 activeMediaPlayer = player;
                 javafx.scene.media.MediaView mediaView = new javafx.scene.media.MediaView(player);
@@ -642,6 +639,15 @@ public class LearningFrame extends JFrame {
                     System.err.println("MediaPlayer error: " + player.getError());
                 });
 
+                player.setOnReady(() -> {
+                    try {
+                        player.play();
+                        playPauseBtn.setText("⏸ השהה");
+                    } catch (Exception ex) {
+                        ex.printStackTrace();
+                    }
+                });
+
                 // Enable finish button when video ends
                 player.setOnEndOfMedia(() -> {
                     javax.swing.SwingUtilities.invokeLater(() -> {
@@ -649,9 +655,6 @@ public class LearningFrame extends JFrame {
                         exam.setToolTipText(null);
                     });
                 });
-
-                // Auto-play the video
-                player.setAutoPlay(true);
             } catch (Exception ex) {
                 ex.printStackTrace();
             }
@@ -660,6 +663,42 @@ public class LearningFrame extends JFrame {
         videoContainer.setVisible(true);
         videoContainer.revalidate();
         videoContainer.repaint();
+    }
+
+    private String resolveVideoUri(String vid) {
+        try {
+            if (vid.startsWith("http://") || vid.startsWith("https://") || vid.startsWith("file:")) {
+                return vid;
+            }
+
+            java.nio.file.Path direct = java.nio.file.Paths.get(vid).toAbsolutePath().normalize();
+            if (java.nio.file.Files.exists(direct)) {
+                return direct.toUri().toString();
+            }
+
+            java.nio.file.Path fromUserDir = java.nio.file.Paths.get(System.getProperty("user.dir"), vid)
+                    .toAbsolutePath().normalize();
+            if (java.nio.file.Files.exists(fromUserDir)) {
+                return fromUserDir.toUri().toString();
+            }
+
+            java.net.URL resourceUrl = getClass().getClassLoader().getResource(vid);
+            if (resourceUrl != null) {
+                return resourceUrl.toExternalForm();
+            }
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+        return null;
+    }
+
+    private String toLocalPath(String uri) {
+        try {
+            if (uri == null || !uri.startsWith("file:")) return null;
+            return java.nio.file.Paths.get(java.net.URI.create(uri)).toFile().getAbsolutePath();
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
     /** Loads subtitle entries from a .he.srt file matching the video path */

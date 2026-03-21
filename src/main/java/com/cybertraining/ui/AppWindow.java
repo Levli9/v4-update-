@@ -30,6 +30,10 @@ public class AppWindow {
         f.setContentPane(content);
         f.revalidate();
         f.repaint();
+        try {
+            f.setExtendedState(JFrame.MAXIMIZED_BOTH);
+        } catch (Exception ignored) {
+        }
         if (!f.isVisible()) {
             f.setVisible(true);
         }

@@ -234,7 +234,8 @@ public class PasswordRecoveryFrame extends JFrame {
                 try {
                     expectedRecoveryCode = get(); // Store the code for verification
                     JOptionPane.showMessageDialog(PasswordRecoveryFrame.this,
-                        "קוד האימות נשלח לאימייל שלך או הודפס לקונסול.",
+                        "קוד האימות נשלח למייל בהצלחה.\n"
+                            + "בדוק את תיבת הדואר הנכנס (וגם ספאם).",
                         "קוד נשלח", JOptionPane.INFORMATION_MESSAGE);
                     codePanel.setVisible(true);
                     passwordPanel.setVisible(false);
@@ -244,8 +245,15 @@ public class PasswordRecoveryFrame extends JFrame {
                     revalidate();
                     repaint();
                 } catch (Exception ex) {
+                    Throwable root = ex;
+                    while (root.getCause() != null) root = root.getCause();
+                    String msg = root.getMessage() != null ? root.getMessage() : "אירעה שגיאה בשליחת קוד האימות.";
+                    if (msg.contains("BREVO_API_KEY")) {
+                        msg = "שליחת אימייל לא זמינה כרגע (BREVO_API_KEY לא מוגדר).\n"
+                                + "יש להגדיר מפתח Brevo בסביבת ההרצה ואז לנסות שוב.";
+                    }
                     JOptionPane.showMessageDialog(PasswordRecoveryFrame.this,
-                        ex.getMessage(), "שגיאה", JOptionPane.ERROR_MESSAGE);
+                        msg, "שגיאה", JOptionPane.ERROR_MESSAGE);
                 }
             }
         };

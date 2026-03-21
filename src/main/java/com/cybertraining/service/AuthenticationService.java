@@ -16,10 +16,30 @@ import brevoModel.SendSmtpEmailSender;
 import brevoModel.SendSmtpEmailTo;
 
 import java.util.Arrays;
+import java.util.Base64;
+import java.util.Properties;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.charset.StandardCharsets;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
 
 public class AuthenticationService {
 
     private final DatabaseManager db;
+    private static final String BREVO_FILE_PATH = "data/brevo.properties";
+    private static final String BREVO_API_KEY_PROP = "BREVO_API_KEY";
+    private static final String BREVO_API_KEY_ENC_PROP = "BREVO_API_KEY_ENC";
+    private static final String BREVO_SECRET_ENV = "BREVO_CONFIG_SECRET";
+    private static final String ENC_PREFIX = "enc:";
+    private static final String DEFAULT_LOCAL_SECRET = "CyberTrainingSystemLocalSecret-v1";
 
     public AuthenticationService(DatabaseManager db) {
         this.db = db;
@@ -77,10 +97,17 @@ public class AuthenticationService {
         return recoveryCode; // For testing - in production, don't return this
     }
 
+    public boolean isEmailDeliveryConfigured() {
+        return resolveBrevoApiKey() != null;
+    }
+
     public boolean resetPassword(String email, String recoveryCode, String newPassword) {
-        User user = db.getUserByEmail(email);
-        if (user == null) {
-            return false;
+        if (email == null || email.trim().isEmpty()) {
+            throw new IllegalArgumentException("יש להזין כתובת אימייל");
+        }
+
+        if (recoveryCode == null || recoveryCode.trim().isEmpty()) {
+            throw new IllegalArgumentException("יש להזין קוד אימות");
         }
 
         // Validate password strength
@@ -91,15 +118,16 @@ public class AuthenticationService {
         // In a real application, verify the recovery code from storage
         // For now, we'll assume the code is valid if provided
 
-        // String hashed = BCrypt.hashpw(newPassword, BCrypt.gensalt(12));
         String hashed = BCrypt.hashpw(newPassword, BCrypt.gensalt(12));
-        return db.updateUserPassword(user.getId(), hashed);
+        return db.updatePasswordByEmail(email.trim(), hashed);
     }
 
     private void sendRecoveryEmail(String email, String recoveryCode) {
-        String apiKey = System.getenv("BREVO_API_KEY");
+        String apiKey = resolveBrevoApiKey();
         if (apiKey == null || apiKey.trim().isEmpty()) {
-            throw new RuntimeException("מפתח API של Brevo לא מוגדר. לא ניתן לשלוח אימייל.");
+            throw new RuntimeException("שליחת אימייל לא זמינה כרגע (BREVO_API_KEY לא מוגדר).\n"
+                    + "יש להגדיר מפתח Brevo במשתנה סביבה BREVO_API_KEY\n"
+                    + "או בקובץ data/brevo.properties");
         }
 
         System.out.println("🔄 Starting email send process for: " + email);
@@ -134,8 +162,104 @@ public class AuthenticationService {
             System.err.println("❌ שגיאה בשליחת אימייל: " + e.getMessage());
             System.err.println("❌ Exception type: " + e.getClass().getName());
             e.printStackTrace();
-            throw new RuntimeException("שליחת האימייל נכשלה: " + e.getMessage());
+            throw new RuntimeException("שליחת האימייל נכשלה. נסה שוב מאוחר יותר.");
         }
+    }
+
+    private String resolveBrevoApiKey() {
+        String fromEnv = System.getenv(BREVO_API_KEY_PROP);
+        if (fromEnv != null && !fromEnv.trim().isEmpty()) return fromEnv.trim();
+
+        String fromProp = System.getProperty(BREVO_API_KEY_PROP);
+        if (fromProp != null && !fromProp.trim().isEmpty()) return fromProp.trim();
+
+        try {
+            Path p = Paths.get(BREVO_FILE_PATH);
+            if (Files.exists(p)) {
+                Properties props = new Properties();
+                try (InputStream in = Files.newInputStream(p)) {
+                    props.load(in);
+                }
+
+                String encFromFile = props.getProperty(BREVO_API_KEY_ENC_PROP);
+                if (encFromFile != null && !encFromFile.trim().isEmpty()) {
+                    return decryptApiKey(encFromFile.trim());
+                }
+
+                String plainFromFile = props.getProperty(BREVO_API_KEY_PROP);
+                if (plainFromFile != null && !plainFromFile.trim().isEmpty()) {
+                    String plain = plainFromFile.trim();
+                    migratePlainKeyToEncryptedFile(p, props, plain);
+                    return plain;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+
+        return null;
+    }
+
+    private void migratePlainKeyToEncryptedFile(Path filePath, Properties props, String plainApiKey) {
+        try {
+            String encrypted = encryptApiKey(plainApiKey);
+            props.remove(BREVO_API_KEY_PROP);
+            props.setProperty(BREVO_API_KEY_ENC_PROP, encrypted);
+            try (OutputStream out = Files.newOutputStream(filePath)) {
+                props.store(out, "Brevo local configuration (encrypted)");
+            }
+            System.out.println("🔐 BREVO_API_KEY migrated to encrypted format in " + BREVO_FILE_PATH);
+        } catch (Exception ex) {
+            System.err.println("⚠️ Could not auto-migrate Brevo key to encrypted format: " + ex.getMessage());
+        }
+    }
+
+    private String encryptApiKey(String plainText) throws Exception {
+        byte[] key = deriveAesKey(getConfigSecret());
+        byte[] iv = new byte[12];
+        new SecureRandom().nextBytes(iv);
+
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(128, iv));
+        byte[] encrypted = cipher.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
+
+        byte[] payload = new byte[iv.length + encrypted.length];
+        System.arraycopy(iv, 0, payload, 0, iv.length);
+        System.arraycopy(encrypted, 0, payload, iv.length, encrypted.length);
+        return ENC_PREFIX + Base64.getEncoder().encodeToString(payload);
+    }
+
+    private String decryptApiKey(String encodedValue) throws Exception {
+        String value = encodedValue.startsWith(ENC_PREFIX) ? encodedValue.substring(ENC_PREFIX.length()) : encodedValue;
+        byte[] payload = Base64.getDecoder().decode(value);
+        if (payload.length <= 12) {
+            throw new IllegalArgumentException("Encrypted Brevo key payload is invalid");
+        }
+
+        byte[] iv = Arrays.copyOfRange(payload, 0, 12);
+        byte[] encrypted = Arrays.copyOfRange(payload, 12, payload.length);
+
+        byte[] key = deriveAesKey(getConfigSecret());
+        Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
+        cipher.init(Cipher.DECRYPT_MODE, new SecretKeySpec(key, "AES"), new GCMParameterSpec(128, iv));
+        byte[] decrypted = cipher.doFinal(encrypted);
+        return new String(decrypted, StandardCharsets.UTF_8);
+    }
+
+    private byte[] deriveAesKey(String secret) throws Exception {
+        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        return digest.digest(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private String getConfigSecret() {
+        String fromEnv = System.getenv(BREVO_SECRET_ENV);
+        if (fromEnv != null && !fromEnv.trim().isEmpty()) {
+            return fromEnv.trim();
+        }
+        String fromProp = System.getProperty(BREVO_SECRET_ENV);
+        if (fromProp != null && !fromProp.trim().isEmpty()) {
+            return fromProp.trim();
+        }
+        return DEFAULT_LOCAL_SECRET;
     }
 
     // BrevoClient class (similar to JavaScript BrevoClient)
