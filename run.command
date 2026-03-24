@@ -37,10 +37,6 @@ if ! command -v mvn &> /dev/null; then
 
     echo "🚀 מפעיל את האפליקציה..."
     
-    # בדיקת מפתח Brevo API
-    export BREVO_API_KEY="YOUR_BREVO_API_KEY_HERE"
-    echo "✅ מפתח Brevo API הוגדר"
-    
     java -cp target/classes:src/main/resources:sqlite-jdbc-3.42.0.0.jar:jbcrypt-0.4.jar:sib-api-v3-sdk-5.0.0.jar:gson-2.10.1.jar:okhttp-2.7.5.jar:okio-1.6.0.jar:slf4j-api.jar:slf4j-simple.jar:threetenbp-1.4.4.jar:gsonfire-1.8.5.jar:lib/javafx-sdk-17.0.2/lib/* com.cybertraining.Main
 else
     echo "✅ Java ו-Maven נמצאו"

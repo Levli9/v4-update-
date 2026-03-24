@@ -19,6 +19,7 @@ import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JRadioButton;
 import javax.swing.SwingConstants;
 
@@ -35,6 +36,7 @@ public class QuizFrame extends JFrame {
     private long quizStartMs;
     private javax.swing.Timer uiTimer;
     private JLabel timerLabel;
+    private JProgressBar progressBar;
 
     private JLabel title;
     private JLabel categoryLabel;
@@ -81,6 +83,16 @@ public class QuizFrame extends JFrame {
         title.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         title.setHorizontalAlignment(SwingConstants.CENTER);
+
+        progressBar = new JProgressBar(0, Math.max(quiz.getTotalQuestions(), 1));
+        progressBar.setValue(0);
+        progressBar.setStringPainted(false);
+        progressBar.setForeground(AppTheme.ACCENT);
+        progressBar.setBackground(new Color(236, 242, 248));
+        progressBar.setBorder(BorderFactory.createEmptyBorder());
+        progressBar.setPreferredSize(new Dimension(500, 8));
+        progressBar.setMaximumSize(new Dimension(500, 8));
+        progressBar.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         categoryLabel = new JLabel();
         categoryLabel.setFont(new Font("Avenir Next", Font.BOLD, 14));
@@ -170,6 +182,18 @@ public class QuizFrame extends JFrame {
         actionsPanel.add(finishButton);
         actionsPanel.add(nextButton);
 
+        JPanel progressFrame = new RoundedPanel(AppTheme.CARD, 18, 0);
+        progressFrame.setOpaque(false);
+        progressFrame.setLayout(new BoxLayout(progressFrame, BoxLayout.Y_AXIS));
+        progressFrame.setBorder(BorderFactory.createCompoundBorder(
+            new RoundedBorder(18, AppTheme.BORDER, 1),
+            BorderFactory.createEmptyBorder(8, 14, 8, 14)
+        ));
+        progressFrame.setAlignmentX(Component.CENTER_ALIGNMENT);
+        progressFrame.setMaximumSize(new Dimension(590, 40));
+
+        progressFrame.add(progressBar);
+
         card.add(Box.createVerticalStrut(10));
         card.add(title);
         card.add(Box.createVerticalStrut(15));
@@ -198,7 +222,9 @@ public class QuizFrame extends JFrame {
 
         card.add(Box.createVerticalStrut(10));
         card.add(timerLabel);
-        card.add(Box.createVerticalStrut(15));
+        card.add(Box.createVerticalStrut(14));
+        card.add(progressFrame);
+        card.add(Box.createVerticalStrut(10));
 
         centerPanel.add(card);
         bg.add(centerPanel, BorderLayout.CENTER);
@@ -214,6 +240,7 @@ public class QuizFrame extends JFrame {
     private void loadQuestion(){
         Question q = quiz.getCurrentQuestion();
         title.setText("שאלה " + (quiz.getCurrentIndex() + 1) + " מתוך " + quiz.getTotalQuestions());
+        updateProgress();
         
         String cat = q.getCategory() != null ? q.getCategory() : "כללי";
         categoryLabel.setText("קטגוריה: " + cat);
@@ -313,6 +340,14 @@ public class QuizFrame extends JFrame {
         long mins = (s % 3600) / 60;
         long secs = s % 60;
         timerLabel.setText(String.format("זמן: %02d:%02d:%02d", hrs, mins, secs));
+    }
+
+    private void updateProgress() {
+        int total = Math.max(quiz.getTotalQuestions(), 1);
+        int current = Math.min(quiz.getCurrentIndex() + 1, total);
+
+        progressBar.setMaximum(total);
+        progressBar.setValue(current);
     }
 
 }

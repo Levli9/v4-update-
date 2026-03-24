@@ -6,9 +6,6 @@
 
 echo "🚀 מפעיל את מערכת ההדרכה לאבטחת מידע..."
 
-# הגדרת API key
-export BREVO_API_KEY="YOUR_BREVO_API_KEY_HERE"
-
 # בדיקה אם יש Maven
 if command -v mvn &> /dev/null; then
     echo "✅ Maven נמצא - משתמש ב-Maven"

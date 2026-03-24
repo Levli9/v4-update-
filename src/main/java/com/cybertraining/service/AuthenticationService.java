@@ -2,6 +2,22 @@ package com.cybertraining.service;
 
 // import org.mindrot.jbcrypt.BCrypt; // Temporarily disabled
 
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.SecureRandom;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Properties;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.GCMParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+
 import org.mindrot.jbcrypt.BCrypt;
 
 import com.cybertraining.db.DatabaseManager;
@@ -14,22 +30,6 @@ import brevoApi.TransactionalEmailsApi;
 import brevoModel.SendSmtpEmail;
 import brevoModel.SendSmtpEmailSender;
 import brevoModel.SendSmtpEmailTo;
-
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Properties;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.charset.StandardCharsets;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.security.MessageDigest;
-import java.security.SecureRandom;
-
-import javax.crypto.Cipher;
-import javax.crypto.spec.GCMParameterSpec;
-import javax.crypto.spec.SecretKeySpec;
 
 public class AuthenticationService {
 
@@ -167,11 +167,11 @@ public class AuthenticationService {
     }
 
     private String resolveBrevoApiKey() {
-        String fromEnv = System.getenv(BREVO_API_KEY_PROP);
-        if (fromEnv != null && !fromEnv.trim().isEmpty()) return fromEnv.trim();
+        String fromEnv = sanitizeApiKeyCandidate(System.getenv(BREVO_API_KEY_PROP));
+        if (fromEnv != null) return fromEnv;
 
-        String fromProp = System.getProperty(BREVO_API_KEY_PROP);
-        if (fromProp != null && !fromProp.trim().isEmpty()) return fromProp.trim();
+        String fromProp = sanitizeApiKeyCandidate(System.getProperty(BREVO_API_KEY_PROP));
+        if (fromProp != null) return fromProp;
 
         try {
             Path p = Paths.get(BREVO_FILE_PATH);
@@ -186,9 +186,9 @@ public class AuthenticationService {
                     return decryptApiKey(encFromFile.trim());
                 }
 
-                String plainFromFile = props.getProperty(BREVO_API_KEY_PROP);
-                if (plainFromFile != null && !plainFromFile.trim().isEmpty()) {
-                    String plain = plainFromFile.trim();
+                String plainFromFile = sanitizeApiKeyCandidate(props.getProperty(BREVO_API_KEY_PROP));
+                if (plainFromFile != null) {
+                    String plain = plainFromFile;
                     migratePlainKeyToEncryptedFile(p, props, plain);
                     return plain;
                 }
@@ -197,6 +197,18 @@ public class AuthenticationService {
         }
 
         return null;
+    }
+
+    private String sanitizeApiKeyCandidate(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        if (trimmed.isEmpty()) return null;
+
+        String upper = trimmed.toUpperCase();
+        if (upper.contains("YOUR_BREVO_API_KEY") || upper.contains("PLACEHOLDER") || upper.equals("CHANGEME")) {
+            return null;
+        }
+        return trimmed;
     }
 
     private void migratePlainKeyToEncryptedFile(Path filePath, Properties props, String plainApiKey) {
