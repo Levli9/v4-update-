@@ -34,6 +34,8 @@ import java.util.function.Consumer;
 import javax.imageio.ImageIO;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
 
 public class LLMService {
 
@@ -84,10 +86,31 @@ public class LLMService {
 		return sb.toString();
 	}
 
+	public String generateStructuredContent(String userPrompt) throws Exception {
+		String prompt = sanitizePrompt(userPrompt);
+		if (prompt.length() < 2) {
+			throw new IllegalArgumentException("יש להזין נושא ברור.");
+		}
+
+		if (apiKey == null) {
+			throw new IllegalStateException("אין חיבור ל-AI: חסר GROQ_API_KEY.");
+		}
+
+		TopicValidation validation = requestTopicValidation(prompt);
+		if (validation == null || !validation.isValid) {
+			String reason = (validation == null || validation.reasonHe == null || validation.reasonHe.isBlank())
+					? "הקלט לא נראה כמו נושא ברור."
+					: validation.reasonHe;
+			throw new IllegalArgumentException(reason);
+		}
+
+		return requestStructuredContent(prompt);
+	}
+
 	public GeneratedTrainingContent generateCustomTrainingContent(String userPrompt) throws Exception {
 		String prompt = sanitizePrompt(userPrompt);
 		if (prompt.length() < 12) {
-			String fallbackPrompt = prompt.isBlank() ? "הדרכת סייבר כללית לעובדים" : prompt;
+			String fallbackPrompt = prompt.isBlank() ? "הדרכה כללית לעובדים" : prompt;
 			return buildFallbackContent(fallbackPrompt);
 		}
 
@@ -157,19 +180,25 @@ public class LLMService {
 	}
 
 	private String requestStructuredContent(String prompt) throws Exception {
-		String systemPrompt = "You create cybersecurity awareness training in Hebrew for employees. "
-				+ "Return STRICT JSON only with this schema: "
-				+ "{\"courseTitle\":string,\"targetDurationSeconds\":number,\"slides\":[{\"title\":string,\"summary\":string,\"bullets\":[string],\"narration\":string}]}. "
-				+ "Generate 6 slides, each with 4-6 bullets. Duration must be close to 300 seconds.";
+		String systemPrompt = "אתה יוצר תוכן לימודי מקצועי בעברית תקינה בלבד. "
+				+ "התשובה חייבת להיות JSON בלבד ללא טקסט נוסף. "
+				+ "הטקסט חייב להיות בעברית תקנית וברורה, ללא שגיאות כתיב, עם ניסוח מקצועי אך פשוט להבנה. "
+				+ "כתוב משפטים קצרים, סימני פיסוק תקינים, והסברים חינוכיים ברורים. "
+				+ "החזר אך ורק JSON תקין בדיוק לפי הסכמה הבאה: "
+				+ "{\"courseTitle\":\"\",\"introduction\":\"\",\"sections\":[{\"title\":\"\",\"slides\":[{\"title\":\"\",\"content\":\"\",\"bullets\":[],\"summary\":\"\",\"speakerNotes\":\"\"}]}],\"quiz\":[{\"question\":\"\",\"options\":[\"א\",\"ב\",\"ג\",\"ד\"],\"correctAnswer\":\"\",\"explanation\":\"\"}]}. "
+				+ "נדרש להפיק בדיוק 5 שקפים בסך הכל ו-5 שאלות בשאלון. "
+				+ "לכל שקף חובה: כותרת, פסקת הסבר קצרה, 3-5 נקודות bullets, סיכום קצר, והערות speakerNotes אופציונליות. "
+				+ "לכל שאלה חובה: 4 אפשרויות, correctAnswer שחייב להיות אחת מהאפשרויות, והסבר קצר.";
 
 		Map<String, Object> body = new LinkedHashMap<>();
 		body.put("model", model);
-		body.put("temperature", 0.7);
+		body.put("temperature", 0.3);
 		body.put("max_tokens", 2200);
+		body.put("response_format", Map.of("type", "json_object"));
 
 		List<Map<String, String>> messages = new ArrayList<>();
 		messages.add(Map.of("role", "system", "content", systemPrompt));
-		messages.add(Map.of("role", "user", "content", "Organization request: " + prompt));
+		messages.add(Map.of("role", "user", "content", "נושא: " + prompt + "\nהחזר JSON בלבד."));
 		body.put("messages", messages);
 
 		HttpRequest request = HttpRequest.newBuilder(URI.create(GROQ_API_URL))
@@ -193,7 +222,70 @@ public class LLMService {
 			throw new IOException("Groq response did not include message content");
 		}
 
-		return chatResponse.choices.get(0).message.content;
+		String content = chatResponse.choices.get(0).message.content;
+		ensureStrictJsonObject(content);
+		return content;
+	}
+
+	private TopicValidation requestTopicValidation(String topic) throws Exception {
+		String systemPrompt = "You validate whether a user input is a meaningful topic for educational content. "
+				+ "Return STRICT JSON only in this schema: {\"isValid\":boolean,\"reasonHe\":string}. "
+				+ "If input is gibberish, random characters, keyboard smash, or not a clear topic - set isValid=false with a short Hebrew reason. "
+				+ "If input is a valid topic - set isValid=true and reasonHe='תקין'.";
+
+		Map<String, Object> body = new LinkedHashMap<>();
+		body.put("model", model);
+		body.put("temperature", 0.0);
+		body.put("max_tokens", 180);
+
+		List<Map<String, String>> messages = new ArrayList<>();
+		messages.add(Map.of("role", "system", "content", systemPrompt));
+		messages.add(Map.of("role", "user", "content", "בדוק אם זה נושא תקין: " + topic));
+		body.put("messages", messages);
+
+		HttpRequest request = HttpRequest.newBuilder(URI.create(GROQ_API_URL))
+				.timeout(Duration.ofSeconds(60))
+				.header("Authorization", "Bearer " + apiKey)
+				.header("Content-Type", "application/json")
+				.POST(HttpRequest.BodyPublishers.ofString(GSON.toJson(body), StandardCharsets.UTF_8))
+				.build();
+
+		HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
+		if (response.statusCode() < 200 || response.statusCode() >= 300) {
+			throw new IOException("Groq validation failed: HTTP " + response.statusCode());
+		}
+
+		GroqChatResponse chatResponse = GSON.fromJson(response.body(), GroqChatResponse.class);
+		if (chatResponse == null
+				|| chatResponse.choices == null
+				|| chatResponse.choices.isEmpty()
+				|| chatResponse.choices.get(0).message == null
+				|| chatResponse.choices.get(0).message.content == null) {
+			throw new IOException("Groq validation response missing content");
+		}
+
+		String json = safeJsonFromModelOutput(chatResponse.choices.get(0).message.content);
+		TopicValidation validation = GSON.fromJson(json, TopicValidation.class);
+		if (validation == null) {
+			throw new IOException("Could not parse topic validation response");
+		}
+		return validation;
+	}
+
+	private void ensureStrictJsonObject(String content) throws IOException {
+		if (content == null) {
+			throw new IOException("Model returned empty response");
+		}
+
+		String trimmed = content.trim();
+		if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+			throw new IOException("Model returned non-JSON wrapper text");
+		}
+
+		JsonElement parsed = JsonParser.parseString(trimmed);
+		if (parsed == null || !parsed.isJsonObject()) {
+			throw new IOException("Model returned invalid JSON object");
+		}
 	}
 
 	private StructuredPayload parseStructuredPayload(String modelContent) {
@@ -216,8 +308,7 @@ public class LLMService {
 			List<String> bullets = (s.bullets == null || s.bullets.isEmpty())
 					? List.of("זיהוי דפוסי תקיפה", "יישום נהלי דיווח ברורים")
 					: sanitizeBullets(s.bullets);
-			String narration = safe(s.narration, summary);
-			slides.add(new TrainingSlide(slideTitle, summary, bullets, narration));
+			slides.add(new TrainingSlide(slideTitle, summary, bullets));
 		}
 
 		if (slides.isEmpty()) {
@@ -399,74 +490,68 @@ public class LLMService {
 
 		List<TrainingSlide> slides = new ArrayList<>();
 		slides.add(new TrainingSlide(
-				"תמונת איומים ארגונית",
-				"מבט ממוקד על סיכוני הסייבר הרלוונטיים לארגון שלך",
+				"מבוא לנושא",
+				"מבט ממוקד על הנושא וההקשר שביקשת",
 				List.of(
-						"מיפוי נכסים קריטיים ומערכות עם השפעה עסקית",
-						"זיהוי תוקפים אפשריים ומטרות תקיפה סבירות",
-						"בחינת פערי הגנה קיימים ומוכנות לדיווח",
-						"תיעדוף בקרות לצמצום סיכון מיידי"
-				),
-				"פתיחה בהקשר עסקי ברור והסבר מדוע ההדרכה נחוצה עכשיו."
+						"הגדרת המטרה של ההדרכה",
+						"זיהוי הקהל וההקשר הארגוני",
+						"בחירת דוגמאות רלוונטיות",
+						"בנייה של מסר ברור ומעשי"
+				)
 		));
 		slides.add(new TrainingSlide(
-				"התנהגויות מסוכנות שיש להפסיק",
-				"דוגמאות פרקטיות מתהליכי עבודה יומיומיים",
+				"דוגמאות מעשיות",
+				"דוגמאות שמתאימות לנושא ולארגון",
 				List.of(
-						"לחיצה על קישורים דחופים משולחים לא מוכרים",
-						"שיתוף סיסמאות בין כלים ארגוניים",
-						"שמירת קבצי חברה באחסון פרטי לא מנוהל",
-						"התעלמות מהתראות התחברות חריגות"
-				),
-				"חיבור כל התנהגות מסוכנת לתרחיש תקיפה ממשי."
+						"תרחיש ראשון רלוונטי",
+						"תרחיש שני רלוונטי",
+						"תרחיש שלישי רלוונטי",
+						"מה כדאי לעשות בפועל"
+				)
 		));
 		slides.add(new TrainingSlide(
-				"פישינג והנדסה חברתית",
-				"איך לזהות ולחסום ניסיונות מניפולציה",
+				"העמקה בנושא",
+				"איך להציג את הנושא בצורה חכמה וברורה",
 				List.of(
-						"אימות זהות השולח בערוץ בלתי תלוי",
-						"בדיקת זיוף דומיין ואי-התאמות בקישורים",
-						"הסלמה של בקשות חשודות לפני ביצוע",
-						"שימוש מיידי בערוצי דיווח מאושרים"
-				),
-				"מעבר על תרחיש פישינג מציאותי משלב הקבלה ועד הדיווח."
+						"הסבר פשוט ולא טכני מדי",
+						"שימוש בשפה שמתאימה לקהל היעד",
+						"שמירה על דוגמאות קונקרטיות",
+						"חיזוק מסר מרכזי אחד בכל שקף"
+				)
 		));
 		slides.add(new TrainingSlide(
-				"גישה מאובטחת והיגיינת תחנות קצה",
-				"צמצום השתלטות על חשבונות ותנועה רוחבית",
+				"יישום בארגון",
+				"איך הנושא משתלב בעבודה היומיומית",
 				List.of(
-						"הפעלת MFA בכל מערכת רגישה",
-						"שימוש בסיסמאות מורכבות ומנהל סיסמאות",
-						"עדכונים שוטפים למערכת ההפעלה ולאפליקציות",
-						"נעילת תחנה והגנת סשנים מרוחקים"
-				),
-				"הסבר כיצד חולשות בגישה מובילות לאירועי אבטחה משמעותיים."
+						"התאמה לתהליכי העבודה",
+						"בחירת אחריות ברורה",
+						"הטמעה הדרגתית",
+						"מדידה ושיפור"
+				)
 		));
 		slides.add(new TrainingSlide(
-				"תגובה לאירוע סייבר לעובדים",
-				"מה עושים בדקות הקריטיות הראשונות",
+				"סיכום וצעדים הבאים",
+				"מה עושים אחרי הלמידה",
 				List.of(
-						"בידוד מערכות חשודות לפי הנחיות",
-						"שמירת ראיות והימנעות ממחיקת ממצאים",
-						"דיווח מדויק עם ציר זמן ואינדיקטורים",
-						"תיאום עם IT/SOC לפי נוהל הסלמה"
-				),
-				"חיזוק עקרונות מהירות, בהירות ומשמעת תהליכית בדיווח."
+						"יישום מיידי של תובנות",
+						"בדיקת פערים קיימים",
+						"יצירת מדדים להצלחה",
+						"קביעת תהליך שיפור מתמשך"
+				)
 		));
 		slides.add(new TrainingSlide(
-				"תוכנית פעולה לארגון",
-				"יעדי ההדרכה וצעדי המשך מיידיים",
+				"סיכום מעשי",
+				"מסר מסכם קצר וברור",
 				List.of(
-						"הרצת סימולציות פישינג חודשיות",
-						"מדידת אימוץ MFA וכיסוי עדכוני אבטחה",
-						"ביקורת הרשאות גבוהות ושיתוף חיצוני",
-						"תרגילי שולחן רבעוניים לאירועי סייבר"
-				),
-				"סגירה עם אחריות ביצוע, לוחות זמנים ומדדי הצלחה."
+						"מה נלמד",
+						"מה כדאי ליישם",
+						"מה לבדוק אחר כך",
+						"איך למדוד הצלחה"
+				)
 		));
 
 		return new GeneratedTrainingContent(
-				"תוכנית מודעות סייבר מותאמת",
+				"הדרכה מותאמת לנושא שביקשת",
 				promptSnippet,
 				slides,
 				DEFAULT_TARGET_VIDEO_SECONDS
@@ -773,13 +858,11 @@ public class LLMService {
 		private final String title;
 		private final String summary;
 		private final List<String> bullets;
-		private final String narration;
 
-		public TrainingSlide(String title, String summary, List<String> bullets, String narration) {
+		public TrainingSlide(String title, String summary, List<String> bullets) {
 			this.title = title;
 			this.summary = summary;
 			this.bullets = Collections.unmodifiableList(new ArrayList<>(bullets));
-			this.narration = narration;
 		}
 
 		public String getTitle() {
@@ -792,10 +875,6 @@ public class LLMService {
 
 		public List<String> getBullets() {
 			return bullets;
-		}
-
-		public String getNarration() {
-			return narration;
 		}
 	}
 
@@ -833,6 +912,10 @@ public class LLMService {
 		String title;
 		String summary;
 		List<String> bullets;
-		String narration;
+	}
+
+	private static class TopicValidation {
+		boolean isValid;
+		String reasonHe;
 	}
 }
