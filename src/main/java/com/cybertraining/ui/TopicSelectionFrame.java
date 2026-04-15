@@ -1,8 +1,27 @@
 package com.cybertraining.ui;
 
-import java.awt.*;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.ComponentOrientation;
+import java.awt.Cursor;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import java.awt.Graphics;
+import java.awt.GridLayout;
 import java.util.Set;
-import javax.swing.*;
+
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.border.EmptyBorder;
 
 import com.cybertraining.db.DatabaseManager;
@@ -93,6 +112,10 @@ public class TopicSelectionFrame extends JFrame {
             }
         } catch (Exception ignored) {}
 
+        JPanel promptPanel = createLearningPromptPanel();
+        promptPanel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        contentPanel.add(promptPanel);
+
         // Topic cards grid — wider with centered alignment
         JPanel topicsGrid = new JPanel(new GridLayout(0, 2, 20, 15));
         topicsGrid.setOpaque(false);
@@ -177,6 +200,90 @@ public class TopicSelectionFrame extends JFrame {
 
         bg.add(scroll, BorderLayout.CENTER);
         AppWindow.navigate(bg);
+    }
+
+    private JPanel createLearningPromptPanel() {
+        JPanel outer = new JPanel();
+        outer.setOpaque(false);
+        outer.setLayout(new BoxLayout(outer, BoxLayout.X_AXIS));
+        outer.setBorder(new EmptyBorder(8, 10, 8, 10));
+
+        JPanel card = new JPanel(new BorderLayout(12, 0));
+        card.setOpaque(true);
+        card.setBackground(AppTheme.CARD);
+        card.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        card.setMaximumSize(new Dimension(1000, 100));
+        card.setBorder(BorderFactory.createCompoundBorder(
+            new RoundedBorder(12, new Color(84, 160, 255)),
+            new EmptyBorder(14, 16, 14, 16)
+        ));
+
+        JLabel sideLabel = new JLabel("✨ למידה מותאמת");
+        sideLabel.setForeground(new Color(84, 160, 255));
+        sideLabel.setFont(AppTheme.TEXT_FONT.deriveFont(Font.BOLD, 14f));
+        sideLabel.setHorizontalAlignment(SwingConstants.RIGHT);
+        sideLabel.setPreferredSize(new Dimension(130, 36));
+
+        JTextField promptField = new JTextField() {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+            }
+        };
+        promptField.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
+        promptField.setHorizontalAlignment(JTextField.RIGHT);
+        promptField.setBackground(new Color(18, 16, 32));
+        promptField.setForeground(AppTheme.TEXT);
+        promptField.setCaretColor(AppTheme.ACCENT);
+        promptField.setSelectionColor(new Color(84, 160, 255));
+        promptField.setSelectedTextColor(Color.WHITE);
+        promptField.setFont(AppTheme.TEXT_FONT);
+        promptField.setBorder(BorderFactory.createCompoundBorder(
+            new RoundedBorder(16, new Color(72, 78, 96), 1),
+            new EmptyBorder(8, 12, 8, 12)
+        ));
+
+        JLabel status = new JLabel("הקלד פרומפט ולחץ על 'ייצר לי'.");
+        status.setForeground(AppTheme.MUTED);
+        status.setFont(AppTheme.TEXT_FONT.deriveFont(Font.PLAIN, 13f));
+        status.setHorizontalAlignment(SwingConstants.RIGHT);
+
+        JButton generateBtn = new AnimatedButton("ייצר לי", new Color(84, 160, 255), new Color(116, 184, 255), Color.WHITE);
+        generateBtn.setFont(AppTheme.TEXT_FONT.deriveFont(Font.BOLD, 13f));
+        generateBtn.setBorder(BorderFactory.createCompoundBorder(
+            new RoundedBorder(16, new Color(50, 120, 210), 1),
+            new EmptyBorder(8, 16, 8, 16)
+        ));
+
+        java.awt.event.ActionListener onGenerate = e -> {
+            String prompt = promptField.getText().trim();
+            if (prompt.isEmpty()) {
+                status.setText("יש להזין פרומפט לפני יצירה.");
+                status.setForeground(new Color(231, 76, 60));
+                return;
+            }
+            String preview = prompt.length() > 52 ? prompt.substring(0, 52) + "..." : prompt;
+            status.setText("הבקשה התקבלה: " + preview);
+            status.setForeground(new Color(46, 204, 113));
+        };
+
+        generateBtn.addActionListener(onGenerate);
+        promptField.addActionListener(onGenerate);
+
+        JPanel center = new JPanel(new BorderLayout(0, 6));
+        center.setOpaque(false);
+        center.add(promptField, BorderLayout.CENTER);
+        center.add(status, BorderLayout.SOUTH);
+
+        card.add(sideLabel, BorderLayout.EAST);
+        card.add(center, BorderLayout.CENTER);
+        card.add(generateBtn, BorderLayout.WEST);
+
+        outer.add(Box.createHorizontalGlue());
+        outer.add(card);
+        outer.add(Box.createHorizontalGlue());
+
+        return outer;
     }
 
     private JPanel createTopicCard(String emoji, String name, Color accent, boolean done, int number) {

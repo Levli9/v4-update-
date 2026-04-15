@@ -14,7 +14,7 @@ public class Main {
             DatabaseManager databaseManager = new DatabaseManager();
             AuthenticationService auth = new AuthenticationService(databaseManager);
 
-            // Check existing data
+            // Check existing data1
             System.out.println("Users in database: " + databaseManager.getUserCount());
             System.out.println("Results in database: " + databaseManager.getResults().size());
             System.out.println("Courses in database: " + databaseManager.getCourses().size());
