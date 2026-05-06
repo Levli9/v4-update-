@@ -1,0 +1,212 @@
+@startuml AAA_Imaging_Network
+' =========================================================
+' א.א.א. דימות בע"מ – שרטוט רשת
+' תרגיל מס. 1 – ניהול אבטחת מידע
+' =========================================================
+
+!define ICONURL https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/v2.4.0
+skinparam backgroundColor #F8F9FA
+skinparam defaultFontName Arial
+skinparam defaultFontSize 10
+skinparam ArrowColor #555555
+skinparam rectangleBorderColor #333333
+skinparam rectangleFontColor #1a1a1a
+skinparam noteBorderColor #999999
+skinparam noteBackgroundColor #FFFFF0
+
+title **א.א.א. דימות בע"מ – שרטוט רשת ארגונית**\n(מטה + 10 מכוני דימות + מעבדות דם + פתרון חיבור מרחוק ספק הולנדי)
+
+' ─────────────────────────────────────────
+' INTERNET + EXTERNAL ZONE
+' ─────────────────────────────────────────
+cloud "אינטרנט ציבורי" as INTERNET #LightBlue {
+  [לקוחות / חולים\n(דפדפן / אפליקציה)] as CLIENTS
+  [BI – SaaS\n(ענן)] as BI_SAAS
+  [EMAIL – SaaS\n(ענן / Office365)] as EMAIL_SAAS
+  [ספק ציוד דימות\nהולנד (Vendor)] as VENDOR_NL
+}
+
+' ─────────────────────────────────────────
+' HEADQUARTERS – TEL AVIV
+' ─────────────────────────────────────────
+rectangle "**מטה החברה – תל אביב**" as HQ #E8F4FD {
+
+  ' --- DMZ ---
+  rectangle "DMZ" as DMZ #FFE8E8 {
+    [WAF\n(Web Application Firewall)] as WAF
+    [אתר אינטרנט לקוחות\n(Web Portal / HTTPS)] as WEB_PORTAL
+    [SSL/TLS Termination\n(Load Balancer)] as SSL_LB
+    [Email Security Gateway\n(Anti-Spam / Anti-Phishing)] as EMAIL_GW
+    [Reverse Proxy\n(Content Filter)] as REV_PROXY
+  }
+
+  ' --- Vendor DMZ (secure remote access) ---
+  rectangle "DMZ ספק (Vendor DMZ)" as VENDOR_DMZ #FFF0E8 {
+    [VPN Gateway\n(Dedicated – Vendor)] as VENDOR_VPN
+    [Jump Server / Bastion Host\n(Vendor Access Only)] as JUMP_SERVER
+    [PAM – Privileged Access Mgmt\n(Session Recording + MFA)] as PAM
+    note right of PAM
+      **פתרון חיבור מרחוק מאובטח – ספק הולנדי:**
+      1. הספק מתחבר דרך VPN ייעודי (IP-Whitelist)
+      2. אימות דו-שלבי (MFA) חובה
+      3. גישה אך ורק דרך Jump Server
+      4. כל פעילות מוקלטת ב-PAM
+      5. הרשאות מינימליות – רק לרשת מכוני הדימות
+      6. Firewall חוסם כל יציאה לאינטרנט מה-VLAN
+      7. התראה אוטומטית ל-SOC בכל חיבור
+    end note
+  }
+
+  ' --- Security Layer ---
+  rectangle "מערך הגנה מרכזי" as SEC_LAYER #E8FFE8 {
+    [NGFW – Next Gen Firewall\n(Perimeter)] as NGFW
+    [IDS / IPS\n(Intrusion Detection & Prevention)] as IDS_IPS
+    [SIEM\n(Security Information & Event Mgmt)] as SIEM
+    [DLP\n(Data Loss Prevention)] as DLP
+    [NAC\n(Network Access Control)] as NAC
+    [EDR / Anti-Malware\n(Endpoint Detection & Response)] as EDR
+    [Vulnerability Scanner\n(Periodic + Continuous)] as VULN_SCAN
+    [PKI / CA\n(Certificate Authority)] as PKI
+    [CASB\n(Cloud Access Security Broker)] as CASB
+    [SOC\n(Security Operations Center)] as SOC
+    [Zero-Trust Proxy\n(Internal Segmentation)] as ZTPROXY
+  }
+
+  ' --- Core IT Systems ---
+  rectangle "מערכות מידע מרכזיות – מטה" as CORE_SYSTEMS #EEF0FF {
+    [Active Directory\n(LDAP / Identity)] as AD
+    [DNS + DHCP\n(Internal)] as DNS_DHCP
+    [PACS\n(Picture Archiving & Comm.)] as PACS
+    [RIS\n(Radiology Information System)] as RIS
+    [HIS\n(Hospital Information System)] as HIS
+    [EHR\n(Electronic Health Records)] as EHR
+    [LIS\n(Laboratory Information System)] as LIS
+    [DICOM Server\n(Imaging Storage)] as DICOM
+    [Application Server\n(App Layer)] as APP_SERVER
+    [DB Server\n(PostgreSQL / Oracle)] as DB_SERVER
+    [Central Storage / SAN\n(Imaging + Patient Data)] as CENTRAL_SAN
+    [Backup & DR\n(Encrypted Offsite Backup)] as BACKUP
+    [Monitoring\n(Nagios / Zabbix)] as MONITORING
+  }
+
+  ' --- Connectivity ---
+  [MPLS / Leased Line\nRouter (מטה)] as HQ_ROUTER
+}
+
+' ─────────────────────────────────────────
+' BRANCH TEMPLATE – Imaging Institute
+' (×10 branches shown compactly)
+' ─────────────────────────────────────────
+rectangle "**מכוני דימות (×10)**\nדוגמה: מכון 1 עד 10" as BRANCHES #FFF8E8 {
+  [Branch Firewall\n(NGFW)] as BR_FW
+  [MRI / CT / Ultrasound\n(Modality Workstation)] as MODALITY
+  [Local PACS Cache\n(Local Storage NAS)] as LOCAL_NAS
+  [Branch Endpoint\n(Workstations + EDR)] as BR_ENDPOINT
+  [Branch NAC\n(Port Security)] as BR_NAC
+  [Branch IDS/IPS] as BR_IDS
+  [MPLS / Leased Line\nRouter (סניף)] as BR_ROUTER
+  note right of MODALITY
+    **ציוד דימות מהולנד:**
+    גישת תמיכה מרחוק של הספק
+    מתבצעת **אך ורק** דרך
+    Vendor DMZ במטה
+    (ראה פתרון מאובטח)
+  end note
+}
+
+' ─────────────────────────────────────────
+' BLOOD TEST LABS
+' ─────────────────────────────────────────
+rectangle "**מעבדות בדיקות דם**" as BLOOD_LABS #FFF0F8 {
+  [Lab Firewall\n(NGFW)] as LAB_FW
+  [LIS Terminal\n(Lab Workstations)] as LIS_TERMINAL
+  [Lab Analyzer\n(Connected Device)] as LAB_ANALYZER
+  [Local Lab Storage\n(NAS)] as LAB_NAS
+  [Lab NAC\n(Port Security)] as LAB_NAC
+  [MPLS / Leased Line\nRouter (מעבדה)] as LAB_ROUTER
+}
+
+' ─────────────────────────────────────────
+' CONNECTIONS
+' ─────────────────────────────────────────
+
+' Internet → HQ DMZ
+INTERNET --> NGFW : HTTPS / Filtered
+CLIENTS --> WAF : HTTPS
+CLIENTS --> SSL_LB
+WAF --> WEB_PORTAL
+SSL_LB --> WEB_PORTAL
+EMAIL_SAAS <--> EMAIL_GW : SMTP/TLS
+BI_SAAS <--> CASB : API / HTTPS
+CASB <--> REV_PROXY
+
+' Vendor → Vendor DMZ
+VENDOR_NL --> VENDOR_VPN : VPN (IPSec / SSL)\nIP-Whitelist + MFA
+VENDOR_VPN --> JUMP_SERVER
+JUMP_SERVER --> PAM
+PAM --> BR_FW : רשת מכון דימות בלבד\n(VLAN נפרד)
+
+' DMZ → Internal
+NGFW --> IDS_IPS
+IDS_IPS --> ZTPROXY
+ZTPROXY --> APP_SERVER
+WEB_PORTAL --> APP_SERVER : Internal HTTPS
+EMAIL_GW --> EMAIL_SAAS
+
+' Core Systems Interconnect
+APP_SERVER --> DB_SERVER
+APP_SERVER --> HIS
+APP_SERVER --> EHR
+APP_SERVER --> RIS
+RIS --> PACS
+PACS --> DICOM
+PACS --> CENTRAL_SAN
+LIS --> DB_SERVER
+EHR --> DB_SERVER
+HIS --> DB_SERVER
+CENTRAL_SAN --> BACKUP
+AD --> DNS_DHCP
+AD --> APP_SERVER
+
+' Security → Everything
+SIEM --> SOC : Alerts + Logs
+SIEM <.. NGFW : Logs
+SIEM <.. IDS_IPS : Logs
+SIEM <.. DLP : Logs
+SIEM <.. EDR : Logs
+SIEM <.. PAM : Logs
+DLP --> APP_SERVER : Monitor
+NAC --> HQ_ROUTER
+VULN_SCAN --> APP_SERVER
+VULN_SCAN --> DB_SERVER
+MONITORING --> APP_SERVER
+MONITORING --> CENTRAL_SAN
+MONITORING --> DB_SERVER
+PKI --> AD : Cert Services
+
+' HQ WAN
+HQ_ROUTER --> NGFW
+
+' HQ → Branches (MPLS)
+HQ_ROUTER <--> BR_ROUTER : **MPLS / קו שכור מוצפן**
+HQ_ROUTER <--> LAB_ROUTER : **MPLS / קו שכור מוצפן**
+
+' Branch internals
+BR_ROUTER --> BR_FW
+BR_FW --> BR_NAC
+BR_FW --> BR_IDS
+BR_NAC --> MODALITY
+BR_NAC --> BR_ENDPOINT
+BR_IDS --> MODALITY
+MODALITY --> LOCAL_NAS
+LOCAL_NAS --> PACS : Sync (TLS)
+
+' Lab internals
+LAB_ROUTER --> LAB_FW
+LAB_FW --> LAB_NAC
+LAB_NAC --> LIS_TERMINAL
+LAB_NAC --> LAB_ANALYZER
+LIS_TERMINAL --> LAB_NAS
+LIS_TERMINAL --> LIS : Sync (TLS)
+
+@enduml
