@@ -217,7 +217,7 @@ public class LearningFrame extends JFrame {
         }
 
         // === DDoS topic: replace text slide with provided PDF and use provided video ===
-        int ddosTopicIndex = 0; // 'מבוא: מהי תקיפת סייבר?'
+        int ddosTopicIndex = 9; // 'מתקפת מניעת שירות (DDoS)'
         int ddosPdfIndex = ddosTopicIndex * 2;
         int ddosVideoIndex = ddosPdfIndex + 1;
         if (ddosPdfIndex < slidePdfs.size()) {
