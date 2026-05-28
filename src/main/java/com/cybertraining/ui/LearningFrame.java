@@ -205,15 +205,26 @@ public class LearningFrame extends JFrame {
             slideVideos.set(securityVideoIndex, "data/generated-videos/security.mp4");
         }
 
-        // === Intro / 'מהי תקיפת סייבר?' topic: map user-provided Cyber assets ===
+        // === Intro / 'מהי תקיפת סייבר?' topic: leave default (no inline PDF/video)
         int introTopicIndex = 0; // 'מבוא: מהי תקיפת סייבר?'
         int introPdfIndex = introTopicIndex * 2;
         int introVideoIndex = introPdfIndex + 1;
         if (introPdfIndex < slidePdfs.size()) {
-            slidePdfs.set(introPdfIndex, "data/pdfs/cyber_warfare_evolution.pdf");
+            slidePdfs.set(introPdfIndex, null);
         }
         if (introVideoIndex < slideVideos.size()) {
-            slideVideos.set(introVideoIndex, "data/generated-videos/cyber_warfare_evolution.mp4");
+            slideVideos.set(introVideoIndex, null);
+        }
+
+        // === APT topic: use user-provided assets (PDF + video) ===
+        int aptTopicIndex = 8; // 'APT — איום מתקדם מתמשך'
+        int aptPdfIndex = aptTopicIndex * 2;
+        int aptVideoIndex = aptPdfIndex + 1;
+        if (aptPdfIndex < slidePdfs.size()) {
+            slidePdfs.set(aptPdfIndex, "data/pdfs/apt_strategic_intelligence.pdf");
+        }
+        if (aptVideoIndex < slideVideos.size()) {
+            slideVideos.set(aptVideoIndex, "data/generated-videos/apt_strategic_intelligence.mp4");
         }
 
         // === Password attack topic: replace text slide with provided PDF and use provided video ===
