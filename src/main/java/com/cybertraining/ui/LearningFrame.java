@@ -205,6 +205,17 @@ public class LearningFrame extends JFrame {
             slideVideos.set(securityVideoIndex, "data/generated-videos/security.mp4");
         }
 
+        // === Intro / 'מהי תקיפת סייבר?' topic: map user-provided Cyber assets ===
+        int introTopicIndex = 0; // 'מבוא: מהי תקיפת סייבר?'
+        int introPdfIndex = introTopicIndex * 2;
+        int introVideoIndex = introPdfIndex + 1;
+        if (introPdfIndex < slidePdfs.size()) {
+            slidePdfs.set(introPdfIndex, "data/pdfs/security.pdf");
+        }
+        if (introVideoIndex < slideVideos.size()) {
+            slideVideos.set(introVideoIndex, "data/generated-videos/security.mp4");
+        }
+
         // === Password attack topic: replace text slide with provided PDF and use provided video ===
         int passwordTopicIndex = 5; // 'תקיפת סיסמאות (Password Attack)'
         int passwordPdfIndex = passwordTopicIndex * 2;
