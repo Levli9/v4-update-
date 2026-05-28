@@ -1,17 +1,22 @@
 package com.cybertraining.db;
 
-import com.cybertraining.model.Course;
-import com.cybertraining.model.Question;
-import com.cybertraining.model.User;
-
-import com.cybertraining.model.Result;
-
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.ResultSetMetaData;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.cybertraining.model.Course;
+import com.cybertraining.model.Question;
+import com.cybertraining.model.Result;
+import com.cybertraining.model.User;
 
 public class DatabaseManager {
 
@@ -559,6 +564,28 @@ public class DatabaseManager {
         String question;
         String[] answers;
         int correctIndex;
+    }
+
+    public List<User> getUsers() {
+        List<User> users = new ArrayList<>();
+        String sql = "SELECT * FROM users";
+        try (Connection c = getConnection(); Statement st = c.createStatement(); ResultSet rs = st.executeQuery(sql)) {
+            while (rs.next()) {
+                User u = new User(
+                    rs.getInt("id"),
+                    rs.getString("username"),
+                    rs.getString("password"),
+                    rs.getString("name"),
+                    rs.getString("role"),
+                    rs.getString("department"),
+                    rs.getString("email")
+                );
+                users.add(u);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return users;
     }
 
 }

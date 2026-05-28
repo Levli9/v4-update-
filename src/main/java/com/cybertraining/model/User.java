@@ -64,4 +64,8 @@ public class User {
     public boolean isEmployee() {
         return "employee".equals(role);
     }
+
+    public boolean isSuperManager() {
+        return "superManager".equals(role) || "סופר מנהל".equals(role);
+    }
 }

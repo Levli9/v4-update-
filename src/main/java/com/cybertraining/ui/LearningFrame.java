@@ -17,11 +17,16 @@ import javax.swing.border.EmptyBorder;
 
 import com.cybertraining.db.DatabaseManager;
 import com.cybertraining.model.User;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.rendering.PDFRenderer;
+import java.awt.image.BufferedImage;
+import javax.swing.SwingWorker;
 
 public class LearningFrame extends JFrame {
 
     private List<String> slides = new ArrayList<>();
     private List<String> slideVideos = new ArrayList<>(); // video URI per slide (null = no video)
+    private List<String> slidePdfs = new ArrayList<>(); // pdf URI per slide (null = no pdf)
     private int current = 0;
     private JEditorPane contentArea;
     private JLabel progressLabel;
@@ -32,6 +37,7 @@ public class LearningFrame extends JFrame {
     private DatabaseManager db;
     private User user;
     private JPanel videoContainer; // inline video area below slide text
+    private JPanel pdfContainer; // inline PDF area below slide text
     private javafx.embed.swing.JFXPanel currentFxPanel; // current embedded video panel
     private JScrollPane scrollPane; // text scroll pane
     private JPanel centerPanel; // main content panel
@@ -101,6 +107,11 @@ public class LearningFrame extends JFrame {
         videoContainer.setBackground(java.awt.Color.BLACK);
         videoContainer.setVisible(false);
 
+        // Inline PDF container
+        pdfContainer = new JPanel(new BorderLayout());
+        pdfContainer.setBackground(AppTheme.CARD);
+        pdfContainer.setVisible(false);
+
         // Default: text fills everything
         centerPanel.add(scrollPane, BorderLayout.CENTER);
         bg.add(centerPanel, BorderLayout.CENTER);
@@ -149,6 +160,73 @@ public class LearningFrame extends JFrame {
 
         loadSlides();
 
+        // Initialize slidePdfs mapping (default null), then set special MITM PDF and override MITM video
+        int mitmPdfIndex = 4 * 2; // topic index 4 (Man-in-the-Middle) -> text slide index
+        slidePdfs = new ArrayList<>();
+        for (int i = 0; i < slides.size(); i++) slidePdfs.add(null);
+        slidePdfs.set(mitmPdfIndex, "data/pdfs/man-in-the-middle.pdf");
+        // Override the subsequent video slide to use the generated video in workspace
+        int mitmVideoIndex = mitmPdfIndex + 1;
+        if (mitmVideoIndex < slideVideos.size()) {
+            // Prefer a custom MITM video if present; user can place their desired file at this path
+            slideVideos.set(mitmVideoIndex, "data/generated-videos/mitm.mp4");
+        }
+
+        // === Malware topic: replace text slide with provided PDF and use provided video ===
+        int malwareTopicIndex = 2; // 'תוכנות זדוניות (Malware)'
+        int malwarePdfIndex = malwareTopicIndex * 2;
+        int malwareVideoIndex = malwarePdfIndex + 1;
+        if (malwarePdfIndex < slidePdfs.size()) {
+            slidePdfs.set(malwarePdfIndex, "data/pdfs/malware.pdf");
+        }
+        if (malwareVideoIndex < slideVideos.size()) {
+            slideVideos.set(malwareVideoIndex, "data/generated-videos/malware.mp4");
+        }
+
+        // === Phishing topic: replace text slide with provided PDF and use provided video ===
+        int phishingTopicIndex = 3; // 'פישינג (Phishing)'
+        int phishingPdfIndex = phishingTopicIndex * 2;
+        int phishingVideoIndex = phishingPdfIndex + 1;
+        if (phishingPdfIndex < slidePdfs.size()) {
+            slidePdfs.set(phishingPdfIndex, "data/pdfs/phishing.pdf");
+        }
+        if (phishingVideoIndex < slideVideos.size()) {
+            slideVideos.set(phishingVideoIndex, "data/generated-videos/phishing.mp4");
+        }
+
+        // === Security topic: replace text slide with provided PDF and use provided video ===
+        int securityTopicIndex = 1; // 'מהי אבטחת סייבר?'
+        int securityPdfIndex = securityTopicIndex * 2;
+        int securityVideoIndex = securityPdfIndex + 1;
+        if (securityPdfIndex < slidePdfs.size()) {
+            slidePdfs.set(securityPdfIndex, "data/pdfs/security.pdf");
+        }
+        if (securityVideoIndex < slideVideos.size()) {
+            slideVideos.set(securityVideoIndex, "data/generated-videos/security.mp4");
+        }
+
+        // === Password attack topic: replace text slide with provided PDF and use provided video ===
+        int passwordTopicIndex = 5; // 'תקיפת סיסמאות (Password Attack)'
+        int passwordPdfIndex = passwordTopicIndex * 2;
+        int passwordVideoIndex = passwordPdfIndex + 1;
+        if (passwordPdfIndex < slidePdfs.size()) {
+            slidePdfs.set(passwordPdfIndex, "data/pdfs/passwords.pdf");
+        }
+        if (passwordVideoIndex < slideVideos.size()) {
+            slideVideos.set(passwordVideoIndex, "data/generated-videos/passwords.mp4");
+        }
+
+        // === DDoS topic: replace text slide with provided PDF and use provided video ===
+        int ddosTopicIndex = 0; // 'מבוא: מהי תקיפת סייבר?'
+        int ddosPdfIndex = ddosTopicIndex * 2;
+        int ddosVideoIndex = ddosPdfIndex + 1;
+        if (ddosPdfIndex < slidePdfs.size()) {
+            slidePdfs.set(ddosPdfIndex, "data/pdfs/ddos.pdf");
+        }
+        if (ddosVideoIndex < slideVideos.size()) {
+            slideVideos.set(ddosVideoIndex, "data/generated-videos/ddos.mp4");
+        }
+
         // Calculate which slides belong to this topic
         // Topics 0-10: each has 2 slides (text + video), then slide 22 is summary
         if (topicIndex >= 0 && topicIndex <= 10) {
@@ -160,6 +238,31 @@ public class LearningFrame extends JFrame {
         }
         current = slideOffset;
         showSlide();
+    }
+
+    /** Open a PDF file in the OS default application (macOS: `open`). */
+    private void openPdfExternally(String pdfPath) {
+        if (pdfPath == null || pdfPath.isEmpty()) return;
+        java.io.File f = new java.io.File(pdfPath);
+        if (!f.isAbsolute()) f = new java.io.File(System.getProperty("user.dir"), pdfPath);
+        if (!f.exists()) {
+            System.err.println("openPdfExternally: file not found: " + f.getAbsolutePath());
+            return;
+        }
+        try {
+            System.out.println("openPdfExternally: opening " + f.getAbsolutePath());
+            // Use Desktop if available
+            try {
+                java.awt.Desktop.getDesktop().open(f);
+                return;
+            } catch (Exception e) {
+                // fallback to runtime 'open' on macOS
+            }
+            String[] cmd = {"open", f.getAbsolutePath()};
+            Runtime.getRuntime().exec(cmd);
+        } catch (Exception e) {
+            System.err.println("openPdfExternally: failed to open PDF: " + e.getMessage());
+        }
     }
 
     private String htmlWrap(String content) {
@@ -453,6 +556,9 @@ public class LearningFrame extends JFrame {
         // Determine if this is a video slide
         String vid = (current < slideVideos.size()) ? slideVideos.get(current) : null;
         boolean isVideoSlide = (vid != null && !vid.isEmpty());
+        String pdf = (current < slidePdfs.size()) ? slidePdfs.get(current) : null;
+        boolean isPdfSlide = (pdf != null && !pdf.isEmpty());
+        System.out.println("showSlide: current=" + current + " isPdfSlide=" + isPdfSlide + " pdfPath=" + pdf + " slidePdfsSize=" + slidePdfs.size() + " isVideoSlide=" + isVideoSlide + " vid=" + vid);
         videoBtn.setVisible(false);
 
         // On a video slide that is the last slide, disable finish until video ends
@@ -470,9 +576,17 @@ public class LearningFrame extends JFrame {
         // Swap layout: video slides get small title + big video, text slides get full text
         centerPanel.removeAll();
         videoContainer.removeAll();
+        pdfContainer.removeAll();
         videoContainer.setVisible(false);
+        pdfContainer.setVisible(false);
 
-        if (isVideoSlide) {
+        if (isPdfSlide) {
+            // Show PDF full-size
+            centerPanel.add(pdfContainer, BorderLayout.CENTER);
+            // Try to render inline; also open externally so user can view immediately if inline fails
+            openPdfExternally(pdf);
+            embedInlinePdf(pdf);
+        } else if (isVideoSlide) {
             scrollPane.setPreferredSize(new java.awt.Dimension(0, 70));
             centerPanel.add(scrollPane, BorderLayout.NORTH);
             centerPanel.add(videoContainer, BorderLayout.CENTER);
@@ -660,6 +774,91 @@ public class LearningFrame extends JFrame {
         videoContainer.setVisible(true);
         videoContainer.revalidate();
         videoContainer.repaint();
+    }
+
+    /** Embeds a PDF file into the UI by rendering pages to images (uses PDFBox). */
+    private void embedInlinePdf(String pdfPath) {
+        if (pdfPath == null || pdfPath.isEmpty()) return;
+
+        java.io.File pdfFile = new java.io.File(pdfPath);
+        if (!pdfFile.isAbsolute()) pdfFile = new java.io.File(System.getProperty("user.dir"), pdfPath);
+        System.out.println("embedInlinePdf: attempting to open PDF at: " + pdfFile.getAbsolutePath());
+        if (!pdfFile.exists()) {
+            pdfContainer.removeAll();
+            pdfContainer.add(new JLabel("ניסיון לפתוח PDF לא הצליח — הקובץ לא נמצא: " + pdfFile.getAbsolutePath()), BorderLayout.CENTER);
+            pdfContainer.setVisible(true);
+            pdfContainer.revalidate();
+            pdfContainer.repaint();
+            return;
+        }
+
+        pdfContainer.removeAll();
+        // Ensure contrast: white background so PDF pages are visible against the dark app theme
+        pdfContainer.setBackground(java.awt.Color.WHITE);
+        pdfContainer.setOpaque(true);
+        pdfContainer.setPreferredSize(new java.awt.Dimension(1000, 720));
+        JLabel loading = new JLabel("טוען מסמך PDF...");
+        loading.setHorizontalAlignment(SwingConstants.CENTER);
+        loading.setForeground(AppTheme.MUTED);
+        pdfContainer.add(loading, BorderLayout.CENTER);
+        pdfContainer.setVisible(true);
+
+        try (PDDocument doc = PDDocument.load(pdfFile)) {
+            System.out.println("embedInlinePdf: PDF loaded, pages=" + doc.getNumberOfPages());
+            PDFRenderer renderer = new PDFRenderer(doc);
+
+            JPanel pages = new JPanel();
+            pages.setLayout(new BoxLayout(pages, BoxLayout.Y_AXIS));
+            pages.setBackground(java.awt.Color.WHITE);
+
+            // Render the first page immediately so the slide never appears blank.
+            BufferedImage firstPage = renderer.renderImageWithDPI(0, 160);
+            JLabel firstLabel = new JLabel(new javax.swing.ImageIcon(firstPage));
+            firstLabel.setAlignmentX(CENTER_ALIGNMENT);
+            firstLabel.setBorder(new EmptyBorder(12, 12, 12, 12));
+            pages.add(firstLabel);
+
+            // Render any remaining pages in the background.
+            if (doc.getNumberOfPages() > 1) {
+                new SwingWorker<Void, java.awt.Image>() {
+                    @Override
+                    protected Void doInBackground() throws Exception {
+                        for (int i = 1; i < doc.getNumberOfPages(); i++) {
+                            publish(renderer.renderImageWithDPI(i, 160));
+                        }
+                        return null;
+                    }
+
+                    @Override
+                    protected void process(java.util.List<java.awt.Image> chunks) {
+                        for (java.awt.Image img : chunks) {
+                            JLabel pic = new JLabel(new javax.swing.ImageIcon(img));
+                            pic.setAlignmentX(CENTER_ALIGNMENT);
+                            pic.setBorder(new EmptyBorder(12, 12, 12, 12));
+                            pages.add(pic);
+                        }
+                        pages.revalidate();
+                        pages.repaint();
+                    }
+                }.execute();
+            }
+
+            JScrollPane pScroll = new JScrollPane(pages);
+            pScroll.getViewport().setBackground(java.awt.Color.WHITE);
+            pScroll.setBorder(javax.swing.BorderFactory.createLineBorder(java.awt.Color.DARK_GRAY, 2));
+            pdfContainer.removeAll();
+            pdfContainer.add(pScroll, BorderLayout.CENTER);
+            pdfContainer.revalidate();
+            pdfContainer.repaint();
+        } catch (Exception e) {
+            System.err.println("embedInlinePdf: error rendering PDF: " + e);
+            pdfContainer.removeAll();
+            JLabel err = new JLabel("שגיאה בטעינת ה-PDF: " + e.getMessage());
+            err.setForeground(java.awt.Color.RED);
+            pdfContainer.add(err, BorderLayout.CENTER);
+            pdfContainer.revalidate();
+            pdfContainer.repaint();
+        }
     }
 
     /** Loads subtitle entries from a .he.srt file matching the video path */
