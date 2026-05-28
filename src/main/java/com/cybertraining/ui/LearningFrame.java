@@ -209,11 +209,23 @@ public class LearningFrame extends JFrame {
         int introTopicIndex = 0; // 'מבוא: מהי תקיפת סייבר?'
         int introPdfIndex = introTopicIndex * 2;
         int introVideoIndex = introPdfIndex + 1;
+        // remove intro inline assets (user requested to move these to APT)
         if (introPdfIndex < slidePdfs.size()) {
-            slidePdfs.set(introPdfIndex, "data/pdfs/cyber_warfare_evolution.pdf");
+            slidePdfs.set(introPdfIndex, null);
         }
         if (introVideoIndex < slideVideos.size()) {
-            slideVideos.set(introVideoIndex, "data/generated-videos/cyber_warfare_evolution.mp4");
+            slideVideos.set(introVideoIndex, null);
+        }
+
+        // === APT topic: map Cyber Warfare Evolution PDF and video ===
+        int aptTopicIndex = 8; // 'APT — איום מתקדם מתמשך'
+        int aptPdfIndex = aptTopicIndex * 2;
+        int aptVideoIndex = aptPdfIndex + 1;
+        if (aptPdfIndex < slidePdfs.size()) {
+            slidePdfs.set(aptPdfIndex, "data/pdfs/cyber_warfare_evolution.pdf");
+        }
+        if (aptVideoIndex < slideVideos.size()) {
+            slideVideos.set(aptVideoIndex, "data/generated-videos/cyber_warfare_evolution.mp4");
         }
 
         // === Password attack topic: replace text slide with provided PDF and use provided video ===
