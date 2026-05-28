@@ -210,10 +210,10 @@ public class LearningFrame extends JFrame {
         int introPdfIndex = introTopicIndex * 2;
         int introVideoIndex = introPdfIndex + 1;
         if (introPdfIndex < slidePdfs.size()) {
-            slidePdfs.set(introPdfIndex, "data/pdfs/security.pdf");
+            slidePdfs.set(introPdfIndex, "data/pdfs/cyber_warfare_evolution.pdf");
         }
         if (introVideoIndex < slideVideos.size()) {
-            slideVideos.set(introVideoIndex, "data/generated-videos/security.mp4");
+            slideVideos.set(introVideoIndex, "data/generated-videos/cyber_warfare_evolution.mp4");
         }
 
         // === Password attack topic: replace text slide with provided PDF and use provided video ===
