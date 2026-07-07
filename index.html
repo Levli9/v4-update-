@@ -347,6 +347,23 @@
             <p style="color:var(--text-secondary);">זה עשוי לקחת מספר שניות. אנא המתן.</p>
           </div>
 
+          <!-- NotebookLM Import Form -->
+          <div style="margin-top:25px; border-top:1px dashed var(--card-border); padding-top:20px;">
+            <h3><i class="fas fa-file-import"></i> ייבוא מהיר מ-NotebookLM</h3>
+            <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:1rem;">הדבק כאן את המצגת או השאלות שנוצרו ב-NotebookLM כדי להמיר אותן לקורס פעיל במערכת.</p>
+            <div class="form-group">
+              <label for="notebook-import-title">שם הקורס בעברית</label>
+              <input type="text" id="notebook-import-title" class="form-input" placeholder="לדוגמה: הגנה מפישינג מתקדם...">
+            </div>
+            <div class="form-group">
+              <label for="notebook-import-text">הטקסט שהעתקת מ-NotebookLM</label>
+              <textarea id="notebook-import-text" class="form-input" style="height:120px; font-family:var(--font-body); font-size:0.95rem; text-align:right;" placeholder="הדבק כאן את תוכן המצגת או השאלות..."></textarea>
+            </div>
+            <button class="btn btn-secondary" onclick="importFromNotebookLM()" style="width:100%; justify-content:center;">
+              <i class="fas fa-check"></i> ייבא והפעל קורס במערכת
+            </button>
+          </div>
+
           <div class="ai-history-list">
             <h3 style="margin-bottom:1rem;"><i class="fas fa-book-bookmark"></i> הדרכות AI שנוצרו</h3>
             <div id="ai-courses-list">
@@ -401,6 +418,7 @@
 
   <!-- Scripts -->
   <script src="questions.js"></script>
+  <script src="courses_data.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

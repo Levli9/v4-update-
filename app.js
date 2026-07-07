@@ -24,31 +24,40 @@ const TOPICS = [
   { id: 10, emoji: "📋", name: "מדיניות אבטחת מידע וניהול סיכונים", color: "#90be6d" }
 ];
 
-// Offline fallback generator database
-const OFFLINE_COURSES = {
-  "sql injection": {
-    courseTitle: "אבטחת מסדי נתונים ומתקפת SQL Injection",
+// Offline fallback generator database (checks if detailed courses array from courses_data.js exists, otherwise uses basic fallback)
+const COURSES_DATABASE = (typeof DETAILED_OFFLINE_COURSES !== 'undefined') ? DETAILED_OFFLINE_COURSES : {
+  0: {
+    courseTitle: "מבוא: מהי תקיפת סייבר?",
     slides: [
-      { title: "מבוא ל-SQL Injection", content: "הזרקת קוד SQL (SQL Injection) היא אחת הפגיעויות הנפוצות ביותר ברשת. היא מתרחשת כאשר קלט של משתמש משולב ישירות בשאילתת מסד נתונים ללא סינון מתאים.", bullets: ["חשיפת מידע רגיש", "עקיפת מנגנוני הזדהות", "שינוי או מחיקה של נתונים", "השתלטות על השרת המארח"] },
-      { title: "איך זה עובד?", content: "כאשר המערכת מבצעת חיבור מחרוזות ישיר: <br><code style='color:var(--primary)'>SELECT * FROM users WHERE user = '\" + input + \"'</code><br>אם התוקף מזין: <code style='color:var(--danger)'>' OR '1'='1</code> השאילתה הופכת לתמיד נכונה, ומחזירה את כל המשתמשים ללא צורך בסיסמה.", bullets: ["ניצול חוסר סינון קלט", "עקיפת בדיקות לוגיות", "מניפולציה של מבנה השאילתה"] },
-      { title: "דרכי הגנה והתמודדות", content: "הגנה מפני SQLi מחייבת שימוש בפרמטריזציה (Prepared Statements). כך, מסד הנתונים מתייחס לקלט כאל ערך מילולי בלבד ולא כאל חלק מהפקודה הלוגית.", bullets: ["שימוש בשאילתות מוכנות (Prepared Statements)", "אימות וסינון קלטים קפדני (Validation)", "צמצום הרשאות הגישה של המשתמש במסד הנתונים"] }
+      { title: "מושגי יסוד בסייבר", content: "אבטחת מידע עוסקת בהגנה על מערכות, רשתות ונתונים מפני גישה, שינוי או השמדה לא מורשים. שלושת עמודי התווך של אבטחת מידע הם עקרונות ה־CIA: סודיות, שלמות וזמינות.", bullets: ["סודיות (Confidentiality) - הגבלת גישה למידע מורשה בלבד", "שלמות (Integrity) - מניעת שינוי נתונים שלא כדין", "זמינות (Availability) - הבטחת גישה למידע כאשר הוא נדרש"] },
+      { title: "משולש ה-CIA הלכה למעשה", content: "כל פגיעה באחד מרכיבי השילוש מייצגת סוג אחר של כשל אבטחתי. לדוגמה, הדלפת פרטי אשראי פוגעת בסודיות, שינוי יתרת חשבון בבנק פוגע בשלמות, והשבתת אתר פוגע בזמינות.", bullets: ["פגיעה בסודיות: פריצה למאגר נתונים", "פגיעה בשלמות: מניפולציה של קבצי רישום", "פגיעה בזמינות: מתקפת מניעת שירות (DDoS)"] }
     ],
-    quiz: [
-      { question: "כיצד מתבצעת מתקפת SQL Injection?", options: ["הצפת השרת בבקשות חיבור", "הזרקת פקודות SQL לשדות קלט שאינם מסוננים", "חסימת גישה פיזית למסד הנתונים", "הצפנת קבצי השרת ובקשת כופר"], correctAnswer: "הזרקת פקודות SQL לשדות קלט שאינם מסוננים", explanation: "מתקפת SQLi מנצלת את העובדה שהקוד אינו מסנן קלט משתמש כראוי ומשלב אותו ישירות בשאילתת מסד הנתונים." },
-      { question: "מהי הדרך הטובה ביותר למנוע SQL Injection?", options: ["שימוש בסיסמאות מורכבות לשרת", "שימוש ב-Prepared Statements (פרמטריזציה)", "התקנת אנטי-וירוס על מסד הנתונים", "סגירת החיבור לרשת הציבורית"], correctAnswer: "שימוש ב-Prepared Statements (פרמטריזציה)", explanation: "שאילתות מוכנות מפרידות באופן מוחלט בין המבנה הלוגי של השאילתה לבין הפרמטרים שמתקבלים מהמשתמש." }
-    ]
+    quiz: []
   },
-  "ransomware": {
-    courseTitle: "תוכנות כופר (Ransomware) - מניעה והתגוננות",
+  1: {
+    courseTitle: "סיסמאות ואימות משתמשים",
     slides: [
-      { title: "מהי תוכנת כופר?", content: "תוכנת כופר היא סוג של נוזקה המיועדת לחסום גישה למערכת מחשב או להצפין את כל הקבצים המאוחסנים בה עד לתשלום סכום כסף (לרוב במטבעות קריפטוגרפיים).", bullets: ["הצפנה חזקה (AES/RSA)", "השבתה מוחלטת של פעילות עסקית", "דרישת כופר על מסכים נעולים", "סחיטה כפולה (איום בהדלפת מידע)"] },
-      { title: "וקטורי תקיפה נפוצים", content: "תוכנות כופר מגיעות לרוב באמצעות דואר אלקטרוני זדוני (פישינג), ניצול חולשות אבטחה בשרתים החשופים לרשת (כמו RDP), או הורדת קבצים נגועים מאתרים זדוניים.", bullets: ["קבצי דוא\"ל מצורפים מתחזים", "שרתי גישה מרחוק לא מאובטחים", "הורדת תוכנות פיראטיות וקראקים"] },
-      { title: "הגנה ושחזור מאסון", content: "ההגנה הטובה ביותר היא מניעה וגיבויים מנותקים. אם הקבצים מגובים במקום מאובטח שאינו נגיש ישירות לרשת הפגועה, ניתן לשחזר את המערכת ללא תשלום כופר.", bullets: ["מדיניות גיבויים קשיחה ומנותקת (Offline Backups)", "עדכוני אבטחה שוטפים למערכת ההפעלה", "העלאת מודעות עובדים לפישינג"] }
+      { title: "מדוע סיסמאות נפרצות?", content: "תוקפים משתמשים בשיטות מתוחכמות כגון Brute Force (ניחוש כוח גס) ומתקפות מילון (Dictionary Attacks) המנסות מיליוני שילובים בשניות.", bullets: ["שימוש בסיסמאות נפוצות כגון '123456'", "שימוש חוזר באותה סיסמה במספר אתרים", "פרטיות נמוכה של סיסמאות שנכתבות פיזית"] },
+      { title: "כללים לסיסמה חזקה", content: "סיסמה חזקה צריכה להכיל לפחות 12 תווים, הכוללים שילוב של אותיות גדולות וקטנות, מספרים וסימנים מיוחדים. מומלץ להשתמש במנהל סיסמאות (Password Manager).", bullets: ["אורך מעל 12 תווים", "שילוב מגוון תווים (Aa1@)", "שימוש באימות דו-שלבי (MFA) כקו הגנה קריטי נוסף"] }
     ],
-    quiz: [
-      { question: "מהו המאפיין הייחודי של תוכנת כופר?", options: ["היא עוקבת אחר תנועות העכבר של המשתמש", "היא מצפינה את קבצי המשתמש ודורשת תשלום עבור המפתח", "היא מאיצה את מהירות המעבד של המחשב", "היא משתפת קבצים ברשתות חברתיות אוטומטית"], correctAnswer: "היא מצפינה את קבצי המשתמש ודורשת תשלום עבור המפתח", explanation: "תוכנות כופר נועלות קבצים על ידי הצפנה ודורשות תשלום כופר תמורת מפתח הפענוח." },
-      { question: "מהו קו ההגנה היעיל ביותר לשחזור ממתקפת כופרה?", options: ["חיבור מחדש מהיר לרשת האינטרנט", "שימוש בגיבויים מנותקים ומאובטחים (Offline Backups)", "תשלום מיידי של הכופר לתוקפים", "החלפת כרטיס המסך במחשב"], correctAnswer: "שימוש בגיבויים מנותקים ומאובטחים (Offline Backups)", explanation: "גיבויים מנותקים מאפשרים שחזור נתונים מלא ללא כניעה לסחיטה של התוקפים." }
-    ]
+    quiz: []
+  },
+  2: {
+    courseTitle: "פישינג והנדסה חברתית",
+    slides: [
+      { title: "מהו פישינג (Phishing)?", content: "מתקפת פישינג היא ניסיון להונות משתמשים כדי לחשוף מידע רגיש (כמו סיסמאות או כרטיסי אשראי) על ידי התחזות לגוף אמין בדואר אלקטרוני, הודעות SMS או רשתות חברתיות.", bullets: ["התחזות לבנקים, שירותי דואר או מנהל מערכת", "יצירת תחושת דחיפות לחצים לפעולה מהירה", "שימוש בדומיינים דומים אך מזויפים"] },
+      { title: "סימני אזהרה בפישינג", content: "תמיד בדוק את כתובת השולח האמיתית, חפש שגיאות כתיב או פניות כלליות ולא אישיות, והימנע לחלוטין מלחיצה על קישורים חיצוניים המבקשים הזנת סיסמה מיידית.", bullets: ["כתובת שולח שונה במעט מהדומיין האמיתי", "בקשות לא שגרתיות להעברות כספים או איפוס סיסמה", "קבצים מצורפים חשודים כגון סיומות כפולות"] }
+    ],
+    quiz: []
+  },
+  4: {
+    courseTitle: "מתקפת Man-in-the-Middle (MITM)",
+    slides: [
+      { title: "אנטומיה של מתקפת MITM", content: "במתקפת 'אדם באמצע', תוקף מתמקם בחשאי בנתיב התקשורת שבין שני צדדים (למשל, הדפדפן שלך לשרת הבנק), ומסוגל ליירט, לקרוא ולשנות את המידע העובר ביניהם ללא ידיעתם.", bullets: ["יירוט נתונים רגישים בזמן אמת", "שינוי תוכן התעבורה (למשל, כתובת יעד להעברת כספים)", "נפוץ במיוחד ברשתות Wi-Fi ציבוריות לא מאובטחות"] },
+      { title: "צפה בהדגמת וידאו (הדמיה)", content: "סרטון הדרכה בנושא MITM מציג כיצד תוקף מנצל רשת אלחוטית פתוחה כדי ליירט תעבורת HTTP לא מוצפנת.", bullets: ["ניטור חבילות מידע (Wireshark)", "סכנות בחיבור HTTP פשוט", "עדיפות עליונה לחיבורי HTTPS מוצפנים"] },
+      { title: "מסמך אנטומיה מפורט (PDF)", content: "לפניך קובץ מסמך המפרט את דרכי ההתגוננות הארגוניות ממתקפות MITM, כולל שימוש ב-VPN, הצפנת תקשורת מקצה לקצה והקשחת שרתי DNS.", bullets: ["הקשחת הצפנה", "שימוש ברשת פרטית VPN בארגון", "מניעת ARP Spoofing ברמת המתגים"] }
+    ],
+    quiz: []
   }
 };
 
@@ -338,38 +347,6 @@ function verifyRecoveryCode() {
 // ==========================================
 // 4. EMPLOYEE PORTAL & COURSE LEARNING
 // ==========================================
-const DETAILED_OFFLINE_COURSES = {
-  0: {
-    title: "מבוא: מהי תקיפת סייבר?",
-    slides: [
-      { title: "מושגי יסוד בסייבר", content: "אבטחת מידע עוסקת בהגנה על מערכות, רשתות ונתונים מפני גישה, שינוי או השמדה לא מורשים. שלושת עמודי התווך של אבטחת מידע הם עקרונות ה־CIA: סודיות, שלמות וזמינות.", bullets: ["סודיות (Confidentiality) - הגבלת גישה למידע מורשה בלבד", "שלמות (Integrity) - מניעת שינוי נתונים שלא כדין", "זמינות (Availability) - הבטחת גישה למידע כאשר הוא נדרש"] },
-      { title: "משולש ה-CIA הלכה למעשה", content: "כל פגיעה באחד מרכיבי השילוש מייצגת סוג אחר של כשל אבטחתי. לדוגמה, הדלפת פרטי אשראי פוגעת בסודיות, שינוי יתרת חשבון בבנק פוגע בשלמות, והשבתת אתר פוגעת בזמינות.", bullets: ["פגיעה בסודיות: פריצה למאגר נתונים", "פגיעה בשלמות: מניפולציה של קבצי רישום", "פגיעה בזמינות: מתקפת מניעת שירות (DDoS)"] }
-    ]
-  },
-  1: {
-    title: "סיסמאות ואימות משתמשים",
-    slides: [
-      { title: "מדוע סיסמאות נפרצות?", content: "תוקפים משתמשים בשיטות מתוחכמות כגון Brute Force (ניחוש כוח גס) ומתקפות מילון (Dictionary Attacks) המנסות מיליוני שילובים בשניות.", bullets: ["שימוש בסיסמאות נפוצות כגון '123456'", "שימוש חוזר באותה סיסמה במספר אתרים", "פרטיות נמוכה של סיסמאות שנכתבות פיזית"] },
-      { title: "כללים לסיסמה חזקה", content: "סיסמה חזקה צריכה להכיל לפחות 12 תווים, הכוללים שילוב של אותיות גדולות וקטנות, מספרים וסימנים מיוחדים. מומלץ להשתמש במנהל סיסמאות (Password Manager).", bullets: ["אורך מעל 12 תווים", "שילוב מגוון תווים (Aa1@)", "שימוש באימות דו-שלבי (MFA) כקו הגנה קריטי נוסף"] }
-    ]
-  },
-  2: {
-    title: "פישינג והנדסה חברתית",
-    slides: [
-      { title: "מהו פישינג (Phishing)?", content: "מתקפת פישינג היא ניסיון להונות משתמשים כדי לחשוף מידע רגיש (כמו סיסמאות או כרטיסי אשראי) על ידי התחזות לגוף אמין בדואר אלקטרוני, הודעות SMS או רשתות חברתיות.", bullets: ["התחזות לבנקים, שירותי דואר או מנהל מערכת", "יצירת תחושת דחיפות לחצים לפעולה מהירה", "שימוש בדומיינים דומים אך מזויפים"] },
-      { title: "סימני אזהרה בפישינג", content: "תמיד בדוק את כתובת השולח האמיתית, חפש שגיאות כתיב או פניות כלליות ולא אישיות, והימנע לחלוטין מלחיצה על קישורים חיצוניים המבקשים הזנת סיסמה מיידית.", bullets: ["כתובת שולח שונה במעט מהדומיין האמיתי", "בקשות לא שגרתיות להעברות כספים או איפוס סיסמה", "קבצים מצורפים חשודים כגון סיומות כפולות"] }
-    ]
-  },
-  4: {
-    title: "מתקפת Man-in-the-Middle (MITM)",
-    slides: [
-      { title: "אנטומיה של מתקפת MITM", content: "במתקפת 'אדם באמצע', תוקף מתמקם בחשאי בנתיב התקשורת שבין שני צדדים (למשל, הדפדפן שלך לשרת הבנק), ומסוגל ליירט, לקרוא ולשנות את המידע העובר ביניהם ללא ידיעתם.", bullets: ["יירוט נתונים רגישים בזמן אמת", "שינוי תוכן התעבורה (למשל, כתובת יעד להעברת כספים)", "נפוץ במיוחד ברשתות Wi-Fi ציבוריות לא מאובטחות"] },
-      { title: "צפה בהדגמת וידאו (הדמיה)", content: "סרטון הדרכה בנושא MITM מציג כיצד תוקף מנצל רשת אלחוטית פתוחה כדי ליירט תעבורת HTTP לא מוצפנת.", bullets: ["ניטור חבילות מידע (Wireshark)", "סכנות בחיבור HTTP פשוט", "עדיפות עליונה לחיבורי HTTPS מוצפנים"] },
-      { title: "מסמך אנטומיה מפורט (PDF)", content: "לפניך קובץ מסמך המפרט את דרכי ההתגוננות הארגוניות ממתקפות MITM, כולל שימוש ב-VPN, הצפנת תקשורת מקצה לקצה והקשחת שרתי DNS.", bullets: ["הקשחת הצפנה", "שימוש ברשת פרטית VPN בארגון", "מניעת ARP Spoofing ברמת המתגים"] }
-    ]
-  }
-};
-
 function initEmployeePortal() {
   const completed = getCompletedTopics(currentUser.username);
   const grid = document.getElementById("topics-grid");
@@ -412,7 +389,7 @@ function startLearningTopic(topicId) {
   currentTopic = TOPICS.find(t => t.id === topicId);
   currentSlideIndex = 0;
   
-  const courseData = DETAILED_OFFLINE_COURSES[topicId] || {
+  const courseData = COURSES_DATABASE[topicId] || {
     title: currentTopic.name,
     slides: [
       { title: `מבוא ל-${currentTopic.name}`, content: `זהו שקף הדרכה מובנה בנושא ${currentTopic.name}. כאן יוצגו מושגי היסוד, הסברים טכניים ושיטות התמודדות רלוונטיות לעובדים בארגון.`, bullets: ["נקודה ראשונה למיקוד", "עקרונות הגנה חשובים", "תרגול נכון של הגנת סייבר"] },
@@ -580,9 +557,26 @@ function startTopicExam() {
   else if (currentTopic.id === 9) categoryName = "התקפות רשת";
   else if (currentTopic.id === 10) categoryName = "מדיניות";
 
-  let matchQs = QUESTIONS.filter(q => q.category.includes(categoryName) || categoryName.includes(q.category));
-  if (matchQs.length === 0) {
-    matchQs = [...QUESTIONS].sort(() => 0.5 - Math.random()).slice(0, 5);
+  let matchQs = [];
+  
+  // Try loading from course database quiz if exists
+  if (currentTopic.courseData.quiz && currentTopic.courseData.quiz.length > 0) {
+    matchQs = currentTopic.courseData.quiz.map(q => {
+      let corrIdx = q.options.indexOf(q.correctAnswer);
+      if (corrIdx === -1) corrIdx = 0;
+      return {
+        category: "סייבר",
+        question: q.question,
+        answers: q.options,
+        correctIndex: corrIdx,
+        explanation: q.explanation
+      };
+    });
+  } else {
+    matchQs = QUESTIONS.filter(q => q.category.includes(categoryName) || categoryName.includes(q.category));
+    if (matchQs.length === 0) {
+      matchQs = [...QUESTIONS].sort(() => 0.5 - Math.random()).slice(0, 5);
+    }
   }
   
   currentQuizQuestions = matchQs.slice(0, 5);
@@ -1185,7 +1179,129 @@ function startCustomAiExam(generatedQuiz) {
 }
 
 // ==========================================
-// 8. APP INITIALIZATION ENTRY POINT
+// 8. NOTEBOOKLM PARSING AND IMPORT ENGINE
+// ==========================================
+function importFromNotebookLM() {
+  const title = document.getElementById("notebook-import-title").value.trim();
+  const text = document.getElementById("notebook-import-text").value;
+
+  if (!title || !text) {
+    alert("אנא הזן כותרת והדבק טקסט לייבוא!");
+    return;
+  }
+
+  const lines = text.split("\n").map(l => l.trim()).filter(l => l.length > 0);
+  
+  let slides = [];
+  let quiz = [];
+  
+  let currentSlide = null;
+  let currentQuestion = null;
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+
+    // Check if line indicates a slide title
+    if (line.match(/(שקף|Slide)\s*\d+/i) || line.startsWith("כותרת שקף") || line.startsWith("שקף:")) {
+      if (currentSlide) slides.push(currentSlide);
+      currentSlide = {
+        title: line.replace(/^(שקף|Slide)\s*\d+[:\-]*\s*/i, "").trim(),
+        content: "",
+        bullets: []
+      };
+    } 
+    // Check if line is a bullet point
+    else if (line.startsWith("-") || line.startsWith("*") || line.match(/^\d+[\.\)]/)) {
+      const bulletText = line.replace(/^[-*\d\.\)]+\s*/, "").trim();
+      if (currentSlide) {
+        currentSlide.bullets.push(bulletText);
+      } else if (currentQuestion && currentQuestion.options.length < 4) {
+        currentQuestion.options.push(bulletText);
+      }
+    } 
+    // Check if line is a question
+    else if (line.match(/(שאלה|Question)\s*\d+/i) || line.includes("?")) {
+      if (currentQuestion) quiz.push(currentQuestion);
+      currentQuestion = {
+        question: line.replace(/^(שאלה|Question)\s*\d+[:\-]*\s*/i, "").trim(),
+        options: [],
+        correctAnswer: "",
+        explanation: "הסבר מתוך ייבוא NotebookLM"
+      };
+    } 
+    // Check if line lists options (e.g. א) תשובה, ב) תשובה)
+    else if (line.match(/^[אבגדהa-d][\.\)]/i)) {
+      const optionText = line.replace(/^[אבגדהa-d][\.\)]\s*/i, "").trim();
+      if (currentQuestion && currentQuestion.options.length < 4) {
+        currentQuestion.options.push(optionText);
+      }
+    }
+    // Check for correct answer specification
+    else if (line.includes("תשובה נכונה") || line.includes("Correct Answer")) {
+      const answerVal = line.split(":")[1]?.trim() || "";
+      if (currentQuestion) {
+        currentQuestion.correctAnswer = answerVal;
+      }
+    }
+    // Check for explanation
+    else if (line.includes("הסבר") || line.includes("Explanation")) {
+      const explanationVal = line.split(":")[1]?.trim() || "";
+      if (currentQuestion) {
+        currentQuestion.explanation = explanationVal;
+      }
+    }
+    // Normal content paragraph
+    else {
+      if (currentSlide) {
+        if (currentSlide.content) currentSlide.content += "<br>" + line;
+        else currentSlide.content = line;
+      }
+    }
+  }
+
+  // Push last elements
+  if (currentSlide) slides.push(currentSlide);
+  if (currentQuestion) quiz.push(currentQuestion);
+
+  // If no slides were parsed, build fallback structured slides from paragraphs
+  if (slides.length === 0) {
+    slides.push({
+      title: "פרק 1: סקירת הנתונים",
+      content: text.slice(0, 300) + "...",
+      bullets: ["נקודת עניין מרכזית מתוך המסמך", "מידע מפורט שהתקבל מהייבוא"]
+    });
+  }
+
+  // Ensure quiz options are set
+  quiz.forEach(q => {
+    while (q.options.length < 4) {
+      q.options.push("אפשרות משלימה");
+    }
+    if (!q.correctAnswer) {
+      q.correctAnswer = q.options[0];
+    }
+  });
+
+  const importedCourse = {
+    courseTitle: title,
+    slides: slides,
+    quiz: quiz
+  };
+
+  const history = JSON.parse(localStorage.getItem("ai_courses") || "[]");
+  history.push(importedCourse);
+  localStorage.setItem("ai_courses", JSON.stringify(history));
+
+  alert(`✅ הקורס "${title}" יובא בהצלחה מ-NotebookLM!`);
+  
+  // Reset fields & refresh
+  document.getElementById("notebook-import-title").value = "";
+  document.getElementById("notebook-import-text").value = "";
+  renderAiGenTab();
+}
+
+// ==========================================
+// 9. APP INITIALIZATION ENTRY POINT
 // ==========================================
 window.addEventListener("DOMContentLoaded", () => {
   initDatabase();
@@ -1208,6 +1324,7 @@ window.addEventListener("DOMContentLoaded", () => {
   window.logout = logout;
   window.showRoleSelection = showRoleSelection;
   window.filterEmployeesTable = filterEmployeesTable;
+  window.importFromNotebookLM = importFromNotebookLM;
   
   // Route to welcome by default
   navigate("welcome");
