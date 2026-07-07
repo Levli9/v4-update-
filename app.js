@@ -383,6 +383,7 @@ function initEmployeePortal() {
     סיימת <b>${completed.length}</b> מתוך <b>${TOPICS.length}</b> נושאים. 
     (${Math.round(completed.length / TOPICS.length * 100)}% השלמה)
   `;
+  renderCustomCoursesList();
 }
 
 function startLearningTopic(topicId) {
@@ -769,9 +770,6 @@ function showDashboardTab(tabName) {
     // Lazy initializers
     if (tabName === "stats") renderStatsTab();
     else if (tabName === "employees") renderEmployeesTab();
-    else if (tabName === "ai-gen") {
-      renderAiGenTab();
-    }
   }
 }
 
@@ -947,15 +945,11 @@ function closeHistoryModal() {
 }
 
 // ==========================================
-// 7. AI TOPIC GENERATOR (Groq & Fallback)
+// 7. CUSTOM COURSES LIST RENDERER
 // ==========================================
-function renderAiGenTab() {
-  // Load saved key if exists
-  const key = localStorage.getItem("groq_api_key") || "";
-  document.getElementById("groq-key-input").value = key;
-  
-  // Render past generated courses
+function renderCustomCoursesList() {
   const list = document.getElementById("ai-courses-list");
+  if (!list) return;
   list.innerHTML = "";
   
   const history = JSON.parse(localStorage.getItem("ai_courses") || "[]");
@@ -977,159 +971,6 @@ function renderAiGenTab() {
     `;
     list.appendChild(item);
   });
-}
-
-function saveGroqKey() {
-  const key = document.getElementById("groq-key-input").value.trim();
-  localStorage.setItem("groq_api_key", key);
-  alert("✅ מפתח ה-API של Groq נשמר בהצלחה בדפדפן שלך!");
-}
-
-async function generateCustomCourse() {
-  const topic = document.getElementById("ai-topic-prompt").value.trim();
-  if (!topic) {
-    alert("אנא הזן נושא להדרכה!");
-    return;
-  }
-
-  const loader = document.getElementById("ai-loader");
-  const form = document.getElementById("ai-gen-form");
-  
-  form.style.display = "none";
-  loader.style.display = "flex";
-  
-  const key = localStorage.getItem("groq_api_key") || "";
-  
-  try {
-    let generatedData = null;
-    
-    if (key) {
-      // Use real Groq API key client-side
-      generatedData = await fetchFromGroqAPI(topic, key);
-    } else {
-      // Offline fallback simulator
-      await new Promise(resolve => setTimeout(resolve, 2500)); // Simulate thinking
-      generatedData = generateOfflineFallback(topic);
-    }
-    
-    if (generatedData) {
-      // Save course in history
-      const history = JSON.parse(localStorage.getItem("ai_courses") || "[]");
-      history.push(generatedData);
-      localStorage.setItem("ai_courses", JSON.stringify(history));
-      
-      alert(`✅ הקורס "${generatedData.courseTitle}" נוצר בהצלחה!`);
-    }
-  } catch (error) {
-    console.error(error);
-    alert(`❌ שגיאה ביצירת הקורס: ${error.message}`);
-  } finally {
-    loader.style.display = "none";
-    form.style.display = "block";
-    renderAiGenTab();
-  }
-}
-
-async function fetchFromGroqAPI(topic, apiKey) {
-  const url = "https://api.groq.com/openai/v1/chat/completions";
-  
-  const systemPrompt = `You are a helpful cyber security expert assistant. 
-  You must return a structured training course in Hebrew about the requested topic.
-  You MUST respond ONLY with a JSON object. Do not include markdown codeblocks or backticks.
-  The JSON structure must be exactly:
-  {
-    "courseTitle": "שם הקורס בעברית",
-    "slides": [
-      {
-        "title": "כותרת שקף 1",
-        "content": "תוכן מפורט של השקף בעברית (לפחות 3 משפטים)",
-        "bullets": ["נקודת מיקוד 1", "נקודת מיקוד 2", "נקודת מיקוד 3"]
-      }
-    ],
-    "quiz": [
-      {
-        "question": "שאלה 1?",
-        "options": ["תשובה א", "תשובה ב", "תשובה ג", "תשובה ד"],
-        "correctAnswer": "תשובה א",
-        "explanation": "הסבר קצר מדוע התשובה נכונה"
-      }
-    ]
-  }
-  Generate at least 3 slides and 2 quiz questions. Make sure correct answers match exactly one of the options.`;
-
-  const userPrompt = `צור הדרכה ומבחן בעברית בנושא: ${topic}`;
-
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model: "llama-3.3-70b-versatile",
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt }
-      ],
-      response_format: { type: "json_object" }
-    })
-  });
-  
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`שגיאת שרת Groq: ${response.statusText} - ${errorText}`);
-  }
-  
-  const data = await response.json();
-  const textResponse = data.choices[0].message.content;
-  return JSON.parse(textResponse);
-}
-
-function generateOfflineFallback(topic) {
-  const normalized = topic.toLowerCase();
-  
-  // Search pre-configured offline matching
-  for (const key in OFFLINE_COURSES) {
-    if (normalized.includes(key) || key.includes(normalized)) {
-      return OFFLINE_COURSES[key];
-    }
-  }
-  
-  // Dynamic generic fallback course builder
-  return {
-    courseTitle: `הדרכה מותאמת אישית: ${topic}`,
-    slides: [
-      { 
-        title: `מבוא ל-${topic}`, 
-        content: `בעקבות הדרישה הגוברת בארגון, הדרכה זו מציגה את מושגי היסוד וההיבטים האבטחתיים בנושא: ${topic}. הנושא מהווה חלק בלתי נפרד מההתגוננות האקטיבית שלנו.`, 
-        bullets: ["הגדרת הנושא והקשרו לארגון", "סביבת האיומים והפגיעויות העיקריות", "חשיבות הבנת הנושא על ידי כלל העובדים"] 
-      },
-      { 
-        title: "ניתוח סיכונים ופגיעויות", 
-        content: `חולשות אבטחה ב-${topic} עלולות להוביל לפגיעה חמורה במערכות המחשוב הארגוניות. תוקפים מנסים תדיר לנצל פרצות אלו כדי להשיג גישה ראשונית.`, 
-        bullets: ["וקטורי תקיפה נפוצים", "ההשלכות של זיהוי מאוחר של פגיעות", "אמצעי זיהוי וניטור מערכתיים"] 
-      },
-      { 
-        title: "נוהל עבודה בטוח והמלצות", 
-        content: `על מנת לצמצם את סיכוני האבטחה ב-${topic}, כל עובד נדרש להקפיד על הנהלים הבאים: עדכון גרסאות תדיר, אי לחיצה על קישורים חשודים ושימוש בזהות מאומתת.`, 
-        bullets: ["שימוש במערכות מאושרות בלבד", "דיווח על אירועים חריגים לצוות אבטחה", "ביצוע הדרכות רענון תקופתיות"] 
-      }
-    ],
-    quiz: [
-      { 
-        question: `מהי המטרה העיקרית של הבנת אבטחת ${topic}?`, 
-        options: ["צמצום סיכוני סייבר ושמירה על נתוני הארגון", "האצת מהירות הגלישה ברשת", "החלפת תוכנת אנטי-וירוס", "מחיקת מסדי נתונים ישנים"], 
-        correctAnswer: "צמצום סיכוני סייבר ושמירה על נתוני הארגון", 
-        explanation: "הבנת עקרונות האבטחה מסייעת להפחית סיכון של חדירה והדלפת מידע ארגוני." 
-      },
-      { 
-        question: `כיצד מומלץ לנהוג כאשר עולה חשד לאירוע אבטחה ב-${topic}?`, 
-        options: ["לדווח מייד למחלקת אבטחת מידע", "להתעלם ולהמשיך לעבוד כרגיל", "לנסות לתקן את התקלה באופן עצמאי", "לשתף את החשדות ברשתות החברתיות"], 
-        correctAnswer: "לדווח מייד למחלקת אבטחת מידע", 
-        explanation: "דיווח מהיר מאפשר לצוותי ה-SOC לחסום את המתקפה לפני התפשטותה." 
-      }
-    ]
-  };
 }
 
 function launchAiCourse(historyIdx) {
@@ -1297,7 +1138,7 @@ function importFromNotebookLM() {
   // Reset fields & refresh
   document.getElementById("notebook-import-title").value = "";
   document.getElementById("notebook-import-text").value = "";
-  renderAiGenTab();
+  renderCustomCoursesList();
 }
 
 // ==========================================
@@ -1317,8 +1158,6 @@ window.addEventListener("DOMContentLoaded", () => {
   window.nextQuestion = nextQuestion;
   window.startFinalExam = startFinalExam;
   window.closeHistoryModal = closeHistoryModal;
-  window.saveGroqKey = saveGroqKey;
-  window.generateCustomCourse = generateCustomCourse;
   window.launchAiCourse = launchAiCourse;
   window.toggleTheme = toggleTheme;
   window.logout = logout;

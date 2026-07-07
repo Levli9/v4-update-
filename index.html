@@ -161,6 +161,37 @@
         <!-- Rendered dynamically -->
       </div>
 
+      <!-- NotebookLM Integration Card in Employee Portal -->
+      <div class="card" style="margin-top:2rem; border: 1px dashed var(--primary); background: var(--bg-card-gradient);">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px; margin-bottom:1rem;">
+          <h3 style="color:var(--primary); margin:0;"><i class="fas fa-file-import"></i> התאמה אישית עם NotebookLM</h3>
+          <a href="https://notebooklm.google.com/" target="_blank" class="btn btn-primary">
+            <i class="fas fa-external-link-alt"></i> פתח את פנקס הלימוד ב-NotebookLM
+          </a>
+        </div>
+        <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:1.2rem;">
+          רוצה מצגת ייחודית ומותאמת אישית מתוך חומרי הלימוד? לחץ על הכפתור למעלה, שאל את NotebookLM כל מה שתרצה, והדבק את הפלט שלו כאן כדי ליצור קורס ומבחן פעילים באופן מיידי.
+        </p>
+        <div class="form-group">
+          <label for="notebook-import-title" style="font-weight:700;">שם הקורס המותאם</label>
+          <input type="text" id="notebook-import-title" class="form-input" placeholder="לדוגמה: סיכום אבטחת סיסמאות מותאם בשבילי...">
+        </div>
+        <div class="form-group">
+          <label for="notebook-import-text" style="font-weight:700;">הדבק את הטקסט שנוצר ב-NotebookLM</label>
+          <textarea id="notebook-import-text" class="form-input" style="height:110px; font-family:var(--font-body); font-size:0.95rem; text-align:right;" placeholder="הדבק כאן את המצגת או השאלות המיוצרות..."></textarea>
+        </div>
+        <button class="btn btn-secondary" onclick="importFromNotebookLM()" style="width:100%; justify-content:center;">
+          <i class="fas fa-check"></i> ייבא והתחל קורס אישי
+        </button>
+
+        <div class="ai-history-list" style="margin-top:1.5rem; border-top:1px solid var(--card-border); padding-top:15px;">
+          <h4 style="margin-bottom:0.8rem; color:var(--text-secondary);"><i class="fas fa-book-bookmark"></i> קורסים מותאמים אישית שייבאת:</h4>
+          <div id="ai-courses-list">
+            <!-- Dynamically populated generated courses list -->
+          </div>
+        </div>
+      </div>
+
       <!-- Final Exam strip (Visible only when all completed) -->
       <div id="exam-strip-wrapper" style="display:none;">
         <div class="card exam-strip">
@@ -235,7 +266,6 @@
         <div class="auth-tabs" style="margin-bottom:0;">
           <div class="auth-tab active" id="tab-dash-stats">סטטיסטיקה</div>
           <div class="auth-tab" id="tab-dash-employees">עובדים</div>
-          <div class="auth-tab" id="tab-dash-ai-gen">מחולל AI</div>
         </div>
       </div>
 
@@ -316,62 +346,7 @@
         </div>
       </div>
 
-      <!-- Dashboard Section: Custom AI Generator -->
-      <div id="dash-sec-ai-gen" class="dash-tab-section" style="display:none;">
-        <div class="card ai-creator-card">
-          <h2><i class="fas fa-wand-magic-sparkles"></i> מחולל קורסים מותאמים אישית (AI)</h2>
-          <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:1.5rem;">צור קורס ומבחן שלם בחינם על כל נושא אבטחה שתרצה. המערכת תבנה מצגת מלאה ושאלות מבדק בתוך שניות.</p>
-          
-          <div class="form-group">
-            <label for="groq-key-input">מפתח API של Groq</label>
-            <div style="display:flex; gap:10px;">
-              <input type="password" id="groq-key-input" class="form-input" style="flex:1;" placeholder="הזן מפתח API של Groq...">
-              <button class="btn btn-secondary" onclick="saveGroqKey()">שמור מפתח</button>
-            </div>
-            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:5px;">המפתח נשמר מקומית בדפדפן שלך. כברירת מחדל מוטמע במערכת מפתח ה-Groq החינמי שהגדרת.</p>
-          </div>
 
-          <div id="ai-gen-form">
-            <div class="form-group">
-              <label for="ai-topic-prompt">נושא ההדרכה המבוקש</label>
-              <input type="text" id="ai-topic-prompt" class="form-input" placeholder="לדוגמה: Ransomware, SQL Injection, Phishing בטלגרם...">
-            </div>
-            <button class="btn btn-primary" onclick="generateCustomCourse()" style="width:100%; justify-content:center;">
-              <i class="fas fa-cog"></i> צור הדרכה ומבחן כעת
-            </button>
-          </div>
-
-          <div id="ai-loader" class="loader-container" style="display:none;">
-            <div class="loader-spinner"></div>
-            <h3>ה-AI יוצר כעת את חומרי הלמידה...</h3>
-            <p style="color:var(--text-secondary);">זה עשוי לקחת מספר שניות. אנא המתן.</p>
-          </div>
-
-          <!-- NotebookLM Import Form -->
-          <div style="margin-top:25px; border-top:1px dashed var(--card-border); padding-top:20px;">
-            <h3><i class="fas fa-file-import"></i> ייבוא מהיר מ-NotebookLM</h3>
-            <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:1rem;">הדבק כאן את המצגת או השאלות שנוצרו ב-NotebookLM כדי להמיר אותן לקורס פעיל במערכת.</p>
-            <div class="form-group">
-              <label for="notebook-import-title">שם הקורס בעברית</label>
-              <input type="text" id="notebook-import-title" class="form-input" placeholder="לדוגמה: הגנה מפישינג מתקדם...">
-            </div>
-            <div class="form-group">
-              <label for="notebook-import-text">הטקסט שהעתקת מ-NotebookLM</label>
-              <textarea id="notebook-import-text" class="form-input" style="height:120px; font-family:var(--font-body); font-size:0.95rem; text-align:right;" placeholder="הדבק כאן את תוכן המצגת או השאלות..."></textarea>
-            </div>
-            <button class="btn btn-secondary" onclick="importFromNotebookLM()" style="width:100%; justify-content:center;">
-              <i class="fas fa-check"></i> ייבא והפעל קורס במערכת
-            </button>
-          </div>
-
-          <div class="ai-history-list">
-            <h3 style="margin-bottom:1rem;"><i class="fas fa-book-bookmark"></i> הדרכות AI שנוצרו</h3>
-            <div id="ai-courses-list">
-              <!-- Dynamically populated generated courses list -->
-            </div>
-          </div>
-        </div>
-      </div>
     </section>
 
   </main>
