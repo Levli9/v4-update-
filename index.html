@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🛡️ מערכת הדרכה ואבטחת מידע ארגונית</title>
+  <meta name="description" content="מערכת הדרכה אינטראקטיבית לאבטחת מידע עם ממשק משתמש מתקדם, ניהול משתמשים, ומעקב אחר התקדמות הלמידה.">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+
+  <!-- Animated Glowing Orbs Background -->
+  <div class="bg-glow-container">
+    <div class="bg-glow-orb bg-glow-orb-1"></div>
+    <div class="bg-glow-orb bg-glow-orb-2"></div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="header-logo" onclick="navigate('welcome')">
+      <i class="fas fa-shield-halved"></i>
+      <span>מערכת הדרכה לאבטחת מידע</span>
+    </div>
+    <div class="header-nav" id="header-nav-items">
+      <!-- Generated dynamically in app.js -->
+    </div>
+  </header>
+
+  <!-- Main View Container -->
+  <main class="container">
+
+    <!-- VIEW 1: WELCOME & AUTHENTICATION -->
+    <section id="welcome" class="view-section active">
+      <div class="welcome-grid">
+        <div class="welcome-info">
+          <h1>העשרת מודעות הסייבר הארגונית</h1>
+          <p>ברוכים הבאים לפורטל ההכשרה האינטראקטיבי לאבטחת מידע. כאן תוכלו ללמוד על איומי אבטחה נפוצים, לבצע מבדקים מעשיים ולקבל הסמכה ארגונית להגנה על נכסי המידע שלכם.</p>
+          <div style="display:flex; gap:15px;">
+            <div class="card stat-card" style="flex:1;">
+              <div class="stat-icon"><i class="fas fa-user-shield"></i></div>
+              <div class="stat-info">
+                <div class="stat-num">11+</div>
+                <div class="stat-lbl">נושאי הדרכה</div>
+              </div>
+            </div>
+            <div class="card stat-card" style="flex:1;">
+              <div class="stat-icon"><i class="fas fa-chart-pie"></i></div>
+              <div class="stat-info">
+                <div class="stat-num">100%</div>
+                <div class="stat-lbl">אינטראקטיבי</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="card auth-card">
+          <div class="auth-tabs">
+            <div class="auth-tab active" id="tab-login">התחברות</div>
+            <div class="auth-tab" id="tab-register">הרשמה</div>
+          </div>
+          
+          <!-- Login Form -->
+          <form id="login-form">
+            <div class="form-group">
+              <label for="login-username">שם משתמש</label>
+              <input type="text" id="login-username" class="form-input" placeholder="הזן שם משתמש..." required>
+            </div>
+            <div class="form-group">
+              <label for="login-password">סיסמה</label>
+              <input type="password" id="login-password" class="form-input" placeholder="הזן סיסמה..." required>
+            </div>
+            <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center; margin-top:10px;">
+              <i class="fas fa-sign-in-alt"></i> התחבר למערכת
+            </button>
+            <div class="auth-footer">
+              שכחת את הסיסמה? <a href="#" onclick="openRecoveryModal()">שחזור סיסמה</a>
+            </div>
+          </form>
+
+          <!-- Register Form -->
+          <form id="register-form" style="display:none;">
+            <div class="form-group">
+              <label for="reg-username">שם משתמש</label>
+              <input type="text" id="reg-username" class="form-input" placeholder="שם משתמש באנגלית..." required>
+            </div>
+            <div class="form-group">
+              <label for="reg-password">סיסמה</label>
+              <input type="password" id="reg-password" class="form-input" placeholder="לפחות 4 תווים..." required>
+            </div>
+            <div class="form-group">
+              <label for="reg-name">שם מלא</label>
+              <input type="text" id="reg-name" class="form-input" placeholder="שם ושם משפחה..." required>
+            </div>
+            <div class="form-group">
+              <label for="reg-email">דואר אלקטרוני</label>
+              <input type="email" id="reg-email" class="form-input" placeholder="name@company.com" required>
+            </div>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+              <div class="form-group">
+                <label for="reg-role">תפקיד</label>
+                <select id="reg-role" class="form-input" style="height:45px;">
+                  <option value="employee">עובד</option>
+                  <option value="manager">מנהל</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label for="reg-dept">מחלקת עבודה</label>
+                <select id="reg-dept" class="form-input" style="height:45px;">
+                  <option value="פיתוח">פיתוח</option>
+                  <option value="מכירות">מכירות</option>
+                  <option value="שיווק">שיווק</option>
+                  <option value="משאבי אנוש">משאבי אנוש</option>
+                  <option value="הנהלה">הנהלה</option>
+                </select>
+              </div>
+            </div>
+            <button type="submit" class="btn btn-secondary" style="width:100%; justify-content:center; margin-top:10px;">
+              <i class="fas fa-user-plus"></i> הרשמה למערכת
+            </button>
+          </form>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: ROLE SELECTION (For special managers) -->
+    <section id="role-selection" class="view-section">
+      <div class="role-selection-wrapper">
+        <h2 style="font-size:2.2rem; margin-bottom:10px;">בחר סוג ממשק תצוגה</h2>
+        <p style="color:var(--text-secondary);">משתמש זה מוגדר כמשתמש מיוחד עם הרשאות גישה מלאות לשני הממשקים</p>
+        <div class="role-cards">
+          <div class="card role-card" id="btn-select-employee">
+            <i class="fas fa-user-graduate"></i>
+            <h3>פורטל למידה (עובד)</h3>
+            <p style="color:var(--text-secondary); font-size:0.85rem;">מעבר לקורסים, מצגות, ומבחני ההסמכה.</p>
+          </div>
+          <div class="card role-card" id="btn-select-manager">
+            <i class="fas fa-sliders"></i>
+            <h3>דשבורד בקרה (מנהל)</h3>
+            <p style="color:var(--text-secondary); font-size:0.85rem;">ניהול משתמשים, מעקב ציונים, מודל חיזוי ומחולל קורסים.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: EMPLOYEE PORTAL -->
+    <section id="employee-portal" class="view-section">
+      <div class="portal-header">
+        <div>
+          <h2>מפת הדרכת הסייבר הארגונית</h2>
+          <p id="portal-stats" style="color:var(--text-secondary); margin-top:5px;"></p>
+        </div>
+        <i class="fas fa-trophy" style="font-size:2.5rem; color:var(--warning);"></i>
+      </div>
+
+      <!-- Topics Grid -->
+      <div class="topics-grid" id="topics-grid">
+        <!-- Rendered dynamically -->
+      </div>
+
+      <!-- Final Exam strip (Visible only when all completed) -->
+      <div id="exam-strip-wrapper" style="display:none;">
+        <div class="card exam-strip">
+          <div>
+            <h3 style="color:var(--primary);"><i class="fas fa-graduation-cap"></i> מבחן הסמכה סופי מוכן!</h3>
+            <p style="color:var(--text-secondary); font-size:0.9rem; margin-top:5px;">השלמת בהצלחה את קריאת כלל נושאי הלימוד. עליך לעבור את מבחן ההסמכה כדי להשיג כשירות סייבר מלאה.</p>
+          </div>
+          <button class="btn btn-secondary" onclick="startFinalExam()">התחל מבחן הסמכה <i class="fas fa-chevron-left"></i></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 4: COURSE LEARNING SCREEN -->
+    <section id="learning-screen" class="view-section">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.5rem;">
+        <h2 id="learning-topic-title">שם נושא ההדרכה</h2>
+        <button class="btn" onclick="initEmployeePortal(); navigate('employee-portal');"><i class="fas fa-arrow-right"></i> חזרה לפורטל</button>
+      </div>
+      <div class="learning-layout">
+        <div class="card learning-sidebar">
+          <h4 style="margin-bottom:1rem; border-bottom:1px solid var(--card-border); padding-bottom:5px;">פרקי ההדרכה</h4>
+          <ul class="slide-menu-list" id="slide-menu">
+            <!-- Populated dynamically -->
+          </ul>
+        </div>
+        <div class="card learning-main">
+          <div class="slide-content-area" id="slide-content-viewport">
+            <!-- Slide render viewport -->
+          </div>
+          <div class="slide-footer-nav">
+            <button class="btn" id="btn-prev-slide" onclick="prevSlide()"><i class="fas fa-chevron-right"></i> הקודם</button>
+            <button class="btn btn-primary" id="btn-next-slide" onclick="nextSlide()">הבא <i class="fas fa-chevron-left"></i></button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 5: QUIZ SCREEN -->
+    <section id="quiz-screen" class="view-section">
+      <div class="card quiz-card">
+        <div class="quiz-header">
+          <h2 id="quiz-title">מבדק ידע</h2>
+          <span id="quiz-progress-text">שאלה 1 מתוך 5</span>
+        </div>
+        <div class="quiz-progress-bar">
+          <div class="quiz-progress-fill" id="quiz-progress"></div>
+        </div>
+        <div id="quiz-question-text" class="quiz-question">טוען שאלה...</div>
+        <div id="quiz-options-container" class="quiz-options">
+          <!-- Options rendered dynamically -->
+        </div>
+        <div id="quiz-feedback-box" class="quiz-feedback">
+          <!-- Answer explanation feedback -->
+        </div>
+        <div style="text-align:left;">
+          <button class="btn btn-primary" id="btn-next-question" onclick="nextQuestion()" style="display:none;">המשך <i class="fas fa-chevron-left"></i></button>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 6: RESULT SCREEN -->
+    <section id="result-screen" class="view-section">
+      <div class="card result-card" id="result-viewport">
+        <!-- Results stats generated in app.js -->
+      </div>
+    </section>
+
+    <!-- VIEW 7: MANAGER DASHBOARD -->
+    <section id="manager-dashboard" class="view-section">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:2rem; flex-wrap:wrap; gap:15px;">
+        <h2>דשבורד בקרה וניהול ארגוני</h2>
+        <div class="auth-tabs" style="margin-bottom:0;">
+          <div class="auth-tab active" id="tab-dash-stats">סטטיסטיקה</div>
+          <div class="auth-tab" id="tab-dash-employees">עובדים</div>
+          <div class="auth-tab" id="tab-dash-ai-gen">מחולל AI</div>
+        </div>
+      </div>
+
+      <!-- Dashboard Section: Stats -->
+      <div id="dash-sec-stats" class="dash-tab-section">
+        <div class="dashboard-grid">
+          <div class="card stat-card">
+            <div class="stat-icon"><i class="fas fa-users"></i></div>
+            <div class="stat-info">
+              <div class="stat-num" id="stat-total-employees">0</div>
+              <div class="stat-lbl">עובדים רשומים</div>
+            </div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon"><i class="fas fa-star"></i></div>
+            <div class="stat-info">
+              <div class="stat-num" id="stat-average-score">0%</div>
+              <div class="stat-lbl">ממוצע ציונים כללי</div>
+            </div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon"><i class="fas fa-clipboard-check"></i></div>
+            <div class="stat-info">
+              <div class="stat-num" id="stat-attempts">0</div>
+              <div class="stat-lbl">מבחנים שבוצעו</div>
+            </div>
+          </div>
+          <div class="card stat-card">
+            <div class="stat-icon"><i class="fas fa-graduation-cap"></i></div>
+            <div class="stat-info">
+              <div class="stat-num" id="stat-completion">0%</div>
+              <div class="stat-lbl">אחוז השלמה כולל</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="charts-row">
+          <div class="card">
+            <h3 style="margin-bottom:1.5rem;"><i class="fas fa-chart-simple"></i> ממוצע ציונים לפי מחלקה</h3>
+            <div class="chart-container" id="department-chart">
+              <!-- SVG bar chart will be drawn here -->
+            </div>
+          </div>
+          
+          <div class="card" style="display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+            <i class="fas fa-medal" style="font-size:3.5rem; color:var(--warning); margin-bottom:15px; text-shadow:0 0 15px rgba(255,183,3,0.3);"></i>
+            <h3>מצטיין החודש בסייבר</h3>
+            <h4 style="color:var(--primary); margin:10px 0 5px;">יניב (עובד)</h4>
+            <p style="color:var(--text-secondary); font-size:0.85rem;">ציון ממוצע: <b>92%</b> • הושלמו 4 נושאים</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Section: Employees Table -->
+      <div id="dash-sec-employees" class="dash-tab-section" style="display:none;">
+        <div class="card table-card">
+          <div class="table-controls">
+            <h3 style="margin:0;"><i class="fas fa-users-viewfinder"></i> מעקב התקדמות עובדים</h3>
+            <input type="text" id="employee-search" class="form-input" style="max-width:300px; height:40px;" placeholder="חפש עובד או מחלקה..." onkeyup="filterEmployeesTable()">
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>שם עובד</th>
+                  <th>מחלקה</th>
+                  <th>נושאים שהושלמו</th>
+                  <th>מבחנים שבוצעו</th>
+                  <th>ציון ממוצע</th>
+                  <th>פעולות</th>
+                </tr>
+              </thead>
+              <tbody id="employees-table-body">
+                <!-- Populated dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Dashboard Section: Custom AI Generator -->
+      <div id="dash-sec-ai-gen" class="dash-tab-section" style="display:none;">
+        <div class="card ai-creator-card">
+          <h2><i class="fas fa-wand-magic-sparkles"></i> מחולל קורסים מותאמים אישית (AI)</h2>
+          <p style="color:var(--text-secondary); font-size:0.85rem; margin-bottom:1.5rem;">צור קורס ומבחן שלם בחינם על כל נושא אבטחה שתרצה. המערכת תבנה מצגת מלאה ושאלות מבדק בתוך שניות.</p>
+          
+          <div class="form-group">
+            <label for="groq-key-input">מפתח API של Groq</label>
+            <div style="display:flex; gap:10px;">
+              <input type="password" id="groq-key-input" class="form-input" style="flex:1;" placeholder="הזן מפתח API של Groq...">
+              <button class="btn btn-secondary" onclick="saveGroqKey()">שמור מפתח</button>
+            </div>
+            <p style="font-size:0.8rem; color:var(--text-muted); margin-top:5px;">המפתח נשמר מקומית בדפדפן שלך. כברירת מחדל מוטמע במערכת מפתח ה-Groq החינמי שהגדרת.</p>
+          </div>
+
+          <div id="ai-gen-form">
+            <div class="form-group">
+              <label for="ai-topic-prompt">נושא ההדרכה המבוקש</label>
+              <input type="text" id="ai-topic-prompt" class="form-input" placeholder="לדוגמה: Ransomware, SQL Injection, Phishing בטלגרם...">
+            </div>
+            <button class="btn btn-primary" onclick="generateCustomCourse()" style="width:100%; justify-content:center;">
+              <i class="fas fa-cog"></i> צור הדרכה ומבחן כעת
+            </button>
+          </div>
+
+          <div id="ai-loader" class="loader-container" style="display:none;">
+            <div class="loader-spinner"></div>
+            <h3>ה-AI יוצר כעת את חומרי הלמידה...</h3>
+            <p style="color:var(--text-secondary);">זה עשוי לקחת מספר שניות. אנא המתן.</p>
+          </div>
+
+          <div class="ai-history-list">
+            <h3 style="margin-bottom:1rem;"><i class="fas fa-book-bookmark"></i> הדרכות AI שנוצרו</h3>
+            <div id="ai-courses-list">
+              <!-- Dynamically populated generated courses list -->
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL: Password Recovery Code -->
+  <div class="modal-overlay" id="recovery-modal">
+    <div class="modal-content">
+      <button class="modal-close" onclick="closeRecoveryModal()"><i class="fas fa-times"></i></button>
+      
+      <!-- Step 1: Input email -->
+      <div id="recovery-step-1">
+        <h3 style="margin-bottom:15px; color:var(--primary);"><i class="fas fa-unlock-keyhole"></i> שחזור סיסמת משתמש</h3>
+        <p style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem;">אנא הזן את הדואר האלקטרוני הרשום של החשבון שלך על מנת לשלוח קוד אימות לשחזור.</p>
+        <div class="form-group">
+          <label for="recovery-email">דואר אלקטרוני ארגוני</label>
+          <input type="email" id="recovery-email" class="form-input" placeholder="name@company.com">
+        </div>
+        <button class="btn btn-primary" onclick="sendRecoveryCode()" style="width:100%; justify-content:center; margin-top:10px;">שלח קוד אימות</button>
+      </div>
+
+      <!-- Step 2: Input code -->
+      <div id="recovery-step-2" style="display:none;">
+        <h3 style="margin-bottom:15px; color:var(--primary);"><i class="fas fa-key"></i> הזן קוד אימות</h3>
+        <p id="recovery-sent-msg" style="color:var(--text-secondary); font-size:0.9rem; margin-bottom:1.5rem;"></p>
+        <div class="form-group">
+          <label for="recovery-code">קוד אימות (6 ספרות)</label>
+          <input type="text" id="recovery-code" class="form-input" placeholder="123456" maxlength="6">
+        </div>
+        <button class="btn btn-secondary" onclick="verifyRecoveryCode()" style="width:100%; justify-content:center; margin-top:10px;">אמת קוד והמשך</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Employee Exam Attempts History -->
+  <div class="modal-overlay" id="history-modal">
+    <div class="modal-content" style="max-width:700px;">
+      <button class="modal-close" onclick="closeHistoryModal()"><i class="fas fa-times"></i></button>
+      <h3 style="margin-bottom:1.5rem; color:var(--primary);" id="history-modal-title">היסטוריית מבדקים</h3>
+      <div id="history-modal-body" class="table-wrapper">
+        <!-- Content inserted dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts -->
+  <script src="questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
