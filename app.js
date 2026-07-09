@@ -437,6 +437,8 @@ function updateSidebarActive() {
 function renderCurrentSlide() {
   const slide = currentTopic.courseData.slides[currentSlideIndex];
   document.getElementById("learning-topic-title").innerText = currentTopic.name;
+  const fsTopic = document.getElementById("slide-fullscreen-topic");
+  if (fsTopic) fsTopic.innerText = currentTopic.name;
   
   const contentArea = document.getElementById("slide-content-viewport");
   contentArea.innerHTML = "";
@@ -1141,6 +1143,18 @@ function importFromNotebookLM() {
   renderCustomCoursesList();
 }
 
+function toggleFullscreen() {
+  const card = document.getElementById("learning-slide-card");
+  if (!card) return;
+  if (!document.fullscreenElement) {
+    card.requestFullscreen().catch(err => {
+      console.warn(`שגיאה במעבר למסך מלא: ${err.message}`);
+    });
+  } else {
+    document.exitFullscreen();
+  }
+}
+
 // ==========================================
 // 9. APP INITIALIZATION ENTRY POINT
 // ==========================================
@@ -1164,6 +1178,7 @@ window.addEventListener("DOMContentLoaded", () => {
   window.showRoleSelection = showRoleSelection;
   window.filterEmployeesTable = filterEmployeesTable;
   window.importFromNotebookLM = importFromNotebookLM;
+  window.toggleFullscreen = toggleFullscreen;
   
   // Route to welcome by default
   navigate("welcome");

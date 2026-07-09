@@ -217,12 +217,18 @@
             <!-- Populated dynamically -->
           </ul>
         </div>
-        <div class="card learning-main">
+        <div class="card learning-main" id="learning-slide-card">
+          <div class="slide-fullscreen-header" style="display:none; justify-content:space-between; align-items:center; width:100%; margin-bottom:1.5rem; border-bottom:1px solid var(--card-border); padding-bottom:10px;">
+            <span id="slide-fullscreen-topic" style="font-weight:700; color:var(--primary);">שם הנושא</span>
+            <button class="btn btn-secondary btn-sm" onclick="toggleFullscreen()"><i class="fas fa-compress"></i> צא ממסך מלא</button>
+          </div>
+          
           <div class="slide-content-area" id="slide-content-viewport">
             <!-- Slide render viewport -->
           </div>
-          <div class="slide-footer-nav">
+          <div class="slide-footer-nav" style="width:100%; display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--card-border); padding-top:1rem;">
             <button class="btn" id="btn-prev-slide" onclick="prevSlide()"><i class="fas fa-chevron-right"></i> הקודם</button>
+            <button class="btn btn-secondary" id="btn-fullscreen-toggle" onclick="toggleFullscreen()"><i class="fas fa-expand"></i> מסך מלא</button>
             <button class="btn btn-primary" id="btn-next-slide" onclick="nextSlide()">הבא <i class="fas fa-chevron-left"></i></button>
           </div>
         </div>

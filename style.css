@@ -1208,3 +1208,99 @@ tr:hover td {
 .modal-close:hover {
   color: var(--primary);
 }
+
+/* ==========================================
+   PRESENTATION DECK & FULLSCREEN STYLES
+   ========================================== */
+#learning-slide-card {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 480px;
+}
+
+.slide-content-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 1.5rem 0;
+}
+
+.slide-header h2 {
+  font-size: 2.2rem;
+  color: var(--primary);
+  text-shadow: 0 0 15px rgba(0, 230, 255, 0.15);
+  margin-bottom: 15px;
+}
+
+.slide-text {
+  font-size: 1.25rem;
+  line-height: 1.8;
+  color: var(--text-primary);
+}
+
+.slide-text ul {
+  margin-right: 2rem;
+  margin-top: 1.2rem;
+}
+
+.slide-text li {
+  margin-bottom: 0.8rem;
+  position: relative;
+}
+
+/* Fullscreen Slide mode */
+#learning-slide-card:fullscreen {
+  background: var(--bg-primary) !important;
+  color: var(--text-primary) !important;
+  padding: 4rem !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+  box-sizing: border-box !important;
+  border: none !important;
+  border-radius: 0 !important;
+}
+
+#learning-slide-card:fullscreen .slide-fullscreen-header {
+  display: flex !important;
+}
+
+#learning-slide-card:fullscreen .slide-content-area {
+  max-width: 1000px !important;
+  margin: 0 auto !important;
+  justify-content: center !important;
+  width: 100% !important;
+}
+
+#learning-slide-card:fullscreen .slide-header h2 {
+  font-size: 3.5rem !important;
+  margin-bottom: 2rem !important;
+  text-align: center !important;
+}
+
+#learning-slide-card:fullscreen .slide-text {
+  font-size: 1.85rem !important;
+  line-height: 2 !important;
+}
+
+#learning-slide-card:fullscreen .slide-text li {
+  margin-bottom: 1.2rem !important;
+}
+
+#learning-slide-card:fullscreen .slide-footer-nav {
+  max-width: 1000px !important;
+  margin: 0 auto !important;
+  width: 100% !important;
+  border-top: 1px solid var(--card-border) !important;
+  padding-top: 1.5rem !important;
+}
+
+#learning-slide-card:fullscreen #btn-fullscreen-toggle {
+  display: none !important; /* Hide fullscreen button while in fullscreen */
+}
