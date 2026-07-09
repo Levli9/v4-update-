@@ -1740,6 +1740,191 @@ tr:hover td {
   white-space: nowrap;
 }
 
+.cinema-progress-fill {
+  height: 100%;
+  width: 0%;
+  transition: width 0.08s linear;
+  position: relative;
+}
+
+.cinema-progress-thumb {
+  position: absolute;
+
+  top: 50%;
+  left: 0%;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%) scale(0);
+  transition: left 0.08s linear, transform 0.2s ease;
+  z-index: 8;
+  box-shadow: 0 0 8px rgba(0,0,0,0.6);
+}
+.cinema-progress-track:hover .cinema-progress-thumb {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+/* ── Control bar ── */
+.cinema-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: rgba(0,0,0,0.4);
+  border-top: 1px solid rgba(255,255,255,0.05);
+  gap: 10px;
+  direction: rtl;
+}
+
+.cinema-ctrl-left,
+.cinema-ctrl-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.cinema-ctrl-center {
+  flex: 1;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* Icon buttons */
+.cinema-btn-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.05);
+  color: #fff;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+.cinema-btn-icon:hover {
+  background: rgba(0,230,255,0.1);
+  border-color: var(--vcolor, #00e6ff);
+  color: var(--vcolor, #00e6ff);
+  box-shadow: 0 0 12px rgba(0,230,255,0.2);
+}
+
+/* Time */
+.cinema-time {
+  color: rgba(255,255,255,0.5);
+  font-size: 0.78rem;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+/* Title label */
+.cinema-title-label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: rgba(255,255,255,0.6);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 260px;
+}
+
+/* TTS badge */
+.cinema-tts-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.45);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
+}
+.cinema-tts-badge:hover,
+.cinema-tts-badge.active {
+  background: rgba(0,230,118,0.12);
+  border-color: rgba(0,230,118,0.4);
+  color: #00e676;
+  box-shadow: 0 0 10px rgba(0,230,118,0.2);
+}
+
+/* Speed select */
+.cinema-speed {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px;
+  color: rgba(255,255,255,0.6);
+  font-size: 0.75rem;
+  padding: 3px 6px;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+.cinema-speed:hover { border-color: var(--vcolor, #00e6ff); }
+.cinema-speed option { background: #0d0d1a; }
+
+/* ── FULLSCREEN mode ── */
+.cinema-fullscreen-wrap:fullscreen,
+.cinema-is-fullscreen {
+  border-radius: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  display: flex;
+  flex-direction: column;
+}
+
+.cinema-fullscreen-wrap:fullscreen .cinema-screen,
+.cinema-is-fullscreen .cinema-screen {
+  flex: 1;
+  height: auto !important;
+}
+
+.cinema-fullscreen-wrap:fullscreen .caption-current,
+.cinema-is-fullscreen .caption-current {
+  font-size: 1.6rem !important;
+  padding: 12px 28px !important;
+  max-width: 70%;
+}
+
+.cinema-fullscreen-wrap:fullscreen .cinema-chapters,
+.cinema-is-fullscreen .cinema-chapters {
+  bottom: 24px;
+}
+
+.cinema-fullscreen-wrap:fullscreen .cinema-chip,
+.cinema-is-fullscreen .cinema-chip {
+  width: 28px;
+  height: 28px;
+  font-size: 0.75rem;
+}
+
+.cinema-fullscreen-wrap:fullscreen .cinema-play-ring,
+.cinema-is-fullscreen .cinema-play-ring {
+  width: 88px;
+  height: 88px;
+}
+
+.cinema-fullscreen-wrap:fullscreen .cinema-play-icon,
+.cinema-is-fullscreen .cinema-play-icon {
+  font-size: 2rem !important;
+}
+
+.cinema-fullscreen-wrap:fullscreen .cinema-controls,
+.cinema-is-fullscreen .cinema-controls {
+  padding: 14px 28px;
+}
+
 /* Fullscreen presentation adjustments */
 #learning-slide-card:fullscreen .pres-title-slide {
   gap: 5rem !important;
@@ -1777,5 +1962,8 @@ tr:hover td {
   }
   .pres-main-title { font-size: 1.7rem; }
   .pres-slide-title { font-size: 1.3rem; }
-}
 
+  .cinema-ctrl-center { display: none; }
+  .cinema-title-label { display: none; }
+  .cinema-screen { height: 170px; }
+}
