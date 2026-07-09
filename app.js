@@ -393,13 +393,18 @@ function startLearningTopic(topicId) {
   const courseData = COURSES_DATABASE[topicId] || {
     title: currentTopic.name,
     slides: [
-      { title: `מבוא ל-${currentTopic.name}`, content: `זהו שקף הדרכה מובנה בנושא ${currentTopic.name}. כאן יוצגו מושגי היסוד, הסברים טכניים ושיטות התמודדות רלוונטיות לעובדים בארגון.`, bullets: ["נקודה ראשונה למיקוד", "עקרונות הגנה חשובים", "תרגול נכון של הגנת סייבר"] },
-      { title: `יישום מעשי: ${currentTopic.name}`, content: `על מנת ליישם נכון את עקרונות ההגנה ב-${currentTopic.name}, יש לפעול לפי הנהלים המפורטים, לדווח על חריגות למנהל האבטחה, ולהימנע מפעולות מסוכנות.`, bullets: ["מניעת תקלות והפרות אבטחה", "דיווח מיידי לצוות ה-SOC", "בדיקות סדירות של תקינות המערכות"] }
+      { type: 'content', title: `מבוא ל-${currentTopic.name}`, content: `זהו שקף הדרכה מובנה בנושא ${currentTopic.name}.`, bullets: ["נקודה ראשונה", "עקרונות הגנה"], visual: '' }
     ]
   };
   
   currentTopic.courseData = courseData;
   readingStartTime = Date.now();
+
+  // Inject video player above slide card
+  const videoContainer = document.getElementById("video-player-section");
+  if (videoContainer && typeof buildVideoPlayer === 'function') {
+    videoContainer.innerHTML = buildVideoPlayer(topicId);
+  }
   
   buildSlideSidebar();
   renderCurrentSlide();
@@ -410,13 +415,12 @@ function buildSlideSidebar() {
   const sidebarList = document.getElementById("slide-menu");
   sidebarList.innerHTML = "";
   
+  const slideIcons = ['🎬','📝','🔍','💡','✅'];
   currentTopic.courseData.slides.forEach((slide, idx) => {
     const li = document.createElement("li");
     li.className = `slide-menu-item ${idx === currentSlideIndex ? 'active' : ''}`;
-    li.innerHTML = `
-      <i class="far fa-file-alt"></i>
-      <span>שקף ${idx + 1}: ${slide.title}</span>
-    `;
+    const icon = slide.type === 'title' ? '🎬' : slide.type === 'summary' ? '✅' : slide.type === 'interactive' ? '🎮' : '📝';
+    li.innerHTML = `<span class="sidebar-slide-icon">${icon}</span><span>${slide.title}</span>`;
     li.addEventListener("click", () => {
       currentSlideIndex = idx;
       renderCurrentSlide();
@@ -434,6 +438,93 @@ function updateSidebarActive() {
   });
 }
 
+// ── New presentation renderer ──────────────────────────────
+function renderCurrentSlide() {
+  const slide = currentTopic.courseData.slides[currentSlideIndex];
+  if (!slide) return;
+
+  document.getElementById("learning-topic-title").innerText = currentTopic.name;
+  const fsTopic = document.getElementById("slide-fullscreen-topic");
+  if (fsTopic) fsTopic.innerText = currentTopic.name;
+
+  const contentArea = document.getElementById("slide-content-viewport");
+  const total = currentTopic.courseData.slides.length;
+
+  // Progress dots
+  const dotsHTML = Array.from({length: total}, (_,i) =>
+    `<span class="slide-dot ${i === currentSlideIndex ? 'active' : i < currentSlideIndex ? 'done' : ''}"></span>`
+  ).join('');
+
+  // Build slide based on type
+  let html = '';
+  if (slide.type === 'title') {
+    const topicColor = currentTopic.color || '#00e6ff';
+    html = `
+      <div class="pres-slide pres-title-slide" style="--topic-color:${topicColor}">
+        <div class="pres-title-left">
+          <div class="pres-topic-tag">${currentTopic.emoji} ${currentTopic.name}</div>
+          <h1 class="pres-main-title">${slide.title}</h1>
+          <p class="pres-subtitle">${slide.subtitle || ''}</p>
+          <div class="pres-start-hint"><i class="fas fa-chevron-left"></i> לחץ "הבא" להתחיל</div>
+        </div>
+        <div class="pres-title-right">
+          ${slide.visual || `<div class="pres-big-emoji">${currentTopic.emoji}</div>`}
+        </div>
+      </div>`;
+  } else if (slide.type === 'summary') {
+    const bulletItems = (slide.bullets || []).map(b =>
+      `<div class="pres-summary-card">${b}</div>`
+    ).join('');
+    html = `
+      <div class="pres-slide pres-summary-slide">
+        <div class="pres-slide-header"><h2 class="pres-slide-title">${slide.title}</h2></div>
+        <div class="pres-summary-grid">${bulletItems}</div>
+        ${slide.visual ? `<div class="pres-summary-visual">${slide.visual}</div>` : ''}
+      </div>`;
+  } else {
+    // content or interactive
+    const bulletItems = (slide.bullets || []).map(b =>
+      `<li class="pres-bullet">${b}</li>`
+    ).join('');
+    const hasVisual = slide.visual && slide.visual.trim().length > 0;
+    html = `
+      <div class="pres-slide pres-content-slide ${hasVisual ? 'has-visual' : 'no-visual'}">
+        <div class="pres-slide-header"><h2 class="pres-slide-title">${slide.title}</h2></div>
+        <div class="pres-content-body">
+          <div class="pres-text-col">
+            <p class="pres-content-text">${slide.content}</p>
+            <ul class="pres-bullets">${bulletItems}</ul>
+          </div>
+          ${hasVisual ? `<div class="pres-visual-col"><div class="pres-visual-box">${slide.visual}</div></div>` : ''}
+        </div>
+      </div>`;
+  }
+
+  contentArea.innerHTML = `
+    <div class="pres-wrapper">
+      ${html}
+      <div class="slide-progress-dots">${dotsHTML}</div>
+    </div>`;
+
+  // Execute inline scripts from visual widgets (interactive slides)
+  contentArea.querySelectorAll('script').forEach(s => {
+    const newScript = document.createElement('script');
+    newScript.textContent = s.textContent;
+    document.body.appendChild(newScript);
+  });
+
+  // Nav buttons
+  const prevBtn = document.getElementById("btn-prev-slide");
+  const nextBtn = document.getElementById("btn-next-slide");
+  if (prevBtn) prevBtn.style.visibility = currentSlideIndex === 0 ? 'hidden' : 'visible';
+  if (nextBtn) {
+    nextBtn.innerHTML = currentSlideIndex === total - 1
+      ? `<i class="fas fa-graduation-cap"></i> מעבר למבחן הנושא`
+      : `הבא <i class="fas fa-chevron-left"></i>`;
+  }
+}
+
+// Legacy dict no longer needed – kept empty for compatibility
 const SLIDE_VISUALS = {
   "0_0": `<svg viewBox="0 0 400 300" style="width:100%; height:auto;">
        <rect x="50" y="50" width="100" height="200" rx="10" fill="#00b4d8" opacity="0.1" stroke="#00b4d8" stroke-width="2"/>
@@ -589,103 +680,7 @@ document.getElementById('out').textContent = query;</pre>
      <div style="display:inline-block; border: 2px solid var(--success); padding:10px; border-radius:5px; font-weight:700; font-size:0.9rem;">3. דיווח מיידי למחלקת אבטחת מידע</div>
    </div>`
 };
-
-function renderCurrentSlide() {
-  const slide = currentTopic.courseData.slides[currentSlideIndex];
-  document.getElementById("learning-topic-title").innerText = currentTopic.name;
-  const fsTopic = document.getElementById("slide-fullscreen-topic");
-  if (fsTopic) fsTopic.innerText = currentTopic.name;
-  
-  const contentArea = document.getElementById("slide-content-viewport");
-  contentArea.innerHTML = "";
-  
-  let bulletHTML = "<ul>";
-  slide.bullets.forEach(b => {
-    bulletHTML += `<li>${b}</li>`;
-  });
-  bulletHTML += "</ul>";
-  
-  const visualKey = `${currentTopic.id}_${currentSlideIndex}`;
-  const visualHTML = SLIDE_VISUALS[visualKey] || "";
-  
-  if (visualHTML) {
-    contentArea.innerHTML = `
-      <div class="slide-header"><h2>${slide.title}</h2></div>
-      <div class="slide-grid">
-        <div class="slide-text">
-          <p>${slide.content}</p>
-          ${bulletHTML}
-        </div>
-        <div class="slide-visual-wrapper">
-          ${visualHTML}
-        </div>
-      </div>
-    `;
-  } else {
-    contentArea.innerHTML = `
-      <div class="slide-header"><h2>${slide.title}</h2></div>
-      <div class="slide-text">
-        <p>${slide.content}</p>
-        ${bulletHTML}
-      </div>
-    `;
-  }
-
-  // Handle custom simulator content if present
-  if (currentTopic.id === 4 && currentSlideIndex === 1) {
-    const mediaDiv = document.createElement("div");
-    mediaDiv.className = "media-container";
-    mediaDiv.innerHTML = `
-      <video controls autoplay muted style="width:100%; max-height:350px;">
-        <source src="data/generated-videos/training-1776270463079-training.mp4" type="video/mp4">
-        <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-        הדפדפן שלך אינו תומך בניגון וידאו.
-      </video>
-    `;
-    contentArea.appendChild(mediaDiv);
-  } else if (currentTopic.id === 4 && currentSlideIndex === 2) {
-    const pdfSim = document.createElement("div");
-    pdfSim.className = "pdf-viewer-sim";
-    pdfSim.innerHTML = `
-      <div class="pdf-page">
-        <div class="pdf-header-sim">
-          <span>אנטומיה של מתקפת MITM - עמוד 1</span>
-          <span>סיווג: פנימי</span>
-        </div>
-        <h3 style="color:#0077b6; margin-bottom:12px;">מנגנון מתקפת אדם באמצע (ARP Spoofing)</h3>
-        <p style="line-height:1.6; margin-bottom:10px;">מתקפת MITM מתבססת רבות על זיוף כתובות פיזיות ברשת המקומית. התוקף שולח הודעות ARP מזויפות לרשת כדי קישור כתובת ה-MAC שלו עם כתובת ה-IP של נתב ברירת המחדל.</p>
-      </div>
-      <div class="pdf-page">
-        <div class="pdf-header-sim">
-          <span>אנטומיה של מתקפת MITM - עמוד 2</span>
-          <span>סיווג: פנימי</span>
-        </div>
-        <h3 style="color:#0077b6; margin-bottom:12px;">מניעה והתגוננות ברשת הארגונית</h3>
-        <ul style="margin-right:20px; line-height:1.6;">
-          <li>אכיפת הצפנת HTTPS קשיחה (HSTS).</li>
-          <li>שימוש ברשתות VPN מאובטחות.</li>
-          <li>מניעת ARP Spoofing ברמת המתגים.</li>
-        </ul>
-      </div>
-    `;
-    contentArea.appendChild(pdfSim);
-  }
-
-  const prevBtn = document.getElementById("btn-prev-slide");
-  const nextBtn = document.getElementById("btn-next-slide");
-  
-  if (currentSlideIndex === 0) {
-    prevBtn.style.visibility = "hidden";
-  } else {
-    prevBtn.style.visibility = "visible";
-  }
-
-  if (currentSlideIndex === currentTopic.courseData.slides.length - 1) {
-    nextBtn.innerHTML = `<i class="fas fa-graduation-cap"></i> מעבר למבחן הנושא`;
-  } else {
-    nextBtn.innerHTML = `הבא <i class="fas fa-chevron-left"></i>`;
-  }
-}
+// (Old renderer replaced by new renderCurrentSlide above)
 
 function prevSlide() {
   if (currentSlideIndex > 0) {

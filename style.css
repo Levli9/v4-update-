@@ -1351,3 +1351,431 @@ tr:hover td {
 #learning-slide-card:fullscreen .slide-visual-wrapper svg {
   max-height: 400px !important;
 }
+
+/* ================================================================
+   PRESENTATION DECK – pres-* classes
+   ================================================================ */
+.pres-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  gap: 0;
+}
+
+.pres-slide {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  animation: presSlideIn 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+@keyframes presSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Title Slide ── */
+.pres-title-slide {
+  flex-direction: row;
+  align-items: center;
+  gap: 2.5rem;
+  min-height: 340px;
+}
+
+.pres-title-left {
+  flex: 1.2;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.pres-title-right {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 260px;
+}
+
+.pres-topic-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(var(--primary-rgb, 0, 230, 255), 0.1);
+  border: 1px solid var(--topic-color, var(--primary));
+  color: var(--topic-color, var(--primary));
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  width: fit-content;
+  letter-spacing: 0.5px;
+}
+
+.pres-main-title {
+  font-size: 2.4rem;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.pres-subtitle {
+  font-size: 1.05rem;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.pres-start-hint {
+  color: var(--topic-color, var(--primary));
+  font-size: 0.85rem;
+  font-weight: 600;
+  opacity: 0.7;
+  margin-top: 0.5rem;
+}
+
+.pres-big-emoji {
+  font-size: 7rem;
+  text-align: center;
+  filter: drop-shadow(0 0 30px rgba(0, 230, 255, 0.15));
+}
+
+.slide-title-visual {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* ── Content Slide ── */
+.pres-slide-header {
+  margin-bottom: 1.4rem;
+  border-bottom: 2px solid var(--card-border);
+  padding-bottom: 0.8rem;
+}
+
+.pres-slide-title {
+  font-size: 1.7rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin: 0;
+  letter-spacing: -0.3px;
+}
+
+.pres-content-body {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 2rem;
+  align-items: start;
+  flex: 1;
+}
+
+.pres-content-slide.no-visual .pres-content-body {
+  grid-template-columns: 1fr;
+}
+
+.pres-content-text {
+  font-size: 1rem;
+  line-height: 1.75;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.pres-bullets {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+}
+
+.pres-bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.97rem;
+  line-height: 1.5;
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.pres-bullet:hover {
+  background: rgba(0, 230, 255, 0.04);
+  border-color: rgba(0, 230, 255, 0.15);
+}
+
+.pres-visual-col {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.pres-visual-box {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 1.2rem;
+  width: 100%;
+  box-shadow: inset 0 0 25px rgba(0,0,0,0.25);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 240px;
+}
+
+.pres-visual-box svg {
+  max-height: 260px;
+  width: 100%;
+}
+
+/* ── Summary Slide ── */
+.pres-summary-slide {
+  gap: 1rem;
+}
+
+.pres-summary-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+
+.pres-summary-card {
+  padding: 14px 16px;
+  background: rgba(0, 230, 255, 0.04);
+  border: 1px solid rgba(0, 230, 255, 0.15);
+  border-radius: 10px;
+  font-size: 0.98rem;
+  line-height: 1.5;
+  transition: all 0.2s ease;
+}
+
+.pres-summary-card:hover {
+  background: rgba(0, 230, 255, 0.08);
+  transform: translateX(-3px);
+}
+
+.pres-summary-visual {
+  margin-top: 0.5rem;
+}
+
+/* ── Progress dots ── */
+.slide-progress-dots {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  padding-top: 14px;
+  margin-top: auto;
+}
+
+.slide-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--card-border);
+  transition: all 0.3s ease;
+  cursor: default;
+}
+
+.slide-dot.done {
+  background: rgba(0, 230, 255, 0.3);
+}
+
+.slide-dot.active {
+  width: 22px;
+  border-radius: 4px;
+  background: var(--primary);
+  box-shadow: 0 0 8px rgba(0, 230, 255, 0.4);
+}
+
+/* ── Sidebar slide icon ── */
+.sidebar-slide-icon {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+  margin-left: 6px;
+}
+
+/* ================================================================
+   VIDEO PLAYER – animated explainer
+   ================================================================ */
+.video-player-container {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  overflow: hidden;
+  direction: rtl;
+}
+
+.video-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 16px;
+  background: rgba(0, 230, 255, 0.05);
+  border-bottom: 1px solid var(--card-border);
+}
+
+.video-badge {
+  background: var(--primary);
+  color: #000;
+  font-weight: 700;
+  font-size: 0.75rem;
+  padding: 3px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.3px;
+}
+
+.video-duration {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+}
+
+.video-screen {
+  position: relative;
+  background: #07070f;
+  height: 140px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
+}
+
+.video-bg-grid {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(0,230,255,0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(0,230,255,0.04) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+.video-icon-bg {
+  position: absolute;
+  font-size: 5rem;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+.video-caption {
+  position: relative;
+  z-index: 2;
+  text-align: center;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  max-width: 80%;
+  line-height: 1.5;
+  padding: 1rem;
+  transition: opacity 0.2s ease;
+}
+
+.video-progress-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: rgba(255,255,255,0.08);
+}
+
+.video-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #9d4edd);
+  transition: width 0.1s linear;
+}
+
+.video-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+}
+
+.vid-btn {
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  padding: 6px 14px;
+}
+
+.video-timeline {
+  flex: 1;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.timeline-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #333;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.25s ease;
+}
+
+.timeline-dot.active {
+  background: rgba(0, 230, 255, 0.4);
+  transform: scale(1.15);
+}
+
+.timeline-dot.current {
+  background: var(--primary);
+  box-shadow: 0 0 6px rgba(0, 230, 255, 0.5);
+  transform: scale(1.4);
+}
+
+.vid-time {
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+
+/* Fullscreen presentation adjustments */
+#learning-slide-card:fullscreen .pres-title-slide {
+  gap: 5rem !important;
+}
+
+#learning-slide-card:fullscreen .pres-main-title {
+  font-size: 3.5rem !important;
+}
+
+#learning-slide-card:fullscreen .pres-slide-title {
+  font-size: 2.5rem !important;
+}
+
+#learning-slide-card:fullscreen .pres-bullet,
+#learning-slide-card:fullscreen .pres-content-text {
+  font-size: 1.3rem !important;
+  line-height: 1.8 !important;
+}
+
+#learning-slide-card:fullscreen .pres-summary-card {
+  font-size: 1.2rem !important;
+  padding: 18px !important;
+}
+
+#learning-slide-card:fullscreen .pres-visual-box {
+  min-height: 380px !important;
+}
+
+@media (max-width: 900px) {
+  .pres-title-slide {
+    flex-direction: column !important;
+  }
+  .pres-content-body {
+    grid-template-columns: 1fr !important;
+  }
+  .pres-main-title { font-size: 1.7rem; }
+  .pres-slide-title { font-size: 1.3rem; }
+}
+

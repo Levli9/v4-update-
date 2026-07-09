@@ -210,9 +210,13 @@
         <h2 id="learning-topic-title">שם נושא ההדרכה</h2>
         <button class="btn" onclick="initEmployeePortal(); navigate('employee-portal');"><i class="fas fa-arrow-right"></i> חזרה לפורטל</button>
       </div>
+
+      <!-- Video player – injected dynamically by video_engine.js -->
+      <div id="video-player-section" style="margin-bottom:1.5rem;"></div>
+
       <div class="learning-layout">
         <div class="card learning-sidebar">
-          <h4 style="margin-bottom:1rem; border-bottom:1px solid var(--card-border); padding-bottom:5px;">פרקי ההדרכה</h4>
+          <h4 style="margin-bottom:1rem; border-bottom:1px solid var(--card-border); padding-bottom:5px;"><i class="fas fa-layer-group"></i> שקפי ההדרכה</h4>
           <ul class="slide-menu-list" id="slide-menu">
             <!-- Populated dynamically -->
           </ul>
@@ -228,7 +232,7 @@
           </div>
           <div class="slide-footer-nav" style="width:100%; display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--card-border); padding-top:1rem;">
             <button class="btn" id="btn-prev-slide" onclick="prevSlide()"><i class="fas fa-chevron-right"></i> הקודם</button>
-            <button class="btn btn-secondary" id="btn-fullscreen-toggle" onclick="toggleFullscreen()"><i class="fas fa-expand"></i> מסך מלא</button>
+            <button class="btn btn-secondary" id="btn-fullscreen-toggle" onclick="toggleFullscreen()"><i class="fas fa-expand"></i> מצגת מסך מלא</button>
             <button class="btn btn-primary" id="btn-next-slide" onclick="nextSlide()">הבא <i class="fas fa-chevron-left"></i></button>
           </div>
         </div>
@@ -400,6 +404,7 @@
   <!-- Scripts -->
   <script src="questions.js"></script>
   <script src="courses_data.js"></script>
+  <script src="video_engine.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
