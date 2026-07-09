@@ -1304,3 +1304,50 @@ tr:hover td {
 #learning-slide-card:fullscreen #btn-fullscreen-toggle {
   display: none !important; /* Hide fullscreen button while in fullscreen */
 }
+
+/* Slide Grid and Visual Layout */
+.slide-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 2rem;
+  align-items: center;
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 900px) {
+  .slide-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+}
+
+.slide-visual-wrapper {
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 1.5rem;
+  box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 250px;
+  width: 100%;
+}
+
+.slide-visual-wrapper svg {
+  max-height: 280px;
+}
+
+#learning-slide-card:fullscreen .slide-grid {
+  gap: 4rem !important;
+}
+
+#learning-slide-card:fullscreen .slide-visual-wrapper {
+  min-height: 380px !important;
+  background: rgba(255, 255, 255, 0.04) !important;
+  padding: 2.5rem !important;
+}
+
+#learning-slide-card:fullscreen .slide-visual-wrapper svg {
+  max-height: 400px !important;
+}

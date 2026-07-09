@@ -434,6 +434,162 @@ function updateSidebarActive() {
   });
 }
 
+const SLIDE_VISUALS = {
+  "0_0": `<svg viewBox="0 0 400 300" style="width:100%; height:auto;">
+       <rect x="50" y="50" width="100" height="200" rx="10" fill="#00b4d8" opacity="0.1" stroke="#00b4d8" stroke-width="2"/>
+       <text x="100" y="150" fill="#00b4d8" text-anchor="middle" font-weight="700" font-size="14">רשת ארגונית</text>
+       <rect x="250" y="50" width="100" height="200" rx="10" fill="#f72585" opacity="0.1" stroke="#f72585" stroke-width="2"/>
+       <text x="300" y="150" fill="#f72585" text-anchor="middle" font-weight="700" font-size="14">רשת חיצונית</text>
+       <g transform="translate(180, 40)">
+         <rect x="0" y="0" width="40" height="220" fill="#ffb703" rx="5"/>
+         <line x1="0" y1="40" x2="40" y2="40" stroke="#fff" stroke-width="2"/>
+         <line x1="0" y1="80" x2="40" y2="80" stroke="#fff" stroke-width="2"/>
+         <line x1="0" y1="120" x2="40" y2="120" stroke="#fff" stroke-width="2"/>
+         <line x1="0" y1="160" x2="40" y2="160" stroke="#fff" stroke-width="2"/>
+         <line x1="0" y1="200" x2="40" y2="200" stroke="#fff" stroke-width="2"/>
+         <text x="20" y="115" fill="#fff" text-anchor="middle" font-size="10" transform="rotate(-90, 20, 115)">חומת אש</text>
+       </g>
+       <path d="M 250 150 L 150 150" fill="none" stroke="#f72585" stroke-width="3" stroke-dasharray="5,5"/>
+       <polygon points="150,145 140,150 150,155" fill="#f72585"/>
+     </svg>`,
+  "1_0": `<div style="padding:1.5rem; background:rgba(255,255,255,0.02); width:100%; border-radius:8px;">
+     <h4 style="margin-bottom:10px; color:var(--primary); text-align:right;">נסה סיסמה כדי לבדוק חוזק:</h4>
+     <input type="text" placeholder="הקלד סיסמה..." class="form-input" style="margin-bottom:15px;" oninput="
+       const val = this.value;
+       const len = val.length >= 12;
+       const spec = /[!@#\\$%^&*(),.?\\x22:{}|<>]/g.test(val);
+       const num = /[0-9]/g.test(val);
+       const result = document.getElementById('pass-strength-bar');
+       const label = document.getElementById('pass-strength-lbl');
+       let score = 0;
+       if (val.length > 0) score += 20;
+       if (len) score += 30;
+       if (spec) score += 25;
+       if (num) score += 25;
+       result.style.width = score + '%';
+       if (score < 40) { result.style.backgroundColor = 'var(--danger)'; label.innerText='חלשה מאוד ❌'; }
+       else if (score < 80) { result.style.backgroundColor = 'var(--warning)'; label.innerText='בינונית ⚠️'; }
+       else { result.style.backgroundColor = 'var(--success)'; label.innerText='חזקה מאוד! ✅'; }
+     ">
+     <div style="height:10px; background:#444; border-radius:5px; overflow:hidden; margin-bottom:10px;">
+       <div id="pass-strength-bar" style="width:0%; height:100%; transition:all 0.3s ease;"></div>
+     </div>
+     <div id="pass-strength-lbl" style="font-weight:700; text-align:center; color:var(--text-secondary);">הקלד סיסמה...</div>
+   </div>`,
+  "2_0": `<div style="padding:1rem; background:#1e1e24; border: 1px solid var(--card-border); font-family:sans-serif; text-align:right; border-radius:8px; width:100%;">
+     <div style="border-bottom:1px solid #333; padding-bottom:5px; margin-bottom:8px; font-size:0.8rem;">
+       <div><b>מאת:</b> <span style="color:#f72585; border:1px dashed #f72585; padding:2px; font-family:monospace;">security@netflix-billing-alert.com</span> ⚠️</div>
+       <div><b>נושא:</b> חשבונך יושעה בתוך 24 שעות! 🚨</div>
+     </div>
+     <p style="font-size:0.85rem; line-height:1.4; color:#ccc;">שלום לקוח יקר,<br>זיהינו בעיה בפרטי התשלום שלך. עליך לעדכן את כרטיס האשראי שלך מיידית על מנת למנוע חסימה.</p>
+     <div style="text-align:center; margin:15px 0;">
+       <span style="background:#e50914; color:#fff; padding:8px 16px; text-decoration:none; border-radius:3px; font-size:0.85rem; font-weight:700; display:inline-block; cursor:pointer;">עדכן פרטים כעת</span>
+     </div>
+     <div style="font-size:0.75rem; color:#888; border-top:1px solid #333; padding-top:5px; line-height:1.4;">
+       💡 <b>סימני אזהרה:</b> כתובת שולח שגויה, נושא מלחיץ, קישור לדומיין שאינו שייך לחברה.
+     </div>
+   </div>`,
+  "3_0": `<div style="background:#5c0612; border: 3px solid #ff007f; padding:1.5rem; border-radius:10px; text-align:center; color:#fff; box-shadow: 0 0 25px rgba(255,0,127,0.3); width:100%;">
+     <i class="fas fa-lock" style="font-size:2.5rem; color:#ff007f; margin-bottom:12px;"></i>
+     <h3 style="color:#ff007f; margin-bottom:8px; font-size:1.4rem;">כל הקבצים שלך הוצפנו! 🚨</h3>
+     <p style="font-size:0.85rem; line-height:1.4; color:#eee;">הקבצים, התמונות ומסדי הנתונים במחשב זה נעולים באמצעות הצפנת AES-256 חזקה.</p>
+     <div style="background:#220306; padding:8px; margin:12px 0; font-family:monospace; border-radius:5px; border:1px solid #ff007f; font-size:0.8rem; overflow-x:auto;">
+       Address: 1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa
+     </div>
+     <div style="font-size:0.75rem; color:#ccc;">שלח 0.15 BTC לקבלת מפתח פענוח.</div>
+   </div>`,
+  "4_0": `<svg viewBox="0 0 400 250" style="width:100%; height:auto;">
+     <circle cx="60" cy="70" r="25" fill="#00e6ff" opacity="0.3" stroke="#00e6ff" stroke-width="2"/>
+     <text x="60" y="74" fill="#fff" text-anchor="middle" font-size="11" font-weight="700">עובד</text>
+     <circle cx="340" cy="70" r="25" fill="#00e676" opacity="0.3" stroke="#00e676" stroke-width="2"/>
+     <text x="340" y="74" fill="#fff" text-anchor="middle" font-size="11" font-weight="700">שרת</text>
+     <circle cx="200" cy="180" r="25" fill="#f94144" opacity="0.3" stroke="#f94144" stroke-width="2"/>
+     <text x="200" y="184" fill="#fff" text-anchor="middle" font-size="11" font-weight="700">תוקף (תווך)</text>
+     <path d="M 85 70 L 175 180" fill="none" stroke="#f94144" stroke-width="2" stroke-dasharray="4,4"/>
+     <path d="M 225 180 L 315 70" fill="none" stroke="#f94144" stroke-width="2" stroke-dasharray="4,4"/>
+     <line x1="85" y1="70" x2="315" y2="70" stroke="#fff" stroke-width="1" opacity="0.2"/>
+     <text x="200" y="60" fill="#fff" text-anchor="middle" font-size="10" opacity="0.4">תקשורת ישירה חסומה</text>
+     <text x="200" y="225" fill="#f94144" text-anchor="middle" font-size="11" font-weight="700">יירוט ושינוי נתונים בזמן אמת</text>
+   </svg>`,
+  "5_0": `<div style="display:grid; grid-template-rows: 1fr 1fr; gap:10px; width:100%;">
+     <div style="background:#2d1b1e; padding:10px; border-radius:5px; border-right:4px solid var(--danger); text-align:right;">
+       <span style="color:var(--danger); font-size:0.8rem; font-weight:700;">❌ קוד פגיע (XSS):</span>
+       <pre style="margin:5px 0 0; font-size:0.8rem; font-family:monospace; color:#ccc; direction:ltr; text-align:left;">const query = getUrlParam('q');
+document.getElementById('out').innerHTML = query;</pre>
+     </div>
+     <div style="background:#1b2d22; padding:10px; border-radius:5px; border-right:4px solid var(--success); text-align:right;">
+       <span style="color:var(--success); font-size:0.8rem; font-weight:700;">✅ קוד מאובטח (עבור XSS):</span>
+       <pre style="margin:5px 0 0; font-size:0.8rem; font-family:monospace; color:#ccc; direction:ltr; text-align:left;">const query = getUrlParam('q');
+document.getElementById('out').textContent = query;</pre>
+     </div>
+   </div>`,
+  "6_0": `<svg viewBox="0 0 400 240" style="width:100%; height:auto;">
+     <rect x="50" y="40" width="300" height="60" rx="5" fill="#f72585" opacity="0.2" stroke="#f72585" stroke-width="2"/>
+     <text x="200" y="75" fill="#fff" text-anchor="middle" font-size="12" font-family="monospace">SELECT * FROM users WHERE pass = 'abc' OR '1'='1'</text>
+     <path d="M 200 100 L 200 135" fill="none" stroke="#f72585" stroke-width="2" marker-end="url(#arrow)"/>
+     <g transform="translate(150, 140)">
+       <ellipse cx="50" cy="15" rx="50" ry="15" fill="#ffb703" opacity="0.3" stroke="#ffb703" stroke-width="2"/>
+       <rect x="0" y="15" width="100" height="40" fill="#ffb703" opacity="0.3" stroke="#ffb703" stroke-width="2"/>
+       <ellipse cx="50" cy="55" rx="50" ry="15" fill="#ffb703" opacity="0.3" stroke="#ffb703" stroke-width="2"/>
+       <text x="50" y="40" fill="#fff" text-anchor="middle" font-size="12" font-weight="700">עקיפת הזדהות!</text>
+     </g>
+   </svg>`,
+  "7_0": `<svg viewBox="0 0 400 250" style="width:100%; height:auto;">
+     <rect x="50" y="50" width="300" height="150" rx="20" fill="#3a86c8" opacity="0.1" stroke="#3a86c8" stroke-dasharray="5,5" stroke-width="2"/>
+     <text x="200" y="40" fill="#3a86c8" text-anchor="middle" font-size="12" font-weight="700">סביבת ענן מאובטחת (VPC)</text>
+     <rect x="70" y="80" width="80" height="50" rx="5" fill="#fff" opacity="0.1" stroke="#fff"/>
+     <text x="110" y="110" fill="#fff" text-anchor="middle" font-size="9">שרת אפליקציה</text>
+     <rect x="250" y="80" width="80" height="50" rx="5" fill="#fff" opacity="0.1" stroke="#fff"/>
+     <text x="290" y="110" fill="#fff" text-anchor="middle" font-size="9">מסד נתונים</text>
+     <rect x="175" y="150" width="50" height="30" rx="3" fill="#00e676" opacity="0.3" stroke="#00e676"/>
+     <text x="200" y="169" fill="#fff" text-anchor="middle" font-size="9" font-weight="700">WAF Shield</text>
+     <line x1="200" y1="230" x2="200" y2="180" stroke="#00e676" stroke-width="2"/>
+     <text x="200" y="242" fill="#00e676" text-anchor="middle" font-size="10">תעבורה מסוננת ומאובטחת</text>
+   </svg>`,
+  "8_0": `<svg viewBox="0 0 400 220" style="width:100%; height:auto;">
+     <g transform="translate(10, 90)">
+       <rect x="0" y="0" width="80" height="40" rx="5" fill="#f3722c" opacity="0.3" stroke="#f3722c"/>
+       <text x="40" y="24" fill="#fff" text-anchor="middle" font-size="9" font-weight="700">1. חדירה שקטה</text>
+     </g>
+     <g transform="translate(110, 90)">
+       <rect x="0" y="0" width="80" height="40" rx="5" fill="#f3722c" opacity="0.3" stroke="#f3722c"/>
+       <text x="40" y="24" fill="#fff" text-anchor="middle" font-size="9" font-weight="700">2. התבססות</text>
+     </g>
+     <g transform="translate(210, 90)">
+       <rect x="0" y="0" width="80" height="40" rx="5" fill="#f3722c" opacity="0.3" stroke="#f3722c"/>
+       <text x="40" y="24" fill="#fff" text-anchor="middle" font-size="9" font-weight="700">3. העלאת הרשאות</text>
+     </g>
+     <g transform="translate(310, 90)">
+       <rect x="0" y="0" width="80" height="40" rx="5" fill="#ff0000" opacity="0.3" stroke="#ff0000"/>
+       <text x="40" y="24" fill="#fff" text-anchor="middle" font-size="9" font-weight="700">4. זליגת מידע</text>
+     </g>
+     <line x1="90" y1="110" x2="110" y2="110" stroke="#f3722c" stroke-width="2"/>
+     <line x1="190" y1="110" x2="210" y2="110" stroke="#f3722c" stroke-width="2"/>
+     <line x1="290" y1="110" x2="310" y2="110" stroke="#f3722c" stroke-width="2"/>
+     <text x="200" y="40" fill="#fff" text-anchor="middle" font-size="12" font-weight="700">מתקפת APT: תהליך ארוך ומתוחכם</text>
+   </svg>`,
+  "9_0": `<svg viewBox="0 0 400 220" style="width:100%; height:auto;">
+     <rect x="170" y="90" width="60" height="60" rx="8" fill="#f94144" opacity="0.4" stroke="#f94144" stroke-width="3"/>
+     <text x="200" y="125" fill="#fff" text-anchor="middle" font-size="12" font-weight="700">שרת מטרה</text>
+     <circle cx="50" cy="40" r="12" fill="#ffb703" opacity="0.3" stroke="#ffb703"/>
+     <line x1="62" y1="48" x2="170" y2="105" stroke="#f94144" stroke-width="1.5"/>
+     <circle cx="350" cy="40" r="12" fill="#ffb703" opacity="0.3" stroke="#ffb703"/>
+     <line x1="338" y1="48" x2="230" y2="105" stroke="#f94144" stroke-width="1.5"/>
+     <circle cx="50" cy="180" r="12" fill="#ffb703" opacity="0.3" stroke="#ffb703"/>
+     <line x1="62" y1="172" x2="170" y2="135" stroke="#f94144" stroke-width="1.5"/>
+     <circle cx="350" cy="180" r="12" fill="#ffb703" opacity="0.3" stroke="#ffb703"/>
+     <line x1="338" y1="172" x2="230" y2="135" stroke="#f94144" stroke-width="1.5"/>
+     <text x="200" y="40" fill="#fff" text-anchor="middle" font-size="11" font-weight="700">בוטנט: אלפי מחשבים המציפים שרת יחיד</text>
+   </svg>`,
+  "10_0": `<div style="text-align:center; padding:1rem; width:100%;">
+     <div style="display:inline-block; border: 2px solid var(--primary); padding:10px; border-radius:5px; margin-bottom:10px; font-weight:700; font-size:0.9rem;">1. זיהוי אירוע חשוד</div>
+     <div style="font-size:1.2rem; color:var(--primary); margin-bottom:5px;">↓</div>
+     <div style="display:inline-block; border: 2px solid var(--warning); padding:10px; border-radius:5px; margin-bottom:10px; font-weight:700; font-size:0.9rem;">2. הימנעות מפעולה עצמית</div>
+     <div style="font-size:1.2rem; color:var(--primary); margin-bottom:5px;">↓</div>
+     <div style="display:inline-block; border: 2px solid var(--success); padding:10px; border-radius:5px; font-weight:700; font-size:0.9rem;">3. דיווח מיידי למחלקת אבטחת מידע</div>
+   </div>`
+};
+
 function renderCurrentSlide() {
   const slide = currentTopic.courseData.slides[currentSlideIndex];
   document.getElementById("learning-topic-title").innerText = currentTopic.name;
@@ -443,66 +599,76 @@ function renderCurrentSlide() {
   const contentArea = document.getElementById("slide-content-viewport");
   contentArea.innerHTML = "";
   
-  const slideHeader = document.createElement("div");
-  slideHeader.className = "slide-header";
-  slideHeader.innerHTML = `<h2>${slide.title}</h2>`;
-  contentArea.appendChild(slideHeader);
-  
-  const slideBody = document.createElement("div");
-  slideBody.className = "slide-text";
-  
   let bulletHTML = "<ul>";
   slide.bullets.forEach(b => {
     bulletHTML += `<li>${b}</li>`;
   });
   bulletHTML += "</ul>";
   
-  slideBody.innerHTML = `
-    <p>${slide.content}</p>
-    ${bulletHTML}
-  `;
-  contentArea.appendChild(slideBody);
+  const visualKey = `${currentTopic.id}_${currentSlideIndex}`;
+  const visualHTML = SLIDE_VISUALS[visualKey] || "";
+  
+  if (visualHTML) {
+    contentArea.innerHTML = `
+      <div class="slide-header"><h2>${slide.title}</h2></div>
+      <div class="slide-grid">
+        <div class="slide-text">
+          <p>${slide.content}</p>
+          ${bulletHTML}
+        </div>
+        <div class="slide-visual-wrapper">
+          ${visualHTML}
+        </div>
+      </div>
+    `;
+  } else {
+    contentArea.innerHTML = `
+      <div class="slide-header"><h2>${slide.title}</h2></div>
+      <div class="slide-text">
+        <p>${slide.content}</p>
+        ${bulletHTML}
+      </div>
+    `;
+  }
 
-  // MITM custom media
-  if (currentTopic.id === 4) {
-    if (currentSlideIndex === 1) {
-      const mediaDiv = document.createElement("div");
-      mediaDiv.className = "media-container";
-      mediaDiv.innerHTML = `
-        <video controls autoplay muted style="width:100%; max-height:350px;">
-          <source src="data/generated-videos/training-1776270463079-training.mp4" type="video/mp4">
-          <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
-          הדפדפן שלך אינו תומך בניגון וידאו.
-        </video>
-      `;
-      contentArea.appendChild(mediaDiv);
-    } else if (currentSlideIndex === 2) {
-      const pdfSim = document.createElement("div");
-      pdfSim.className = "pdf-viewer-sim";
-      pdfSim.innerHTML = `
-        <div class="pdf-page">
-          <div class="pdf-header-sim">
-            <span>אנטומיה של מתקפת MITM - עמוד 1</span>
-            <span>סיווג: פנימי</span>
-          </div>
-          <h3 style="color:#0077b6; margin-bottom:12px;">מנגנון מתקפת אדם באמצע (ARP Spoofing)</h3>
-          <p style="line-height:1.6; margin-bottom:10px;">מתקפת MITM מתבססת רבות על זיוף כתובות פיזיות ברשת המקומית. התוקף שולח הודעות ARP מזויפות לרשת כדי קישור כתובת ה-MAC שלו עם כתובת ה-IP של נתב ברירת המחדל.</p>
+  // Handle custom simulator content if present
+  if (currentTopic.id === 4 && currentSlideIndex === 1) {
+    const mediaDiv = document.createElement("div");
+    mediaDiv.className = "media-container";
+    mediaDiv.innerHTML = `
+      <video controls autoplay muted style="width:100%; max-height:350px;">
+        <source src="data/generated-videos/training-1776270463079-training.mp4" type="video/mp4">
+        <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4">
+        הדפדפן שלך אינו תומך בניגון וידאו.
+      </video>
+    `;
+    contentArea.appendChild(mediaDiv);
+  } else if (currentTopic.id === 4 && currentSlideIndex === 2) {
+    const pdfSim = document.createElement("div");
+    pdfSim.className = "pdf-viewer-sim";
+    pdfSim.innerHTML = `
+      <div class="pdf-page">
+        <div class="pdf-header-sim">
+          <span>אנטומיה של מתקפת MITM - עמוד 1</span>
+          <span>סיווג: פנימי</span>
         </div>
-        <div class="pdf-page">
-          <div class="pdf-header-sim">
-            <span>אנטומיה של מתקפת MITM - עמוד 2</span>
-            <span>סיווג: פנימי</span>
-          </div>
-          <h3 style="color:#0077b6; margin-bottom:12px;">מניעה והתגוננות ברשת הארגונית</h3>
-          <ul style="margin-right:20px; line-height:1.6;">
-            <li>אכיפת הצפנת HTTPS קשיחה (HSTS).</li>
-            <li>שימוש ברשתות VPN מאובטחות.</li>
-            <li>מניעת ARP Spoofing ברמת המתגים.</li>
-          </ul>
+        <h3 style="color:#0077b6; margin-bottom:12px;">מנגנון מתקפת אדם באמצע (ARP Spoofing)</h3>
+        <p style="line-height:1.6; margin-bottom:10px;">מתקפת MITM מתבססת רבות על זיוף כתובות פיזיות ברשת המקומית. התוקף שולח הודעות ARP מזויפות לרשת כדי קישור כתובת ה-MAC שלו עם כתובת ה-IP של נתב ברירת המחדל.</p>
+      </div>
+      <div class="pdf-page">
+        <div class="pdf-header-sim">
+          <span>אנטומיה של מתקפת MITM - עמוד 2</span>
+          <span>סיווג: פנימי</span>
         </div>
-      `;
-      contentArea.appendChild(pdfSim);
-    }
+        <h3 style="color:#0077b6; margin-bottom:12px;">מניעה והתגוננות ברשת הארגונית</h3>
+        <ul style="margin-right:20px; line-height:1.6;">
+          <li>אכיפת הצפנת HTTPS קשיחה (HSTS).</li>
+          <li>שימוש ברשתות VPN מאובטחות.</li>
+          <li>מניעת ARP Spoofing ברמת המתגים.</li>
+        </ul>
+      </div>
+    `;
+    contentArea.appendChild(pdfSim);
   }
 
   const prevBtn = document.getElementById("btn-prev-slide");
