@@ -6,6 +6,12 @@
 
 cd "$(dirname "$0")"
 
+# Load environment variables from .env if present
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
+
 echo "🔍 בודק התקנות..."
 
 # בדיקה שJava קיים

@@ -489,9 +489,14 @@ public class LearningFrame extends JFrame {
     }
 
     private javafx.scene.media.MediaPlayer activeMediaPlayer; // track for stop on slide change
+    private javax.swing.Timer activeFallbackTimer;
 
     /** Stops and disposes the active media player synchronously */
     private void stopActiveVideo() {
+        if (activeFallbackTimer != null) {
+            activeFallbackTimer.stop();
+            activeFallbackTimer = null;
+        }
         if (activeMediaPlayer != null) {
             final javafx.scene.media.MediaPlayer mp = activeMediaPlayer;
             activeMediaPlayer = null;
@@ -525,6 +530,11 @@ public class LearningFrame extends JFrame {
             videoUri = videoFile.toURI().toString();
         } else {
             videoFile = new java.io.File(vid);
+        }
+
+        if (!vid.startsWith("http") && !videoFile.exists()) {
+            showVideoFallback(vid);
+            return;
         }
 
         // Load subtitle entries from .he.srt file
@@ -650,7 +660,8 @@ public class LearningFrame extends JFrame {
                     });
                 });
 
-                // Auto-play the video
+                // Auto-play the video and start muted to avoid robotic English bot voiceover
+                player.setMute(true);
                 player.setAutoPlay(true);
             } catch (Exception ex) {
                 ex.printStackTrace();
@@ -714,6 +725,148 @@ public class LearningFrame extends JFrame {
             current++;
             showSlide();
         }
+    }
+
+    private void showVideoFallback(String vid) {
+        JPanel fallbackPanel = new JPanel(new BorderLayout());
+        fallbackPanel.setBackground(new java.awt.Color(25, 20, 45)); // Card color from AppTheme
+        fallbackPanel.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(72, 78, 96), 1));
+
+        // Center visual indicator
+        JPanel visualPanel = new JPanel(new java.awt.GridBagLayout());
+        visualPanel.setOpaque(false);
+        
+        JLabel iconLabel = new JLabel("🛡️");
+        iconLabel.setFont(new java.awt.Font("Segoe UI Emoji", java.awt.Font.PLAIN, 48));
+        iconLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        
+        JLabel statusLabel = new JLabel("הדמיית הדרכה אינטראקטיבית פעילה");
+        statusLabel.setForeground(AppTheme.TEXT);
+        statusLabel.setFont(AppTheme.SUBTITLE);
+        statusLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        
+        JLabel subtitleLabel = new JLabel("טוען הדרכה...");
+        subtitleLabel.setForeground(AppTheme.ACCENT);
+        subtitleLabel.setFont(AppTheme.TEXT_FONT);
+        subtitleLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.gridx = 0; gbc.gridy = 0; gbc.insets = new java.awt.Insets(10, 10, 10, 10);
+        visualPanel.add(iconLabel, gbc);
+        gbc.gridy = 1;
+        visualPanel.add(statusLabel, gbc);
+        gbc.gridy = 2;
+        visualPanel.add(subtitleLabel, gbc);
+
+        fallbackPanel.add(visualPanel, BorderLayout.CENTER);
+
+        // Subtitles database or dynamic subtitle based on the slide
+        String slideText = slides.get(current);
+        // Extract plain text from html
+        String plainText = slideText.replaceAll("<[^>]*>", " ").replaceAll("\\s+", " ").trim();
+        // Split into sentences for subtitles
+        String[] sentences = plainText.split("[.!?•]");
+        java.util.List<String> subLines = new java.util.ArrayList<>();
+        for (String s : sentences) {
+            String trimmed = s.trim();
+            if (!trimmed.isEmpty() && trimmed.length() > 5) {
+                subLines.add(trimmed);
+            }
+        }
+        if (subLines.isEmpty()) {
+            subLines.add("נא להקשיב להנחיות ולפעול בהתאם לכללי אבטחת המידע.");
+        }
+
+        // Control Panel
+        JPanel controls = new JPanel(new BorderLayout(10, 10));
+        controls.setOpaque(false);
+        controls.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 20, 10, 20));
+
+        javax.swing.JProgressBar progressBar = new javax.swing.JProgressBar(0, 100);
+        progressBar.setValue(0);
+        progressBar.setForeground(AppTheme.ACCENT);
+        progressBar.setBackground(new java.awt.Color(45, 40, 70));
+        progressBar.setPreferredSize(new java.awt.Dimension(0, 8));
+
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 0));
+        buttonPanel.setOpaque(false);
+
+        JButton playBtn = AppTheme.primaryButton("▶ הפעל");
+        JButton stopBtn = AppTheme.secondaryButton("⏹ עצור");
+        playBtn.setPreferredSize(new java.awt.Dimension(100, 32));
+        stopBtn.setPreferredSize(new java.awt.Dimension(100, 32));
+        
+        buttonPanel.add(playBtn);
+        buttonPanel.add(stopBtn);
+
+        controls.add(progressBar, BorderLayout.NORTH);
+        controls.add(buttonPanel, BorderLayout.CENTER);
+        fallbackPanel.add(controls, BorderLayout.SOUTH);
+
+        // Timer for simulation
+        final int totalDuration = 10; // 10 seconds simulation
+        final int[] elapsed = {0};
+        
+        javax.swing.Timer timer = new javax.swing.Timer(100, null);
+        timer.addActionListener(e -> {
+            elapsed[0]++;
+            int progress = (int) ((elapsed[0] / (double) (totalDuration * 10)) * 100);
+            progressBar.setValue(progress);
+            
+            // Update subtitle dynamically based on progress
+            int subIndex = (int) ((elapsed[0] / (double) (totalDuration * 10)) * subLines.size());
+            if (subIndex >= subLines.size()) subIndex = subLines.size() - 1;
+            subtitleLabel.setText(subLines.get(subIndex));
+
+            if (progress >= 100) {
+                timer.stop();
+                playBtn.setText("▶ הפעל");
+                playBtn.setEnabled(true);
+                subtitleLabel.setText("ההדרכה הושלמה בהצלחה. ניתן להמשיך למבחן!");
+                javax.swing.SwingUtilities.invokeLater(() -> {
+                    exam.setEnabled(true);
+                    exam.setToolTipText(null);
+                });
+            }
+        });
+
+        playBtn.addActionListener(e -> {
+            if (timer.isRunning()) {
+                timer.stop();
+                playBtn.setText("▶ הפעל");
+                iconLabel.setText("⏸️");
+            } else {
+                if (progressBar.getValue() >= 100) {
+                    elapsed[0] = 0;
+                    progressBar.setValue(0);
+                }
+                timer.start();
+                playBtn.setText("⏸️ השהה");
+                iconLabel.setText("⚡");
+            }
+        });
+
+        stopBtn.addActionListener(e -> {
+            timer.stop();
+            elapsed[0] = 0;
+            progressBar.setValue(0);
+            playBtn.setText("▶ הפעל");
+            iconLabel.setText("🛡️");
+            subtitleLabel.setText("ההדרכה נעצרה.");
+        });
+
+        // Auto start
+        timer.start();
+        playBtn.setText("⏸️ השהה");
+        iconLabel.setText("⚡");
+
+        videoContainer.add(fallbackPanel, BorderLayout.CENTER);
+        videoContainer.setVisible(true);
+        videoContainer.revalidate();
+        videoContainer.repaint();
+
+        // Save reference to stop on slide change
+        activeFallbackTimer = timer;
     }
 
     private void prev(){

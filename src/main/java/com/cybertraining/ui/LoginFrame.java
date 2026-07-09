@@ -193,6 +193,9 @@ public class LoginFrame extends JFrame {
             return;
         }
 
+        com.cybertraining.security.Session.setCurrentUser(user);
+
+
         if(user.isManager()){
 
             // Check if this is a special user who can choose between views

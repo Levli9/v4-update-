@@ -267,16 +267,35 @@ public class PasswordRecoveryFrame extends JFrame {
             return;
         }
 
-        if (expectedRecoveryCode != null && expectedRecoveryCode.equals(code)) {
-            passwordPanel.setVisible(true);
-            verifyCodeButton.setVisible(false);
-            resetPasswordButton.setVisible(true);
-            JOptionPane.showMessageDialog(this, "קוד אימות תקין! ניתן כעת להגדיר סיסמה חדשה.", "הצלחה", JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            JOptionPane.showMessageDialog(this, "קוד אימות שגוי", "שגיאה", JOptionPane.ERROR_MESSAGE);
-        }
-        revalidate();
-        repaint();
+        String email = emailField.getText().trim();
+
+        SwingWorker<Boolean, Void> worker = new SwingWorker<>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                return authService.verifyRecoveryCode(email, code);
+            }
+
+            @Override
+            protected void done() {
+                try {
+                    boolean isValid = get();
+                    if (isValid) {
+                        expectedRecoveryCode = code; // Store the verified code for resetting password later
+                        passwordPanel.setVisible(true);
+                        verifyCodeButton.setVisible(false);
+                        resetPasswordButton.setVisible(true);
+                        JOptionPane.showMessageDialog(PasswordRecoveryFrame.this, "קוד אימות תקין! ניתן כעת להגדיר סיסמה חדשה.", "הצלחה", JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(PasswordRecoveryFrame.this, "קוד אימות שגוי או פג תוקף", "שגיאה", JOptionPane.ERROR_MESSAGE);
+                    }
+                    revalidate();
+                    repaint();
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(PasswordRecoveryFrame.this, "אירעה שגיאה באימות קוד השחזור", "שגיאה", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        worker.execute();
     }
 
     private void resetPassword() {

@@ -4,6 +4,11 @@
 #  עובד על Windows, Mac, Linux
 # ===================================================
 
+# Load environment variables from .env if present
+if [ -f .env ]; then
+    export $(grep -v '^#' .env | xargs)
+fi
+
 echo "🚀 מפעיל את מערכת ההדרכה לאבטחת מידע..."
 
 # בדיקה אם יש Maven

@@ -20,7 +20,29 @@ import com.cybertraining.db.DatabaseManager;
 public class WelcomeFrame extends JFrame {
 
     public WelcomeFrame(DatabaseManager db) {
-
+        if (com.cybertraining.security.Session.getCurrentUser() != null) {
+            com.cybertraining.model.User user = com.cybertraining.security.Session.getCurrentUser();
+            if (user.isManager()) {
+                boolean isSpecialUser = user.getUsername().equals("Yaniv123") || 
+                                       user.getUsername().equals("Lev123") ||
+                                       user.getUsername().equals("Yaniv123_emp") || 
+                                       user.getUsername().equals("Lev123_emp");
+                if (isSpecialUser) {
+                    new ViewSelectionScreen(db, user);
+                } else {
+                    new ManagerDashboardFrame(db, user);
+                }
+            } else {
+                boolean isSpecialEmployee = user.getUsername().equals("Yaniv123_emp") || 
+                                           user.getUsername().equals("Lev123_emp");
+                if (isSpecialEmployee) {
+                    new ViewSelectionScreen(db, user);
+                } else {
+                    new EmployeeHomeFrame(db, user);
+                }
+            }
+            return;
+        }
 
         BackgroundPanel bg = new BackgroundPanel(null);
         bg.setLayout(new GridBagLayout());

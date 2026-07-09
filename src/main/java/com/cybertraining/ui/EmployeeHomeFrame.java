@@ -26,7 +26,10 @@ public class EmployeeHomeFrame extends JFrame {
         JPanel topBar = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 15));
         topBar.setOpaque(false);
         JButton backButton = AppTheme.backButton("← התנתק וחזור");
-        backButton.addActionListener(e -> new WelcomeFrame(db));
+        backButton.addActionListener(e -> {
+            com.cybertraining.security.Session.clear();
+            new WelcomeFrame(db);
+        });
         topBar.add(backButton);
         bg.add(topBar, BorderLayout.NORTH);
 

@@ -85,6 +85,7 @@ public class ManagerDashboardFrame extends JFrame {
         JButton backButton = AppTheme.backButton("← התנתק");
         backButton.addActionListener(e -> {
             if (refreshTimer != null && refreshTimer.isRunning()) refreshTimer.stop();
+            com.cybertraining.security.Session.clear();
             new WelcomeFrame(db);
         });
 

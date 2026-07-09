@@ -74,6 +74,13 @@ public class DatabaseManager {
                     + "duration INTEGER NOT NULL DEFAULT 0,"
                     + "FOREIGN KEY(user_id) REFERENCES users(id)"
                     + ");");
+            // recovery tokens table
+            s.execute("CREATE TABLE IF NOT EXISTS password_recovery_tokens ("
+                    + "user_id INTEGER PRIMARY KEY,"
+                    + "token_hash TEXT NOT NULL,"
+                    + "expires_at INTEGER NOT NULL,"
+                    + "FOREIGN KEY(user_id) REFERENCES users(id)"
+                    + ");");
             // migrate existing users table if some columns are missing (older DB schema)
             try (PreparedStatement ps = c.prepareStatement("PRAGMA table_info(users)")) {
                 try (ResultSet rs = ps.executeQuery()) {
@@ -559,6 +566,71 @@ public class DatabaseManager {
         String question;
         String[] answers;
         int correctIndex;
+    }
+
+    public boolean saveRecoveryToken(int userId, String tokenHash, long expiresAt) {
+        String deleteSql = "DELETE FROM password_recovery_tokens WHERE user_id = ?";
+        String insertSql = "INSERT INTO password_recovery_tokens (user_id, token_hash, expires_at) VALUES (?, ?, ?)";
+        try (Connection c = getConnection()) {
+            c.setAutoCommit(false);
+            try (PreparedStatement deletePs = c.prepareStatement(deleteSql);
+                 PreparedStatement insertPs = c.prepareStatement(insertSql)) {
+                
+                deletePs.setInt(1, userId);
+                deletePs.executeUpdate();
+                
+                insertPs.setInt(1, userId);
+                insertPs.setString(2, tokenHash);
+                insertPs.setLong(3, expiresAt);
+                insertPs.executeUpdate();
+                
+                c.commit();
+                return true;
+            } catch (SQLException e) {
+                c.rollback();
+                e.printStackTrace();
+                return false;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    public static class RecoveryToken {
+        public final String tokenHash;
+        public final long expiresAt;
+        public RecoveryToken(String tokenHash, long expiresAt) {
+            this.tokenHash = tokenHash;
+            this.expiresAt = expiresAt;
+        }
+    }
+
+    public RecoveryToken getRecoveryToken(int userId) {
+        String sql = "SELECT token_hash, expires_at FROM password_recovery_tokens WHERE user_id = ?";
+        try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                if (rs.next()) {
+                    return new RecoveryToken(rs.getString("token_hash"), rs.getLong("expires_at"));
+                }
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return null;
+    }
+
+    public boolean deleteRecoveryToken(int userId) {
+        String sql = "DELETE FROM password_recovery_tokens WHERE user_id = ?";
+        try (Connection c = getConnection(); PreparedStatement ps = c.prepareStatement(sql)) {
+            ps.setInt(1, userId);
+            int rows = ps.executeUpdate();
+            return rows > 0;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
     }
 
 }

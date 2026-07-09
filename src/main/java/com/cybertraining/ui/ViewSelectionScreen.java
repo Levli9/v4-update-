@@ -27,7 +27,10 @@ public class ViewSelectionScreen extends JFrame {
         JPanel header = new JPanel(new FlowLayout(FlowLayout.RIGHT, 12, 12));
         header.setOpaque(false);
         JButton back = AppTheme.backButton("התנתק");
-        back.addActionListener(e -> new WelcomeFrame(db));
+        back.addActionListener(e -> {
+            com.cybertraining.security.Session.clear();
+            new WelcomeFrame(db);
+        });
         header.add(back);
 
         GridBagConstraints hgbc = new GridBagConstraints();

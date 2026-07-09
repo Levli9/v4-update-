@@ -91,10 +91,34 @@ public class AuthenticationService {
         // Generate a recovery code (6 digits)
         String recoveryCode = String.format("%06d", (int)(Math.random() * 1000000));
 
+        // Hash code securely
+        String tokenHash = BCrypt.hashpw(recoveryCode, BCrypt.gensalt(12));
+        long expiresAt = System.currentTimeMillis() + 15 * 60 * 1000; // 15 mins
+        db.saveRecoveryToken(user.getId(), tokenHash, expiresAt);
+
         // Send recovery email
         sendRecoveryEmail(email, recoveryCode);
 
-        return recoveryCode; // For testing - in production, don't return this
+        return "SUCCESS";
+    }
+
+    public boolean verifyRecoveryCode(String email, String recoveryCode) {
+        if (email == null || email.trim().isEmpty() || recoveryCode == null || recoveryCode.trim().isEmpty()) {
+            return false;
+        }
+        User user = db.getUserByEmail(email.trim());
+        if (user == null) {
+            return false;
+        }
+        DatabaseManager.RecoveryToken token = db.getRecoveryToken(user.getId());
+        if (token == null) {
+            return false;
+        }
+        if (System.currentTimeMillis() > token.expiresAt) {
+            db.deleteRecoveryToken(user.getId());
+            return false;
+        }
+        return BCrypt.checkpw(recoveryCode.trim(), token.tokenHash);
     }
 
     public boolean isEmailDeliveryConfigured() {
@@ -110,13 +134,19 @@ public class AuthenticationService {
             throw new IllegalArgumentException("יש להזין קוד אימות");
         }
 
+        if (!verifyRecoveryCode(email, recoveryCode)) {
+            throw new IllegalArgumentException("קוד אימות שגוי או פג תוקף");
+        }
+
         // Validate password strength
         if (!isValidPassword(newPassword)) {
             throw new IllegalArgumentException("הסיסמה חייבת להיות לפחות 8 תווים, עם אות גדולה אחת לפחות וסימן מיוחד אחד לפחות");
         }
 
-        // In a real application, verify the recovery code from storage
-        // For now, we'll assume the code is valid if provided
+        User user = db.getUserByEmail(email);
+        if (user != null) {
+            db.deleteRecoveryToken(user.getId());
+        }
 
         String hashed = BCrypt.hashpw(newPassword, BCrypt.gensalt(12));
         return db.updatePasswordByEmail(email.trim(), hashed);
