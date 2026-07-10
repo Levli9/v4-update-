@@ -1,6 +1,6 @@
 // src/App.jsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { AppProvider } from './context/AppContext';
 import Dashboard from './pages/Dashboard';
 import SubjectView from './pages/SubjectView';
