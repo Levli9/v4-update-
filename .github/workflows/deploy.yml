@@ -5,9 +5,9 @@ on:
     branches:
       - main
 
-# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
+# Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages and pushing to branches
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 
@@ -31,7 +31,6 @@ jobs:
         with:
           node-version: 20
 
-
       - name: Install dependencies
         run: |
           npm install
@@ -48,6 +47,13 @@ jobs:
         with:
           path: dist
 
-      - name: Deploy to GitHub Pages
+      - name: Deploy to GitHub Pages via API
         id: deployment
         uses: actions/deploy-pages@v4
+
+      - name: Deploy to gh-pages branch (fallback)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+
