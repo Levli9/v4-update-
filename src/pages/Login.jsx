@@ -43,6 +43,29 @@ export default function Login() {
     e.preventDefault();
     setRegError('');
     setRegSuccess('');
+
+    // Strict Password Validation Rules
+    if (regPass.length < 12) {
+      setRegError("❌ הסיסמה חייבת להכיל לפחות 12 תווים!");
+      return;
+    }
+    if (!/[A-Z]/.test(regPass)) {
+      setRegError("❌ הסיסמה חייבת להכיל לפחות אות אחת גדולה (A-Z)!");
+      return;
+    }
+    if (!/[a-z]/.test(regPass)) {
+      setRegError("❌ הסיסמה חייבת להכיל לפחות אות אחת קטנה (a-z)!");
+      return;
+    }
+    if (!/[0-9]/.test(regPass)) {
+      setRegError("❌ הסיסמה חייבת להכיל לפחות ספרה אחת (0-9)!");
+      return;
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(regPass)) {
+      setRegError("❌ הסיסמה חייבת להכיל לפחות תו מיוחד אחד (למשל !@#$)!");
+      return;
+    }
+
     const res = register(regUser, regPass, regEmail, regRole);
     if (res.success) {
       setRegSuccess("ההרשמה בוצעה בהצלחה! כעת ניתן להתחבר.");
@@ -237,7 +260,7 @@ export default function Login() {
                   value={regPass}
                   onChange={(e) => setRegPass(e.target.value)}
                   className="w-full px-4 py-3 rounded-xl bg-gray-950/60 border border-gray-850 text-white text-sm focus:border-[#9d4edd] focus:outline-none transition-all"
-                  placeholder="לפחות 4 תווים..."
+                  placeholder="לפחות 12 תווים, אותיות (A-a), ספרות ותו מיוחד..."
                 />
               </div>
 
