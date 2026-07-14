@@ -6,30 +6,37 @@ const AppContext = createContext();
 export const AppProvider = ({ children }) => {
   // ── User Database ──
   const [users, setUsers] = useState(() => {
-    const saved = localStorage.getItem('cyber_users');
+    const saved = localStorage.getItem('users');
     if (saved) return JSON.parse(saved);
     
-    // Default mock users
+    // Default original users (mapped with special double view access)
     return [
       {
-        username: "admin",
-        password: "admin",
-        email: "manager@company.com",
-        role: "manager",
+        username: "Yaniv123",
+        password: "Yaniv123",
+        email: "thebeastcom71@gmail.com",
+        role: "special",
         progress: { completedSubjects: [0, 1], scores: { 0: 90, 1: 85 }, badges: ["צעד ראשון"], xp: 200 }
       },
       {
-        username: "user",
-        password: "user",
-        email: "employee@company.com",
-        role: "employee",
+        username: "Lev123",
+        password: "Lev123",
+        email: "thebeastcom71@gmail.com",
+        role: "special",
         progress: { completedSubjects: [0], scores: { 0: 80 }, badges: ["צעד ראשון"], xp: 100 }
       },
       {
-        username: "special",
-        password: "special",
-        email: "special@company.com",
-        role: "special", // Access to both employee and manager view
+        username: "Yaniv123_emp",
+        password: "Yaniv123",
+        email: "thebeastcom71@gmail.com",
+        role: "special",
+        progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
+      },
+      {
+        username: "Lev123_emp",
+        password: "Lev123",
+        email: "thebeastcom71@gmail.com",
+        role: "special",
         progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
       }
     ];
@@ -47,7 +54,7 @@ export const AppProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    localStorage.setItem('cyber_users', JSON.stringify(users));
+    localStorage.setItem('users', JSON.stringify(users));
   }, [users]);
 
   useEffect(() => {
