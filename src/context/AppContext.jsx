@@ -12,11 +12,32 @@ export const AppProvider = ({ children }) => {
   const [users, setUsers] = useState(() => {
     let saved = usersCollection.find();
     
-    // Auto-migrate passwords and force-correct default accounts
+    // Auto-migrate passwords and force-correct default accounts (remove special role)
     if (saved && saved.length > 0) {
       let migrated = false;
       saved = saved.map(u => {
         const usernameLwr = u.username.toLowerCase();
+        
+        // Force roles migration
+        if (usernameLwr === 'lev123' || usernameLwr === 'yaniv123') {
+          if (u.role !== 'manager') {
+            u.role = 'manager';
+            usersCollection.updateOne({ username: u.username }, { role: 'manager' });
+            migrated = true;
+          }
+        } else if (usernameLwr === 'lev123_emp' || usernameLwr === 'yaniv123_emp') {
+          if (u.role !== 'employee') {
+            u.role = 'employee';
+            usersCollection.updateOne({ username: u.username }, { role: 'employee' });
+            migrated = true;
+          }
+        } else if (u.role === 'special') {
+          u.role = 'manager';
+          usersCollection.updateOne({ username: u.username }, { role: 'manager' });
+          migrated = true;
+        }
+
+        // Force password hashing
         if (usernameLwr === 'lev123' || usernameLwr === 'lev123_emp') {
           const correctHash = hashPassword('lev123');
           if (u.password !== correctHash) {
@@ -44,34 +65,34 @@ export const AppProvider = ({ children }) => {
       return saved;
     }
     
-    // Default original users (mapped with special double view access)
+    // Default original users (mapped with standard manager/employee roles)
     const defaults = [
       {
         username: "Yaniv123",
         password: hashPassword("yaniv123"),
         email: "thebeastcom71@gmail.com",
-        role: "special",
+        role: "manager",
         progress: { completedSubjects: [0, 1], scores: { 0: 90, 1: 85 }, badges: ["צעד ראשון"], xp: 200 }
       },
       {
         username: "Lev123",
         password: hashPassword("lev123"),
         email: "thebeastcom71@gmail.com",
-        role: "special",
+        role: "manager",
         progress: { completedSubjects: [0], scores: { 0: 80 }, badges: ["צעד ראשון"], xp: 100 }
       },
       {
         username: "Yaniv123_emp",
         password: hashPassword("yaniv123"),
         email: "thebeastcom71@gmail.com",
-        role: "special",
+        role: "employee",
         progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
       },
       {
         username: "Lev123_emp",
         password: hashPassword("lev123"),
         email: "thebeastcom71@gmail.com",
-        role: "special",
+        role: "employee",
         progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
       }
     ];
@@ -107,7 +128,7 @@ export const AppProvider = ({ children }) => {
     const match = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
     if (match && verifyPassword(password, match.password)) {
       setCurrentUser(match);
-      setActiveViewRole(match.role === 'special' ? 'employee' : match.role);
+      setActiveViewRole(match.role);
       return { success: true };
     }
     return { success: false, message: "שם משתמש או סיסמה שגויים!" };

@@ -21,10 +21,10 @@ export default function ManagerDashboard() {
   };
 
   const managerDept = getMockDept(currentUser?.username || '');
-  const isGlobalAdmin = currentUser?.role === 'special' || currentUser?.username.toLowerCase() === 'lev123' || currentUser?.username.toLowerCase() === 'yaniv123';
+  const isGlobalAdmin = currentUser?.username.toLowerCase() === 'lev123' || currentUser?.username.toLowerCase() === 'yaniv123';
 
   // ── Data Calculations ──
-  const allEmployees = users.filter(u => u.role === 'employee' || u.role === 'special');
+  const allEmployees = users.filter(u => u.role === 'employee');
   const employees = isGlobalAdmin 
     ? allEmployees 
     : allEmployees.filter(emp => getMockDept(emp.username) === managerDept);

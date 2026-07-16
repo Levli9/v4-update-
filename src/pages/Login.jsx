@@ -277,7 +277,6 @@ export default function Login() {
                 >
                   <option value="employee">עובד (Employee)</option>
                   <option value="manager">מנהל (Manager)</option>
-                  <option value="special">תצוגה כפולה (Special)</option>
                 </select>
               </div>
             </div>
