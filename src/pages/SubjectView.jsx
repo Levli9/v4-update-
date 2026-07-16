@@ -96,25 +96,31 @@ export default function SubjectView() {
         )}
 
         {activeTab === 'learn' && (
-          <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-6 sm:p-8 max-w-3xl mx-auto space-y-6">
+          <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-6 sm:p-8 max-w-4xl mx-auto space-y-6">
             {subject.slides && subject.slides.length > 0 ? (
               <>
-                <h3 className="text-xl font-bold text-white border-b border-gray-800 pb-3">
-                  {subject.slides[slideIdx].title}
-                </h3>
-                <p className="text-gray-300 text-sm leading-relaxed">
-                  {subject.slides[slideIdx].content}
-                </p>
-                {subject.slides[slideIdx].bullets && (
-                  <ul className="space-y-2.5">
-                    {subject.slides[slideIdx].bullets.map((b, i) => (
-                      <li key={i} className="flex items-start gap-2.5 text-xs text-gray-400 bg-gray-950/40 border border-gray-850 p-3 rounded-lg">
-                        <span className="text-[#00e6ff]">⚡</span>
-                        <span>{b}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <div className={`grid items-center gap-8 ${subject.slides[slideIdx].visual ? 'md:grid-cols-[1.15fr_0.85fr]' : ''}`}>
+                  <div className="space-y-5 text-right">
+                    <div className="border-b border-gray-800 pb-4">
+                      <h3 className="text-xl font-bold text-white">{subject.slides[slideIdx].title}</h3>
+                      {subject.slides[slideIdx].subtitle && <p className="mt-2 text-sm font-semibold text-[#00e6ff]">{subject.slides[slideIdx].subtitle}</p>}
+                    </div>
+                    {subject.slides[slideIdx].content && <p className="text-gray-300 text-sm leading-relaxed">{subject.slides[slideIdx].content}</p>}
+                    {subject.slides[slideIdx].bullets?.length > 0 && (
+                      <ul className="space-y-2.5">
+                        {subject.slides[slideIdx].bullets.map((b, i) => (
+                          <li key={i} className="flex items-start gap-2.5 text-xs text-gray-300 bg-gray-950/40 border border-gray-850 p-3 rounded-lg">
+                            <span className="text-[#00e6ff]">⚡</span>
+                            <span>{b}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                  {subject.slides[slideIdx].visual && (
+                    <div className="min-h-[250px] rounded-2xl border border-[#00e6ff]/15 bg-gray-950/45 p-5 flex items-center justify-center overflow-hidden" dangerouslySetInnerHTML={{ __html: subject.slides[slideIdx].visual }} />
+                  )}
+                </div>
 
                 <div className="flex justify-between items-center pt-6 border-t border-gray-800 mt-6">
                   <button

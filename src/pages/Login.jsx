@@ -1,10 +1,15 @@
 // src/pages/Login.jsx
 import React, { useState } from 'react';
+import { Camera, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import ShieldXLogo from '../components/ShieldXLogo';
+import { prepareProfileImage } from '../services/imageService';
+import loginBackground from '../assets/login-cybersecurity.jpg';
 
 export default function Login() {
   const { login, register, users, sendBrevoRecoveryCode, changePassword } = useApp();
+  const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'
   
@@ -21,6 +26,8 @@ export default function Login() {
   const [regUser, setRegUser] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPass, setRegPass] = useState('');
+  const [regAvatar, setRegAvatar] = useState('');
+  const [regImageError, setRegImageError] = useState('');
   const [regSuccess, setRegSuccess] = useState('');
   const [regError, setRegError] = useState('');
 
@@ -40,6 +47,9 @@ export default function Login() {
     const res = login(loginUser, loginPass);
     if (!res.success) {
       setLoginError(res.message);
+    } else {
+      window.location.hash = '#/';
+      navigate('/', { replace: true });
     }
   };
 
@@ -70,15 +80,31 @@ export default function Login() {
       return;
     }
 
-    const res = register(regUser, regPass, regEmail);
+    const res = register(regUser, regPass, regEmail, regAvatar);
     if (res.success) {
-      setRegSuccess("ההרשמה בוצעה בהצלחה! כעת ניתן להתחבר.");
+      setRegSuccess("ההרשמה בוצעה בהצלחה! מעבירים אותך לפורטל הלמידה...");
       setRegUser('');
       setRegEmail('');
       setRegPass('');
+      setRegAvatar('');
+      window.location.hash = '#/';
+      navigate('/', { replace: true });
     } else {
       setRegError(res.message);
     }
+  };
+
+  const handleRegistrationImage = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setRegImageError('');
+    try {
+      setRegAvatar(await prepareProfileImage(file));
+    } catch (error) {
+      setRegImageError(error.message);
+    }
+    event.target.value = '';
   };
 
   const startRecovery = async () => {
@@ -133,8 +159,16 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative">
-      <div className="max-w-md w-full space-y-8 bg-gray-900/60 border border-gray-800 rounded-3xl p-8 shadow-2xl backdrop-blur-md relative z-10">
+    <div className="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8 relative overflow-hidden">
+      <div
+        className="absolute inset-0 bg-cover bg-center scale-[1.02]"
+        style={{ backgroundImage: `url(${loginBackground})` }}
+        aria-hidden="true"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(2,5,14,0.97)_0%,rgba(3,8,20,0.82)_48%,rgba(3,6,15,0.58)_100%)]" aria-hidden="true" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,transparent_0%,rgba(0,0,0,0.48)_100%)]" aria-hidden="true" />
+
+      <div className="max-w-md w-full space-y-8 bg-[#080d18]/88 border border-cyan-400/20 rounded-3xl p-8 shadow-[0_30px_90px_rgba(0,0,0,0.72)] backdrop-blur-xl relative z-10">
         
         {/* Title */}
         <div className="text-center">
@@ -236,6 +270,26 @@ export default function Login() {
             )}
 
             <div className="space-y-4">
+              <div className="flex flex-col items-center rounded-2xl border border-gray-800 bg-gray-950/35 p-4">
+                <div className="profile-avatar profile-avatar--large">
+                  {regAvatar ? <img src={regAvatar} alt="תצוגה מקדימה של תמונת הפרופיל" /> : <span>👤</span>}
+                </div>
+                <div className="mt-3 flex flex-wrap justify-center gap-2">
+                  <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-[#9d4edd]/25 bg-[#9d4edd]/10 px-4 py-2 text-xs font-bold text-purple-300 transition-colors hover:bg-[#9d4edd]/20">
+                    <Camera size={15} />
+                    {regAvatar ? 'החלפת תמונה' : 'הוספת תמונת פרופיל'}
+                    <input type="file" accept="image/png,image/jpeg,image/webp" onChange={handleRegistrationImage} className="sr-only" />
+                  </label>
+                  {regAvatar && (
+                    <button type="button" onClick={() => setRegAvatar('')} className="flex items-center gap-1.5 rounded-xl border border-rose-500/20 px-3 py-2 text-xs font-bold text-rose-400">
+                      <Trash2 size={14} /> הסרה
+                    </button>
+                  )}
+                </div>
+                <p className="mt-2 text-center text-[10px] text-gray-600">לא חובה · PNG, JPG או WEBP עד 8MB</p>
+                {regImageError && <p className="mt-2 text-center text-xs font-bold text-rose-400">{regImageError}</p>}
+              </div>
+
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-2">שם משתמש</label>
                 <input

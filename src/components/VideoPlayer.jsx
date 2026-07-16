@@ -23,7 +23,8 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
   const speakText = (text) => {
     if (!('speechSynthesis' in window) || !ttsEnabled) return;
     window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
+    const cleanText = text.replace(/[🛡️📊✅🎯🔐⚡]/gu, '').trim();
+    const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'he-IL';
     utterance.rate = playbackRate;
     
@@ -69,9 +70,9 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
     return () => clearInterval(timerRef.current);
   }, [isPlaying, playbackRate, isRealVideo]);
 
-  // Sync script captions based on time
+  // Sync Hebrew narration and captions with both bundled and simulated video.
   useEffect(() => {
-    if (isRealVideo || !videoScript) return;
+    if (!videoScript) return;
     
     let activeLine = -1;
     for (let i = videoScript.length - 1; i >= 0; i--) {
@@ -83,15 +84,16 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
     
     if (activeLine !== currentLineIdx && activeLine >= 0) {
       setCurrentLineIdx(activeLine);
-      speakText(videoScript[activeLine].text);
+      if (!isRealVideo) speakText(videoScript[activeLine].text);
     }
-  }, [currentTime, isRealVideo]);
+  }, [currentTime, videoScript, ttsEnabled]);
 
   const handlePlayPause = () => {
     if (isRealVideo) {
       if (isPlaying) {
         videoElementRef.current.pause();
       } else {
+        videoElementRef.current.muted = !ttsEnabled;
         videoElementRef.current.play();
       }
       setIsPlaying(!isPlaying);
@@ -159,6 +161,8 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
   const onVideoEnded = () => {
     setIsPlaying(false);
     setCurrentTime(0);
+    setCurrentLineIdx(-1);
+    stopTts();
   };
 
   // Timeline scrub
@@ -249,6 +253,16 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
             )}
           </div>
         )}
+
+        {isRealVideo && (
+          <div className="pointer-events-none absolute inset-x-5 bottom-5 z-20 flex justify-center">
+            <div className="max-w-[90%] rounded-xl border border-white/15 bg-black/80 px-5 py-2.5 text-center text-sm font-bold leading-relaxed text-white shadow-2xl backdrop-blur-md">
+              {currentLineIdx >= 0 && videoScript?.[currentLineIdx]
+                ? videoScript[currentLineIdx].text
+                : 'לחץ על הפעלה לצפייה עם קריינות וכתוביות בעברית'}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── TIMELINE SCRUB BAR ── */}
@@ -286,20 +300,24 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
 
         {/* Right Cluster */}
         <div className="flex items-center gap-4">
-          {/* TTS Audio toggle (only for simulated engine) */}
-          {!isRealVideo && (
-            <button
-              onClick={() => {
-                setTtsEnabled(!ttsEnabled);
-                if (ttsEnabled) stopTts();
-              }}
-              className={`px-3 py-1.5 rounded-lg border font-bold transition-all ${
-                ttsEnabled ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-450' : 'border-gray-800 text-gray-500'
-              }`}
-            >
-              {ttsEnabled ? '🔊 קריינות פעילה' : '🔇 קריינות כבויה'}
-            </button>
-          )}
+          <button
+            onClick={() => {
+              setTtsEnabled(!ttsEnabled);
+              if (isRealVideo && videoElementRef.current) {
+                videoElementRef.current.muted = ttsEnabled;
+              } else if (ttsEnabled) {
+                stopTts();
+              } else if (isPlaying && currentLineIdx >= 0 && videoScript?.[currentLineIdx]) {
+                speakText(videoScript[currentLineIdx].text);
+              }
+            }}
+            className={`px-3 py-1.5 rounded-lg border font-bold transition-all ${
+              ttsEnabled ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400' : 'border-gray-800 text-gray-500'
+            }`}
+            aria-pressed={ttsEnabled}
+          >
+            {ttsEnabled ? '🔊 קול בעברית פעיל' : '🔇 קול כבוי'}
+          </button>
 
           {/* Speed Selector */}
           <select

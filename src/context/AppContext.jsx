@@ -113,6 +113,15 @@ export const AppProvider = ({ children }) => {
     return saved ? saved : null; // 'employee' or 'manager'
   });
 
+  // Keep manager dashboards synchronized when another employee tab updates its progress.
+  useEffect(() => {
+    const syncUsersFromStorage = (event) => {
+      if (event.key === 'users') setUsers(usersCollection.find());
+    };
+    window.addEventListener('storage', syncUsersFromStorage);
+    return () => window.removeEventListener('storage', syncUsersFromStorage);
+  }, []);
+
   useEffect(() => {
     localStorage.setItem('cyber_current_user', JSON.stringify(currentUser));
     if (currentUser) {
@@ -134,14 +143,19 @@ export const AppProvider = ({ children }) => {
     // Match username case-insensitively
     const match = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
     if (match && verifyPassword(password, match.password)) {
-      setCurrentUser(match);
-      setActiveViewRole(match.role);
+      const updatedUser = usersCollection.updateOne(
+        { username: match.username },
+        { lastLogin: new Date().toISOString() }
+      ) || match;
+      setUsers(usersCollection.find());
+      setCurrentUser(updatedUser);
+      setActiveViewRole(updatedUser.role);
       return { success: true };
     }
     return { success: false, message: "שם משתמש או סיסמה שגויים!" };
   };
 
-  const register = (username, password, email) => {
+  const register = (username, password, email, avatar = '') => {
     if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
       return { success: false, message: "שם משתמש זה כבר קיים במערכת!" };
     }
@@ -155,11 +169,14 @@ export const AppProvider = ({ children }) => {
       email,
       // Self-registration always creates an employee. Manager access is assigned separately.
       role: 'employee',
+      avatar,
       progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
     };
 
     usersCollection.insertOne(newUser);
     setUsers(usersCollection.find());
+    setCurrentUser(newUser);
+    setActiveViewRole('employee');
     return { success: true };
   };
 
@@ -179,6 +196,50 @@ export const AppProvider = ({ children }) => {
         setCurrentUser(prev => ({ ...prev, password: hashPassword(newPassword) }));
       }
     }
+  };
+
+  const updateCurrentProfile = ({ username, avatar }) => {
+    if (!currentUser) return { success: false, message: 'לא נמצא משתמש מחובר.' };
+
+    const normalizedUsername = username.trim();
+    if (normalizedUsername.length < 3) {
+      return { success: false, message: 'שם המשתמש חייב להכיל לפחות 3 תווים.' };
+    }
+
+    const isDuplicate = users.some(user =>
+      user.username.toLowerCase() === normalizedUsername.toLowerCase()
+      && user.username.toLowerCase() !== currentUser.username.toLowerCase()
+    );
+    if (isDuplicate) {
+      return { success: false, message: 'שם המשתמש כבר קיים במערכת.' };
+    }
+
+    const updated = usersCollection.updateOne(
+      { username: currentUser.username },
+      { username: normalizedUsername, avatar: avatar || '' }
+    );
+
+    if (!updated) return { success: false, message: 'לא ניתן לעדכן את החשבון.' };
+    setUsers(usersCollection.find());
+    setCurrentUser(updated);
+    return { success: true, message: 'פרטי המשתמש עודכנו בהצלחה.' };
+  };
+
+  const updateCurrentPassword = (currentPassword, newPassword) => {
+    if (!currentUser || !verifyPassword(currentPassword, currentUser.password)) {
+      return { success: false, message: 'הסיסמה הנוכחית אינה נכונה.' };
+    }
+
+    const newHash = hashPassword(newPassword);
+    const updated = usersCollection.updateOne(
+      { username: currentUser.username },
+      { password: newHash }
+    );
+
+    if (!updated) return { success: false, message: 'לא ניתן לעדכן את הסיסמה.' };
+    setUsers(usersCollection.find());
+    setCurrentUser(updated);
+    return { success: true, message: 'הסיסמה הוחלפה בהצלחה.' };
   };
 
   // ── Progress & Learning Functions ──
@@ -218,11 +279,12 @@ export const AppProvider = ({ children }) => {
       };
 
       // Update in NoSQL DB
-      usersCollection.updateOne({ username: currentUser.username }, { progress: updatedProgress });
+      const lastActivity = new Date().toISOString();
+      usersCollection.updateOne({ username: currentUser.username }, { progress: updatedProgress, lastActivity });
       setUsers(usersCollection.find());
 
       // Sync current session state
-      setCurrentUser(prev => ({ ...prev, progress: updatedProgress }));
+      setCurrentUser(prev => ({ ...prev, progress: updatedProgress, lastActivity }));
     }
   };
 
@@ -281,6 +343,8 @@ export const AppProvider = ({ children }) => {
       register,
       logout,
       changePassword,
+      updateCurrentProfile,
+      updateCurrentPassword,
       completeSubject,
       sendBrevoRecoveryCode,
       setActiveViewRole

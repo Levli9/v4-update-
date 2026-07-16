@@ -135,7 +135,8 @@ export const subjectsData = rawSubjects.map(subj => {
   // Dynamic videoURL fallback template:
   // By default, if the user places an MP4 video under `videos/topic{id}.mp4` in their public/assets folder, it will play.
   // Otherwise, it falls back to the interactive TTS presentation.
-  const videoUrl = localStorage.getItem(`cyber_video_url_${subj.id}`) || "";
+  const bundledVideoUrl = subj.id === 0 ? `${import.meta.env.BASE_URL}videos/topic0.mp4` : "";
+  const videoUrl = localStorage.getItem(`cyber_video_url_${subj.id}`) || bundledVideoUrl;
 
   return {
     ...subj,

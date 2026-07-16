@@ -5,7 +5,7 @@ import { subjectsData } from '../data/subjectsData';
 import { Link } from 'react-router-dom';
 
 export default function ManagerDashboard() {
-  const { users, currentUser } = useApp();
+  const { users, currentUser, setActiveViewRole } = useApp();
   const [activeTab, setActiveTab] = useState('stats'); // 'stats' or 'employees'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -35,17 +35,30 @@ export default function ManagerDashboard() {
   let totalScoreSum = 0;
   let totalExamsTaken = 0;
   let totalCompletedSubjects = 0;
+  let passedAssessments = 0;
+  let failedAssessments = 0;
 
   employees.forEach(emp => {
     const scores = Object.values(emp.progress?.scores || {});
     scores.forEach(s => {
       totalScoreSum += s;
       totalExamsTaken += 1;
+      if (s >= 80) passedAssessments += 1;
+      else failedAssessments += 1;
     });
     totalCompletedSubjects += (emp.progress?.completedSubjects || []).length;
   });
 
   const averageScore = totalExamsTaken > 0 ? Math.round(totalScoreSum / totalExamsTaken) : 0;
+  const passRate = totalExamsTaken > 0 ? Math.round((passedAssessments / totalExamsTaken) * 100) : 0;
+  const participatingCount = employees.filter(emp => (emp.progress?.completedSubjects || []).length > 0).length;
+  const notStartedCount = totalEmployees - participatingCount;
+  const participationRate = totalEmployees > 0 ? Math.round((participatingCount / totalEmployees) * 100) : 0;
+  const activeSince = Date.now() - (30 * 24 * 60 * 60 * 1000);
+  const activeEmployeesCount = employees.filter(emp => {
+    const activityDate = emp.lastActivity || emp.lastLogin;
+    return activityDate && new Date(activityDate).getTime() >= activeSince;
+  }).length;
   
   // Overall completion percentage
   const totalPossibleCompletions = totalEmployees * subjectsData.length;
@@ -68,9 +81,9 @@ export default function ManagerDashboard() {
 
     const scores = Object.values(emp.progress?.scores || {});
     const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
-    if (avg >= 80) {
+    if (scores.length > 0 && avg >= 80) {
       safeCount++;
-    } else {
+    } else if (scores.length > 0) {
       vulnerableCount++;
     }
   });
@@ -80,13 +93,15 @@ export default function ManagerDashboard() {
   employees.forEach(emp => {
     const dept = getMockDept(emp.username);
     if (!deptStats[dept]) {
-      deptStats[dept] = { scoreSum: 0, count: 0 };
+      deptStats[dept] = { scoreSum: 0, scoreCount: 0, employeeCount: 0, completedSubjects: 0 };
     }
+    deptStats[dept].employeeCount += 1;
+    deptStats[dept].completedSubjects += (emp.progress?.completedSubjects || []).length;
     const scores = Object.values(emp.progress?.scores || {});
     if (scores.length > 0) {
       const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
       deptStats[dept].scoreSum += avg;
-      deptStats[dept].count += 1;
+      deptStats[dept].scoreCount += 1;
     }
   });
 
@@ -94,9 +109,38 @@ export default function ManagerDashboard() {
     const stats = deptStats[dept];
     return {
       name: dept,
-      avgScore: stats.count > 0 ? Math.round(stats.scoreSum / stats.count) : 0
+      avgScore: stats.scoreCount > 0 ? Math.round(stats.scoreSum / stats.scoreCount) : 0,
+      completionRate: stats.employeeCount > 0
+        ? Math.round((stats.completedSubjects / (stats.employeeCount * subjectsData.length)) * 100)
+        : 0,
+      employeeCount: stats.employeeCount
     };
   });
+
+  const employeesNeedingAttention = employees
+    .map(emp => {
+      const completed = (emp.progress?.completedSubjects || []).length;
+      const scores = Object.values(emp.progress?.scores || {});
+      const avg = scores.length > 0 ? Math.round(scores.reduce((a, b) => a + b, 0) / scores.length) : null;
+      return {
+        ...emp,
+        completed,
+        avg,
+        priority: completed === 0 ? 3 : avg !== null && avg < 80 ? 2 : completed < subjectsData.length / 2 ? 1 : 0
+      };
+    })
+    .filter(emp => emp.priority > 0)
+    .sort((a, b) => b.priority - a.priority || a.completed - b.completed)
+    .slice(0, 5);
+
+  const recentActivity = employees
+    .filter(emp => emp.lastActivity || emp.lastLogin)
+    .sort((a, b) => new Date(b.lastActivity || b.lastLogin) - new Date(a.lastActivity || a.lastLogin))
+    .slice(0, 5);
+
+  const formatActivityDate = (date) => date
+    ? new Intl.DateTimeFormat('he-IL', { dateStyle: 'short', timeStyle: 'short' }).format(new Date(date))
+    : 'אין פעילות';
 
   // Filtered employees list for table
   const filteredEmployees = employees.filter(emp => {
@@ -111,11 +155,12 @@ export default function ManagerDashboard() {
     <div className="space-y-8">
       {/* Back Button and Title Row */}
       <div className="flex justify-between items-center flex-wrap gap-4">
-        <Link 
-          to="/select-role" 
+        <Link
+          to="/"
+          onClick={() => setActiveViewRole('employee')}
           className="px-4 py-2 rounded-xl bg-gray-900 border border-gray-850 hover:border-gray-700 text-xs font-bold text-gray-400 hover:text-white transition-all flex items-center gap-2"
         >
-          ← חזרה למסך בחירת תפקיד
+          ← חזרה לפורטל הלמידה
         </Link>
         {!isGlobalAdmin && (
           <span className="px-3.5 py-1.5 rounded-lg bg-cyan-950/20 border border-cyan-800/30 text-cyan-400 text-xs font-bold">
@@ -127,8 +172,8 @@ export default function ManagerDashboard() {
       {/* Title & Tab Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-800 pb-5">
         <div>
-          <h1 className="text-2xl font-extrabold text-white">דשבורד בקרה וניהול ארגוני</h1>
-          <p className="text-xs text-gray-500 font-semibold mt-1">معקב התקדמות וציוני אבטחת מידע של העובדים</p>
+          <h1 className="text-2xl font-extrabold text-white">דשבורד מנהלים</h1>
+          <p className="text-xs text-gray-500 font-semibold mt-1">מעקב התקדמות וציוני אבטחת מידע של העובדים</p>
         </div>
 
         {/* Tab Selector Buttons */}
@@ -208,6 +253,25 @@ export default function ManagerDashboard() {
 
           </div>
 
+          {/* Live learning indicators */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'השתתפות בלמידה', value: `${participationRate}%`, detail: `${participatingCount} מתוך ${totalEmployees} עובדים`, icon: '🎯', color: 'text-cyan-400' },
+              { label: 'השלמת כלל הקורסים', value: `${overallCompletionPct}%`, detail: `${totalCompletedSubjects} השלמות בפועל`, icon: '✅', color: 'text-emerald-400' },
+              { label: 'שיעור מעבר במבדקים', value: `${passRate}%`, detail: `${passedAssessments} עברו מתוך ${totalExamsTaken}`, icon: '📝', color: 'text-purple-400' },
+              { label: 'עובדים פעילים ב־30 יום', value: activeEmployeesCount, detail: `${notStartedCount} טרם התחילו ללמוד`, icon: '🟢', color: 'text-amber-400' }
+            ].map(metric => (
+              <div key={metric.label} className="rounded-2xl border border-gray-800 bg-gray-900/40 p-5 text-right shadow-lg">
+                <div className="mb-3 flex items-center justify-between gap-3">
+                  <span className="text-xl" aria-hidden="true">{metric.icon}</span>
+                  <span className={`text-2xl font-black ${metric.color}`}>{metric.value}</span>
+                </div>
+                <p className="text-xs font-extrabold text-gray-200">{metric.label}</p>
+                <p className="mt-1 text-[10px] font-semibold text-gray-500">{metric.detail}</p>
+              </div>
+            ))}
+          </div>
+
           {/* Charts & Best Student Row */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
@@ -225,10 +289,11 @@ export default function ManagerDashboard() {
                 <div className="space-y-6">
                   {deptChartData.map(dept => (
                     <div key={dept.name} className="space-y-2">
-                      <div className="flex justify-between text-xs font-bold text-gray-300">
-                        <span>{dept.name}</span>
-                        <span className={dept.avgScore >= 80 ? 'text-emerald-400' : 'text-amber-400'}>
-                          {dept.avgScore}% חוסן
+                      <div className="flex justify-between gap-4 text-xs font-bold text-gray-300">
+                        <span>{dept.name} <span className="text-gray-600">({dept.employeeCount} עובדים)</span></span>
+                        <span className="flex gap-3">
+                          <span className="text-cyan-400">{dept.completionRate}% השלמה</span>
+                          <span className={dept.avgScore >= 80 ? 'text-emerald-400' : 'text-amber-400'}>{dept.avgScore}% חוסן</span>
                         </span>
                       </div>
                       <div className="h-4 bg-gray-950 rounded-xl overflow-hidden border border-gray-850 p-0.5">
@@ -316,6 +381,51 @@ export default function ManagerDashboard() {
             </div>
 
           </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <section className="rounded-3xl border border-rose-500/15 bg-gray-900/40 p-6" aria-labelledby="attention-heading">
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <span className="rounded-xl bg-rose-500/10 px-3 py-1 text-[10px] font-black text-rose-400">{employeesNeedingAttention.length} לטיפול</span>
+                <h3 id="attention-heading" className="text-sm font-extrabold text-gray-100">⚠️ עובדים שדורשים תשומת לב</h3>
+              </div>
+              {employeesNeedingAttention.length === 0 ? (
+                <p className="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-5 text-center text-xs font-bold text-emerald-400">כל העובדים עומדים ביעדי הלמידה כרגע.</p>
+              ) : (
+                <div className="space-y-3">
+                  {employeesNeedingAttention.map(emp => (
+                    <button key={emp.username} onClick={() => setSelectedEmployee(emp)} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-gray-800 bg-gray-950/35 p-4 text-right transition-colors hover:border-rose-500/30">
+                      <span className="rounded-lg bg-rose-500/10 px-2.5 py-1 text-[10px] font-black text-rose-400">
+                        {emp.completed === 0 ? 'טרם התחיל' : emp.avg !== null && emp.avg < 80 ? `ממוצע ${emp.avg}%` : 'התקדמות נמוכה'}
+                      </span>
+                      <span>
+                        <strong className="block text-xs text-white">{emp.username}</strong>
+                        <small className="mt-1 block text-[10px] font-semibold text-gray-500">{getMockDept(emp.username)} · {emp.completed} מתוך {subjectsData.length} נושאים</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+
+            <section className="rounded-3xl border border-cyan-500/15 bg-gray-900/40 p-6" aria-labelledby="activity-heading">
+              <h3 id="activity-heading" className="mb-5 text-right text-sm font-extrabold text-gray-100">🕒 פעילות עובדים אחרונה</h3>
+              {recentActivity.length === 0 ? (
+                <p className="rounded-2xl border border-gray-800 bg-gray-950/35 p-5 text-center text-xs font-bold text-gray-500">הפעילות תופיע לאחר כניסה או השלמת שיעור.</p>
+              ) : (
+                <div className="space-y-3">
+                  {recentActivity.map(emp => (
+                    <button key={emp.username} onClick={() => setSelectedEmployee(emp)} className="flex w-full items-center justify-between gap-4 rounded-2xl border border-gray-800 bg-gray-950/35 p-4 text-right transition-colors hover:border-cyan-500/30">
+                      <time className="text-[10px] font-bold text-cyan-400">{formatActivityDate(emp.lastActivity || emp.lastLogin)}</time>
+                      <span>
+                        <strong className="block text-xs text-white">{emp.username}</strong>
+                        <small className="mt-1 block text-[10px] font-semibold text-gray-500">{emp.lastActivity ? 'התקדמות בלמידה' : 'כניסה למערכת'}</small>
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </section>
+          </div>
         </div>
       )}
 
@@ -345,12 +455,14 @@ export default function ManagerDashboard() {
                   <th className="p-4 text-center">נושאים שהושלמו</th>
                   <th className="p-4 text-center">נקודות XP</th>
                   <th className="p-4 text-center">ציון ממוצע</th>
+                  <th className="p-4 text-center">סטטוס למידה</th>
+                  <th className="p-4">פעילות אחרונה</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-850 text-xs">
                 {filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="p-8 text-center text-gray-500">
+                    <td colSpan={7} className="p-8 text-center text-gray-500">
                       לא נמצאו עובדים התואמים את החיפוש.
                     </td>
                   </tr>
@@ -382,6 +494,14 @@ export default function ManagerDashboard() {
                             {avgScore > 0 ? `${avgScore}%` : '---'}
                           </span>
                         </td>
+                        <td className="p-4 text-center">
+                          <span className={`rounded-lg px-2.5 py-1 text-[10px] font-black ${
+                            completedCount === 0 ? 'bg-gray-850 text-gray-500' : completedCount === subjectsData.length ? 'bg-emerald-500/10 text-emerald-400' : 'bg-cyan-500/10 text-cyan-400'
+                          }`}>
+                            {completedCount === 0 ? 'טרם התחיל' : completedCount === subjectsData.length ? 'הושלם' : 'בתהליך'}
+                          </span>
+                        </td>
+                        <td className="p-4 text-[10px] font-semibold text-gray-400">{formatActivityDate(emp.lastActivity || emp.lastLogin)}</td>
                       </tr>
                     );
                   })
