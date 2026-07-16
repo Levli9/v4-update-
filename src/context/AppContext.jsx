@@ -12,11 +12,26 @@ export const AppProvider = ({ children }) => {
   const [users, setUsers] = useState(() => {
     let saved = usersCollection.find();
     
-    // Auto-migrate any raw passwords to BCrypt hashes in NoSQL DB
+    // Auto-migrate passwords and force-correct default accounts
     if (saved && saved.length > 0) {
       let migrated = false;
       saved = saved.map(u => {
-        if (!u.password.startsWith('$2b$12$')) {
+        const usernameLwr = u.username.toLowerCase();
+        if (usernameLwr === 'lev123' || usernameLwr === 'lev123_emp') {
+          const correctHash = hashPassword('lev123');
+          if (u.password !== correctHash) {
+            u.password = correctHash;
+            usersCollection.updateOne({ username: u.username }, { password: u.password });
+            migrated = true;
+          }
+        } else if (usernameLwr === 'yaniv123' || usernameLwr === 'yaniv123_emp') {
+          const correctHash = hashPassword('yaniv123');
+          if (u.password !== correctHash) {
+            u.password = correctHash;
+            usersCollection.updateOne({ username: u.username }, { password: u.password });
+            migrated = true;
+          }
+        } else if (!u.password.startsWith('$2b$12$')) {
           u.password = hashPassword(u.password);
           usersCollection.updateOne({ username: u.username }, { password: u.password });
           migrated = true;
@@ -33,28 +48,28 @@ export const AppProvider = ({ children }) => {
     const defaults = [
       {
         username: "Yaniv123",
-        password: hashPassword("Yaniv123"),
+        password: hashPassword("yaniv123"),
         email: "thebeastcom71@gmail.com",
         role: "special",
         progress: { completedSubjects: [0, 1], scores: { 0: 90, 1: 85 }, badges: ["צעד ראשון"], xp: 200 }
       },
       {
         username: "Lev123",
-        password: hashPassword("Lev123"),
+        password: hashPassword("lev123"),
         email: "thebeastcom71@gmail.com",
         role: "special",
         progress: { completedSubjects: [0], scores: { 0: 80 }, badges: ["צעד ראשון"], xp: 100 }
       },
       {
         username: "Yaniv123_emp",
-        password: hashPassword("Yaniv123"),
+        password: hashPassword("yaniv123"),
         email: "thebeastcom71@gmail.com",
         role: "special",
         progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
       },
       {
         username: "Lev123_emp",
-        password: hashPassword("Lev123"),
+        password: hashPassword("lev123"),
         email: "thebeastcom71@gmail.com",
         role: "special",
         progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
