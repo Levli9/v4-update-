@@ -9,6 +9,7 @@ export default function ManagerDashboard() {
   const [activeTab, setActiveTab] = useState('stats'); // 'stats' or 'employees'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [selectedDepartment, setSelectedDepartment] = useState('all');
 
   // Department mapping helper
   const getMockDept = (username) => {
@@ -25,9 +26,14 @@ export default function ManagerDashboard() {
 
   // ── Data Calculations ──
   const allEmployees = users.filter(u => u.role === 'employee');
-  const employees = isGlobalAdmin 
-    ? allEmployees 
+  const scopedEmployees = isGlobalAdmin
+    ? allEmployees
     : allEmployees.filter(emp => getMockDept(emp.username) === managerDept);
+
+  const departmentOptions = [...new Set(scopedEmployees.map(emp => getMockDept(emp.username)))].sort();
+  const employees = selectedDepartment === 'all'
+    ? scopedEmployees
+    : scopedEmployees.filter(emp => getMockDept(emp.username) === selectedDepartment);
 
   const totalEmployees = employees.length;
 
@@ -117,6 +123,93 @@ export default function ManagerDashboard() {
     };
   });
 
+  const completedProgramCount = employees.filter(emp => (emp.progress?.completedSubjects || []).length >= subjectsData.length).length;
+  const inProgressCount = Math.max(0, totalEmployees - notStartedCount - completedProgramCount);
+  const unassessedCount = Math.max(0, totalEmployees - safeCount - vulnerableCount);
+
+  const createDonut = (segments, total) => {
+    if (!total) return '#1f2937';
+    let cursor = 0;
+    const stops = segments.map(({ value, color }) => {
+      const start = cursor;
+      cursor += (value / total) * 100;
+      return `${color} ${start}% ${cursor}%`;
+    });
+    return `conic-gradient(${stops.join(', ')})`;
+  };
+
+  const learningDonut = createDonut([
+    { value: completedProgramCount, color: '#10b981' },
+    { value: inProgressCount, color: '#00e6ff' },
+    { value: notStartedCount, color: '#475569' }
+  ], totalEmployees);
+
+  const assessmentDonut = createDonut([
+    { value: safeCount, color: '#10b981' },
+    { value: vulnerableCount, color: '#f43f5e' },
+    { value: unassessedCount, color: '#475569' }
+  ], totalEmployees);
+
+  const topicPerformance = subjectsData.map(subject => {
+    const scores = employees
+      .map(emp => emp.progress?.scores?.[subject.id])
+      .filter(score => typeof score === 'number');
+    const completed = employees.filter(emp => (emp.progress?.completedSubjects || []).includes(subject.id)).length;
+    return {
+      id: subject.id,
+      title: subject.title,
+      emoji: subject.emoji,
+      attempts: scores.length,
+      completed,
+      completionRate: totalEmployees ? Math.round((completed / totalEmployees) * 100) : 0,
+      avgScore: scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : 0
+    };
+  });
+
+  const bestDepartment = [...deptChartData].sort((a, b) => (b.avgScore + b.completionRate) - (a.avgScore + a.completionRate))[0];
+  const organizationHealth = Math.round((averageScore * 0.4) + (overallCompletionPct * 0.35) + (participationRate * 0.25));
+  const organizationHealthLabel = organizationHealth >= 80 ? 'מצב טוב' : organizationHealth >= 60 ? 'דורש שיפור' : 'סיכון גבוה';
+  const employeeRiskPoints = employees.map(emp => {
+    const completed = (emp.progress?.completedSubjects || []).length;
+    const scores = Object.values(emp.progress?.scores || {});
+    return {
+      ...emp,
+      completionRate: subjectsData.length ? Math.round((completed / subjectsData.length) * 100) : 0,
+      avgScore: scores.length ? Math.round(scores.reduce((sum, score) => sum + score, 0) / scores.length) : 0,
+      hasAssessment: scores.length > 0
+    };
+  });
+  const criticalEmployees = employeeRiskPoints.filter(emp => emp.completionRate < 40 || (emp.hasAssessment && emp.avgScore < 70)).length;
+  const managementInsights = [
+    notStartedCount > 0 && { tone: 'rose', icon: '🚨', title: `${notStartedCount} עובדים טרם התחילו`, text: 'מומלץ לשלוח תזכורת ולהגדיר מועד יעד להתחלת הלמידה.' },
+    failedAssessments > 0 && { tone: 'amber', icon: '📝', title: `${failedAssessments} מבדקים מתחת לציון המעבר`, text: 'כדאי להקצות חזרה על החומר ולתאם ניסיון נוסף.' },
+    activeEmployeesCount < totalEmployees && { tone: 'purple', icon: '🕒', title: `${totalEmployees - activeEmployeesCount} עובדים ללא פעילות ב־30 יום`, text: 'יש לבדוק זמינות, עומס עבודה או צורך בסיוע אישי.' },
+    overallCompletionPct >= 80 && { tone: 'emerald', icon: '🏆', title: 'יעד ההשלמה הארגוני הושג', text: 'רמת ההשלמה גבוהה. מומלץ להתמקד בנושאים עם הציון הנמוך ביותר.' }
+  ].filter(Boolean);
+
+  const exportManagementReport = () => {
+    const headers = ['עובד', 'מחלקה', 'השלמת קורסים', 'ציון ממוצע', 'נקודות XP', 'פעילות אחרונה', 'סטטוס'];
+    const rows = employeeRiskPoints.map(emp => [
+      emp.username,
+      getMockDept(emp.username),
+      `${emp.completionRate}%`,
+      emp.hasAssessment ? `${emp.avgScore}%` : 'ללא מבדק',
+      emp.progress?.xp || 0,
+      formatActivityDate(emp.lastActivity || emp.lastLogin),
+      emp.completionRate === 0 ? 'טרם התחיל' : emp.completionRate === 100 ? 'הושלם' : 'בתהליך'
+    ]);
+    const csv = [headers, ...rows]
+      .map(row => row.map(value => `"${String(value).replace(/"/g, '""')}"`).join(','))
+      .join('\n');
+    const blob = new Blob([`\uFEFF${csv}`], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = `shieldx-management-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  };
+
   const employeesNeedingAttention = employees
     .map(emp => {
       const completed = (emp.progress?.completedSubjects || []).length;
@@ -200,6 +293,37 @@ export default function ManagerDashboard() {
       {/* STATS VIEW */}
       {activeTab === 'stats' && (
         <div className="space-y-8">
+          <section className="relative overflow-hidden rounded-[2rem] border border-[#00e6ff]/20 bg-gradient-to-l from-[#071b2a] via-[#0b1120] to-[#151126] p-6 shadow-[0_25px_80px_rgba(0,0,0,0.35)] sm:p-8">
+            <div className="absolute -left-16 -top-20 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl" />
+            <div className="absolute -bottom-24 right-12 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
+            <div className="relative grid items-center gap-7 lg:grid-cols-[auto_1fr_auto]">
+              <div className="relative grid h-36 w-36 place-items-center rounded-full" style={{ background: `conic-gradient(${organizationHealth >= 80 ? '#10b981' : organizationHealth >= 60 ? '#f59e0b' : '#f43f5e'} ${organizationHealth}%, #1f2937 ${organizationHealth}% 100%)` }}>
+                <div className="grid h-24 w-24 place-items-center rounded-full border border-white/10 bg-[#09101d] text-center">
+                  <span><strong className="block text-3xl text-white">{organizationHealth}</strong><small className="text-[9px] font-black text-gray-500">מתוך 100</small></span>
+                </div>
+              </div>
+              <div className="text-right">
+                <span className={`inline-flex rounded-full px-3 py-1 text-[10px] font-black ${organizationHealth >= 80 ? 'bg-emerald-500/10 text-emerald-400' : organizationHealth >= 60 ? 'bg-amber-500/10 text-amber-400' : 'bg-rose-500/10 text-rose-400'}`}>{organizationHealthLabel}</span>
+                <h2 className="mt-3 text-2xl font-black text-white">תמונת מצב ניהולית מלאה</h2>
+                <p className="mt-2 max-w-2xl text-xs font-semibold leading-relaxed text-gray-400">ציון הבריאות משקלל ציוני מבדקים, השלמת מסלולים והשתתפות עובדים. הנתונים מחושבים בזמן אמת עבור {selectedDepartment === 'all' ? 'כל המחלקות' : selectedDepartment}.</p>
+                <div className="mt-5 flex flex-wrap gap-3 text-[10px] font-bold">
+                  <span className="rounded-lg border border-gray-700 bg-black/20 px-3 py-2 text-gray-300">🚨 {criticalEmployees} עובדים בסיכון</span>
+                  <span className="rounded-lg border border-gray-700 bg-black/20 px-3 py-2 text-gray-300">📚 {overallCompletionPct}% השלמה</span>
+                  <span className="rounded-lg border border-gray-700 bg-black/20 px-3 py-2 text-gray-300">📝 {passRate}% מעבר</span>
+                  <span className="rounded-lg border border-gray-700 bg-black/20 px-3 py-2 text-gray-300">🟢 {activeEmployeesCount} פעילים</span>
+                </div>
+              </div>
+              <div className="flex flex-col gap-3">
+                {isGlobalAdmin && <select value={selectedDepartment} onChange={event => setSelectedDepartment(event.target.value)} className="rounded-xl border border-gray-700 bg-gray-950/80 px-4 py-3 text-xs font-bold text-gray-200 outline-none focus:border-cyan-400">
+                  <option value="all">כל המחלקות</option>
+                  {departmentOptions.map(dept => <option key={dept} value={dept}>{dept}</option>)}
+                </select>}
+                <button type="button" onClick={exportManagementReport} className="rounded-xl border border-cyan-400/25 bg-cyan-400/10 px-5 py-3 text-xs font-black text-cyan-300 transition-colors hover:bg-cyan-400/20">⬇ ייצוא דו״ח CSV</button>
+                <span className="text-center text-[9px] font-semibold text-gray-600">עודכן: {new Intl.DateTimeFormat('he-IL', { timeStyle: 'short' }).format(new Date())}</span>
+              </div>
+            </div>
+          </section>
+
           {/* Stat Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
@@ -270,6 +394,85 @@ export default function ManagerDashboard() {
                 <p className="mt-1 text-[10px] font-semibold text-gray-500">{metric.detail}</p>
               </div>
             ))}
+          </div>
+
+          {/* Executive visual overview */}
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+            <section className="rounded-3xl border border-cyan-500/15 bg-gradient-to-br from-gray-900/75 to-gray-950/75 p-6 shadow-xl">
+              <div className="mb-6 flex items-center justify-between">
+                <span className="rounded-lg bg-cyan-500/10 px-2.5 py-1 text-[10px] font-black text-cyan-400">{participationRate}% השתתפות</span>
+                <h3 className="text-sm font-extrabold text-white">סטטוס מסלול הלמידה</h3>
+              </div>
+              <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-around xl:flex-col">
+                <div className="relative grid h-40 w-40 place-items-center rounded-full shadow-[0_0_35px_rgba(0,230,255,0.08)]" style={{ background: learningDonut }}>
+                  <div className="grid h-24 w-24 place-items-center rounded-full border border-gray-800 bg-[#0a0d17] text-center">
+                    <span><strong className="block text-2xl text-white">{totalEmployees}</strong><small className="text-[10px] font-bold text-gray-500">עובדים</small></span>
+                  </div>
+                </div>
+                <div className="w-full space-y-3 text-xs font-bold">
+                  {[
+                    ['#10b981', 'סיימו את המסלול', completedProgramCount],
+                    ['#00e6ff', 'בתהליך למידה', inProgressCount],
+                    ['#475569', 'טרם התחילו', notStartedCount]
+                  ].map(([color, label, value]) => (
+                    <div key={label} className="flex items-center justify-between rounded-xl bg-gray-950/40 px-3 py-2.5">
+                      <strong className="text-white">{value}</strong>
+                      <span className="flex items-center gap-2 text-gray-400"><i className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-purple-500/15 bg-gradient-to-br from-gray-900/75 to-gray-950/75 p-6 shadow-xl">
+              <div className="mb-6 flex items-center justify-between">
+                <span className="rounded-lg bg-purple-500/10 px-2.5 py-1 text-[10px] font-black text-purple-400">{totalExamsTaken} ניסיונות</span>
+                <h3 className="text-sm font-extrabold text-white">חוסן לפי תוצאות עובדים</h3>
+              </div>
+              <div className="flex flex-col items-center gap-6 sm:flex-row sm:justify-around xl:flex-col">
+                <div className="relative grid h-40 w-40 place-items-center rounded-full shadow-[0_0_35px_rgba(157,78,221,0.12)]" style={{ background: assessmentDonut }}>
+                  <div className="grid h-24 w-24 place-items-center rounded-full border border-gray-800 bg-[#0a0d17] text-center">
+                    <span><strong className="block text-2xl text-white">{passRate}%</strong><small className="text-[10px] font-bold text-gray-500">שיעור מעבר</small></span>
+                  </div>
+                </div>
+                <div className="w-full space-y-3 text-xs font-bold">
+                  {[
+                    ['#10b981', 'עובדים מוגנים', safeCount],
+                    ['#f43f5e', 'דורשים חיזוק', vulnerableCount],
+                    ['#475569', 'ללא מבדק', unassessedCount]
+                  ].map(([color, label, value]) => (
+                    <div key={label} className="flex items-center justify-between rounded-xl bg-gray-950/40 px-3 py-2.5">
+                      <strong className="text-white">{value}</strong>
+                      <span className="flex items-center gap-2 text-gray-400"><i className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: color }} />{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-amber-500/15 bg-gradient-to-br from-gray-900/75 to-gray-950/75 p-6 shadow-xl">
+              <div className="mb-6 flex items-center justify-between">
+                <span className="text-[10px] font-bold text-gray-500">חוסן מול השלמה</span>
+                <h3 className="text-sm font-extrabold text-white">השוואת מחלקות</h3>
+              </div>
+              {deptChartData.length ? (
+                <div className="flex h-[260px] items-end justify-around gap-3 border-b border-gray-800 px-2 pb-1">
+                  {deptChartData.map(dept => (
+                    <div key={dept.name} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
+                      <div className="flex h-[190px] items-end gap-1.5">
+                        <div className="w-7 rounded-t-lg bg-gradient-to-t from-cyan-700 to-cyan-400 transition-all" style={{ height: `${Math.max(4, dept.completionRate)}%` }} title={`${dept.completionRate}% השלמה`} />
+                        <div className="w-7 rounded-t-lg bg-gradient-to-t from-amber-700 to-amber-400 transition-all" style={{ height: `${Math.max(4, dept.avgScore)}%` }} title={`${dept.avgScore}% חוסן`} />
+                      </div>
+                      <span className="max-w-24 truncate text-[9px] font-bold text-gray-400" title={dept.name}>{dept.name}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : <p className="py-20 text-center text-xs text-gray-500">אין נתוני מחלקות להצגה.</p>}
+              <div className="mt-4 flex justify-center gap-5 text-[10px] font-bold text-gray-500">
+                <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-cyan-400" /> השלמה</span>
+                <span className="flex items-center gap-1.5"><i className="h-2.5 w-2.5 rounded-sm bg-amber-400" /> חוסן</span>
+              </div>
+            </section>
           </div>
 
           {/* Charts & Best Student Row */}
@@ -424,6 +627,96 @@ export default function ManagerDashboard() {
                   ))}
                 </div>
               )}
+            </section>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.35fr_0.65fr]">
+            <section className="rounded-3xl border border-gray-800 bg-gray-900/40 p-6" aria-labelledby="topics-heading">
+              <div className="mb-6 flex items-center justify-between gap-4">
+                <span className="text-[10px] font-bold text-gray-500">נתונים לפי {subjectsData.length} נושאי לימוד</span>
+                <h3 id="topics-heading" className="text-sm font-extrabold text-white">📚 ביצועים לפי נושא</h3>
+              </div>
+              <div className="max-h-[430px] space-y-4 overflow-y-auto pl-2">
+                {topicPerformance.map(topic => (
+                  <div key={topic.id} className="rounded-2xl border border-gray-800 bg-gray-950/35 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-4 text-xs">
+                      <span className="flex shrink-0 gap-3 font-black"><b className={topic.avgScore >= 80 ? 'text-emerald-400' : topic.attempts ? 'text-amber-400' : 'text-gray-600'}>{topic.attempts ? `${topic.avgScore}% ציון` : 'ללא ציון'}</b><b className="text-cyan-400">{topic.completionRate}% השלמה</b></span>
+                      <span className="truncate font-bold text-gray-200">{topic.emoji} {topic.title}</span>
+                    </div>
+                    <div className="relative h-2.5 overflow-hidden rounded-full bg-gray-900">
+                      <div className="absolute inset-y-0 right-0 rounded-full bg-gradient-to-l from-cyan-400 to-blue-600" style={{ width: `${topic.completionRate}%` }} />
+                    </div>
+                    <p className="mt-2 text-[9px] font-semibold text-gray-600">{topic.completed} השלימו · {topic.attempts} ניגשו למבדק</p>
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-[#00e6ff]/15 bg-gradient-to-br from-[#0c1723]/80 to-gray-950/80 p-6" aria-labelledby="insights-heading">
+              <h3 id="insights-heading" className="text-sm font-extrabold text-white">💡 תובנות והמלצות למנהל</h3>
+              {bestDepartment && <div className="my-5 rounded-2xl border border-amber-400/15 bg-amber-400/5 p-4 text-right">
+                <p className="text-[10px] font-black text-amber-400">מחלקה מובילה</p>
+                <p className="mt-1 text-sm font-extrabold text-white">{bestDepartment.name}</p>
+                <p className="mt-1 text-[10px] font-semibold text-gray-500">{bestDepartment.avgScore}% חוסן · {bestDepartment.completionRate}% השלמה</p>
+              </div>}
+              <div className="space-y-3">
+                {(managementInsights.length ? managementInsights : [{ tone: 'emerald', icon: '✅', title: 'אין התראות דחופות', text: 'הנתונים תקינים. המשך לעקוב אחר ההשלמה והציונים.' }]).map((insight, index) => (
+                  <div key={`${insight.title}-${index}`} className="rounded-2xl border border-gray-800 bg-gray-950/45 p-4 text-right">
+                    <div className="flex items-start gap-3">
+                      <span className="text-lg">{insight.icon}</span>
+                      <span><strong className="block text-xs text-white">{insight.title}</strong><small className="mt-1.5 block text-[10px] font-semibold leading-relaxed text-gray-500">{insight.text}</small></span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button type="button" onClick={() => setActiveTab('employees')} className="mt-5 w-full rounded-xl bg-[#00e6ff] py-3 text-xs font-black text-black transition-colors hover:bg-cyan-300">פתיחת מעקב העובדים</button>
+            </section>
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+            <section className="rounded-3xl border border-gray-800 bg-gray-900/40 p-6">
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <span className="text-[10px] font-bold text-gray-500">כל נקודה מייצגת עובד</span>
+                <h3 className="text-sm font-extrabold text-white">🎯 מטריצת סיכון עובדים</h3>
+              </div>
+              <div className="relative h-[360px] overflow-hidden rounded-2xl border border-gray-800 bg-gray-950/55">
+                <div className="absolute inset-x-0 top-1/2 border-t border-dashed border-gray-700" />
+                <div className="absolute inset-y-0 left-1/2 border-l border-dashed border-gray-700" />
+                <span className="absolute right-3 top-3 text-[9px] font-black text-emerald-500/70">מוכנות גבוהה</span>
+                <span className="absolute bottom-3 right-3 text-[9px] font-black text-amber-500/70">התקדמות גבוהה / ציון נמוך</span>
+                <span className="absolute left-3 top-3 text-[9px] font-black text-cyan-500/70">ציון טוב / התקדמות נמוכה</span>
+                <span className="absolute bottom-3 left-3 text-[9px] font-black text-rose-500/70">סיכון גבוה</span>
+                {employeeRiskPoints.map((emp, index) => (
+                  <button key={emp.username} type="button" onClick={() => setSelectedEmployee(emp)} title={`${emp.username}: ${emp.completionRate}% השלמה, ${emp.hasAssessment ? `${emp.avgScore}% ציון` : 'ללא ציון'}`} className={`absolute grid h-9 w-9 place-items-center rounded-full border-2 text-[9px] font-black text-white shadow-lg transition-transform hover:z-10 hover:scale-125 ${emp.completionRate >= 50 && emp.avgScore >= 80 ? 'border-emerald-300 bg-emerald-500' : emp.completionRate < 40 || (emp.hasAssessment && emp.avgScore < 70) ? 'border-rose-300 bg-rose-500' : 'border-amber-300 bg-amber-500'}`} style={{ right: `calc(${Math.min(94, Math.max(5, emp.completionRate))}% - 18px)`, bottom: `calc(${Math.min(90, Math.max(8, emp.hasAssessment ? emp.avgScore : 8))}% - 18px)`, margin: `${(index % 3) * 2}px` }}>
+                    {emp.username.slice(0, 2).toUpperCase()}
+                  </button>
+                ))}
+                <span className="absolute bottom-1 left-1/2 -translate-x-1/2 text-[8px] font-bold text-gray-600">← שיעור השלמה →</span>
+                <span className="absolute left-1 top-1/2 -rotate-90 text-[8px] font-bold text-gray-600">ציון ממוצע</span>
+              </div>
+            </section>
+
+            <section className="rounded-3xl border border-gray-800 bg-gray-900/40 p-6">
+              <div className="mb-5 flex items-center justify-between gap-4">
+                <span className="text-[10px] font-bold text-gray-500">לחיצה על עובד פותחת פירוט מלא</span>
+                <h3 className="text-sm font-extrabold text-white">🧩 מפת חום: עובדים מול נושאים</h3>
+              </div>
+              <div className="overflow-auto rounded-2xl border border-gray-800">
+                <table className="min-w-[760px] w-full border-collapse text-[9px]">
+                  <thead><tr className="bg-gray-950/80 text-gray-500"><th className="sticky right-0 z-10 bg-gray-950 p-3 text-right">עובד</th>{subjectsData.map(subject => <th key={subject.id} className="p-2 text-center" title={subject.title}><span className="text-base">{subject.emoji}</span></th>)}</tr></thead>
+                  <tbody className="divide-y divide-gray-800">
+                    {employeeRiskPoints.map(emp => <tr key={emp.username} className="hover:bg-gray-800/20">
+                      <td className="sticky right-0 z-10 bg-[#0b0f19] p-3"><button type="button" onClick={() => setSelectedEmployee(emp)} className="font-bold text-gray-200 hover:text-cyan-400">{emp.username}</button></td>
+                      {subjectsData.map(subject => {
+                        const score = emp.progress?.scores?.[subject.id];
+                        const completed = (emp.progress?.completedSubjects || []).includes(subject.id);
+                        return <td key={subject.id} className="p-1.5 text-center"><span title={score !== undefined ? `${score}%` : completed ? 'הושלם ללא ציון' : 'טרם התחיל'} className={`mx-auto grid h-8 w-8 place-items-center rounded-lg font-black ${score >= 80 ? 'bg-emerald-500/25 text-emerald-300' : score !== undefined ? 'bg-rose-500/25 text-rose-300' : completed ? 'bg-cyan-500/20 text-cyan-300' : 'bg-gray-800/60 text-gray-700'}`}>{score !== undefined ? score : completed ? '✓' : '—'}</span></td>;
+                      })}
+                    </tr>)}
+                  </tbody>
+                </table>
+              </div>
+              <div className="mt-4 flex flex-wrap justify-center gap-4 text-[9px] font-bold text-gray-500"><span>🟩 עבר בהצלחה</span><span>🟥 דורש חיזוק</span><span>🟦 הושלם</span><span>⬛ טרם התחיל</span></div>
             </section>
           </div>
         </div>

@@ -138,17 +138,17 @@ body {
 /* Accessibility controls */
 .a11y-option {
   display: flex;
-  min-height: 3.65rem;
+  min-height: 3.25rem;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
+  gap: 0.3rem;
   border: 1px solid #1f2937;
   border-radius: 0.75rem;
-  padding: 0.45rem 0.25rem;
+  padding: 0.35rem 0.2rem;
   color: #9ca3af;
   background: rgba(17, 24, 39, 0.72);
-  font-size: 0.68rem;
+  font-size: 0.64rem;
   font-weight: 700;
   line-height: 1.25;
   text-align: center;

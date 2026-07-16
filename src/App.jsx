@@ -1,6 +1,6 @@
 // src/App.jsx
 import React, { useEffect, useState } from 'react';
-import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { HashRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import {
   Accessibility,
   BookOpen,
@@ -58,16 +58,22 @@ const getSavedAccessibility = () => {
 };
 
 function AppInner() {
-  const { currentUser, activeViewRole, logout, setActiveViewRole } = useApp();
+  const { currentUser, logout, setActiveViewRole } = useApp();
+  const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
   const [accessibility, setAccessibility] = useState(getSavedAccessibility);
+
+  const closeMenu = () => {
+    setIsMenuOpen(false);
+    setIsAccessibilityOpen(false);
+  };
 
   useEffect(() => {
     if (!isMenuOpen) return undefined;
 
     const closeOnEscape = (event) => {
-      if (event.key === 'Escape') setIsMenuOpen(false);
+      if (event.key === 'Escape') closeMenu();
     };
 
     document.addEventListener('keydown', closeOnEscape);
@@ -122,21 +128,21 @@ function AppInner() {
   }
 
   const canAccessManager = currentUser.role === 'manager';
-  const isManagerView = canAccessManager && activeViewRole === 'manager';
+  const isManagerView = canAccessManager && location.pathname === '/manager';
 
   const openLearningPortal = () => {
     setActiveViewRole('employee');
-    setIsMenuOpen(false);
+    closeMenu();
   };
 
   const openManagerDashboard = () => {
     if (!canAccessManager) return;
     setActiveViewRole('manager');
-    setIsMenuOpen(false);
+    closeMenu();
   };
 
   const handleLogout = () => {
-    setIsMenuOpen(false);
+    closeMenu();
     logout();
   };
 
@@ -198,6 +204,7 @@ function AppInner() {
 
           <Link
             to="/"
+            onClick={openLearningPortal}
             className="shieldx-brand justify-self-center flex items-center justify-center gap-3 text-center"
             aria-label="ShieldX — מערכת הדרכת עובדים בתחום הסייבר"
           >
@@ -212,7 +219,17 @@ function AppInner() {
             </span>
           </Link>
           
-          <div className="justify-self-end min-w-0">
+          <div className="justify-self-end min-w-0 flex flex-row-reverse items-center gap-2">
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="group flex h-11 items-center justify-center gap-2 rounded-xl border border-rose-500/20 bg-rose-500/5 px-3 text-rose-400 transition-all hover:border-rose-500/45 hover:bg-rose-500/10 hover:text-rose-300 focus:outline-none focus:ring-2 focus:ring-rose-500/30"
+              aria-label="התנתקות מהמערכת"
+              title="התנתקות"
+            >
+              <LogOut size={17} className="transition-transform group-hover:-translate-x-0.5" />
+              <span className="hidden text-xs font-bold lg:inline">התנתקות</span>
+            </button>
             <Link to="/settings" className="hidden sm:flex items-center gap-2 rounded-xl border border-gray-800 bg-gray-900/45 px-3 py-2 transition-colors hover:border-[#00e6ff]/35 hover:bg-gray-900" aria-label="פתיחת הגדרות המשתמש">
               <span className="profile-avatar profile-avatar--small">
                 {currentUser.avatar ? <img src={currentUser.avatar} alt="" /> : <span>👤</span>}
@@ -226,7 +243,6 @@ function AppInner() {
                 </span>
               </span>
             </Link>
-            <div className="h-11 w-12 sm:hidden" aria-hidden="true" />
           </div>
         </div>
       </header>
@@ -236,7 +252,7 @@ function AppInner() {
           <button
             type="button"
             className="shieldx-menu-backdrop absolute inset-0 h-full w-full cursor-default bg-black/70 backdrop-blur-sm"
-            onClick={() => setIsMenuOpen(false)}
+            onClick={closeMenu}
             aria-label="סגירת תוכן העניינים"
           />
 
@@ -246,28 +262,28 @@ function AppInner() {
             aria-modal="true"
             aria-label="תוכן העניינים"
             className={`shieldx-menu-drawer absolute inset-y-0 right-0 flex flex-col border-l border-[#00e6ff]/15 bg-[#0a0d17] shadow-[-20px_0_60px_rgba(0,0,0,0.55)] transition-[width] duration-300 ${
-              isAccessibilityOpen ? 'w-[min(94vw,560px)]' : 'w-[min(88vw,360px)]'
+              isAccessibilityOpen ? 'w-[min(92vw,500px)]' : 'w-[min(86vw,320px)]'
             }`}
           >
-            <div className="flex items-center justify-between border-b border-gray-800 px-5 py-5">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between border-b border-gray-800 px-4 py-4">
+              <div className="flex items-center gap-2.5">
                 <ShieldXLogo compact />
                 <div>
-                  <p className="text-lg font-black text-white">תוכן העניינים</p>
-                  <p className="text-[11px] font-semibold text-[#00e6ff]" dir="ltr">ShieldX Navigation</p>
+                  <p className="text-base font-black text-white">תוכן העניינים</p>
+                  <p className="text-[10px] font-semibold text-[#00e6ff]" dir="ltr">ShieldX Navigation</p>
                 </div>
               </div>
               <button
                 type="button"
-                onClick={() => setIsMenuOpen(false)}
-                className="grid h-10 w-10 place-items-center rounded-xl border border-gray-800 bg-gray-900 text-gray-400 transition-colors hover:border-gray-700 hover:text-white"
+                onClick={closeMenu}
+                className="grid h-9 w-9 place-items-center rounded-lg border border-gray-800 bg-gray-900 text-gray-400 transition-colors hover:border-gray-700 hover:text-white"
                 aria-label="סגירת התפריט"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <nav className={`flex-1 px-4 py-5 ${isAccessibilityOpen ? 'overflow-hidden' : 'overflow-y-auto'}`} aria-label="ניווט ראשי">
+            <nav className={`flex-1 px-3.5 py-4 ${isAccessibilityOpen ? 'overflow-hidden' : 'overflow-y-auto'}`} aria-label="ניווט ראשי">
               <div className={isAccessibilityOpen ? 'hidden' : ''}>
                 <p className="mb-3 px-3 text-[10px] font-extrabold uppercase tracking-[0.18em] text-gray-600">למידה והדרכה</p>
                 <div className="space-y-2">
@@ -288,9 +304,9 @@ function AppInner() {
 
                 {canAccessManager && (
                   <>
-                    <p className="mb-3 mt-7 px-3 text-[10px] font-extrabold uppercase tracking-[0.18em] text-gray-600">ניהול</p>
+                    <p className="mb-3 mt-5 px-3 text-[10px] font-extrabold uppercase tracking-[0.18em] text-gray-600">ניהול</p>
                     <Link
-                      to="/"
+                      to="/manager"
                       onClick={openManagerDashboard}
                       className={`shieldx-menu-item ${isManagerView ? 'shieldx-menu-item--active' : ''}`}
                     >
@@ -305,24 +321,24 @@ function AppInner() {
                 )}
               </div>
 
-              <div className={`${isAccessibilityOpen ? '' : 'mt-7 border-t border-gray-800 pt-5'}`}>
+              <div className={`${isAccessibilityOpen ? '' : 'mt-5 border-t border-gray-800 pt-4'}`}>
                 <button
                   type="button"
                   onClick={() => setIsAccessibilityOpen((open) => !open)}
-                  className="flex w-full items-center gap-3 rounded-xl border border-gray-800 bg-gray-900/45 px-3 py-3 text-right transition-colors hover:border-[#00e6ff]/25 hover:bg-gray-900"
+                  className="flex w-full items-center gap-2.5 rounded-xl border border-gray-800 bg-gray-900/35 px-3 py-2.5 text-right transition-colors hover:border-[#00e6ff]/25 hover:bg-gray-900/70"
                   aria-expanded={isAccessibilityOpen}
                   aria-controls="shieldx-accessibility-panel"
                 >
-                  <span className="grid h-10 w-10 place-items-center rounded-xl border border-[#00e6ff]/15 bg-[#00e6ff]/10 text-[#00e6ff]">
-                    <Accessibility size={22} />
+                  <span className="grid h-8 w-8 place-items-center rounded-lg border border-[#00e6ff]/15 bg-[#00e6ff]/8 text-[#00e6ff]">
+                    <Accessibility size={18} />
                   </span>
                   <span className="flex-1">
-                    <span className="block text-sm font-bold text-gray-100">נגישות</span>
-                    <span className="mt-0.5 block text-[11px] text-gray-500">
+                    <span className="block text-[13px] font-bold text-gray-200">נגישות</span>
+                    <span className="mt-0.5 block text-[10px] text-gray-500">
                       {accessibilityActiveCount > 0 ? `${accessibilityActiveCount} התאמות פעילות` : 'התאמת התצוגה לצרכים שלך'}
                     </span>
                   </span>
-                  <ChevronDown size={18} className={`text-gray-500 transition-transform ${isAccessibilityOpen ? 'rotate-180' : ''}`} />
+                  <ChevronDown size={16} className={`text-gray-500 transition-transform ${isAccessibilityOpen ? 'rotate-180' : ''}`} />
                 </button>
 
                 {isAccessibilityOpen && (
@@ -396,18 +412,6 @@ function AppInner() {
             </nav>
 
             {!isAccessibilityOpen && <div className="border-t border-gray-800 bg-gray-950/40 p-4">
-              <Link to="/settings" onClick={() => setIsMenuOpen(false)} className="mb-3 flex items-center gap-3 rounded-xl border border-gray-800 bg-gray-900/60 p-3 transition-colors hover:border-[#00e6ff]/30" aria-label="פתיחת הגדרות המשתמש">
-                <span className="profile-avatar">
-                  {currentUser.avatar ? <img src={currentUser.avatar} alt="" /> : <span>👤</span>}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-bold text-gray-200">{currentUser.username}</p>
-                  <p className={`text-[11px] font-bold ${canAccessManager ? 'text-purple-400' : 'text-[#00e6ff]'}`}>
-                    {canAccessManager ? 'מנהל' : 'עובד רגיל'}
-                  </p>
-                </div>
-                <ChevronLeft size={17} className="text-gray-600" />
-              </Link>
               <button
                 type="button"
                 onClick={handleLogout}
@@ -423,8 +427,8 @@ function AppInner() {
 
       <main className="max-w-7xl mx-auto px-4 py-8">
         <Routes>
-          {/* Dashboard Route changes dynamically depending on selected view role */}
-          <Route path="/" element={isManagerView ? <ManagerDashboard /> : <Dashboard />} />
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/manager" element={canAccessManager ? <ManagerDashboard /> : <Navigate to="/" replace />} />
           <Route path="/subject/:id" element={<SubjectView />} />
           <Route path="/settings" element={<UserSettings />} />
         </Routes>

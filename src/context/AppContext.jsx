@@ -108,10 +108,8 @@ export const AppProvider = ({ children }) => {
     return saved ? JSON.parse(saved) : null;
   });
 
-  const [activeViewRole, setActiveViewRole] = useState(() => {
-    const saved = localStorage.getItem('cyber_active_view_role');
-    return saved ? saved : null; // 'employee' or 'manager'
-  });
+  // The learning portal is always the default landing view, for managers and employees alike.
+  const [activeViewRole, setActiveViewRole] = useState('employee');
 
   // Keep manager dashboards synchronized when another employee tab updates its progress.
   useEffect(() => {
@@ -149,7 +147,7 @@ export const AppProvider = ({ children }) => {
       ) || match;
       setUsers(usersCollection.find());
       setCurrentUser(updatedUser);
-      setActiveViewRole(updatedUser.role);
+      setActiveViewRole('employee');
       return { success: true };
     }
     return { success: false, message: "שם משתמש או סיסמה שגויים!" };

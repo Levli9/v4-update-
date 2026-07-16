@@ -1,6 +1,7 @@
 // src/pages/SubjectView.jsx
 import React, { useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { ArrowRight, CheckCircle2, Lightbulb, Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { subjectsData } from '../data/subjectsData';
 import PhishingSimulation from '../components/PhishingSimulation';
@@ -11,11 +12,13 @@ export default function SubjectView() {
   const { id } = useParams();
   const subjectId = parseInt(id, 10);
   const subject = subjectsData.find(s => s.id === subjectId);
-  const { completeSubject } = useApp();
+  const { completeSubject, setActiveViewRole } = useApp();
 
   const [activeTab, setActiveTab] = useState('video'); // video, learn, lab, quiz
   const [slideIdx, setSlideIdx] = useState(0);
   const [labDone, setLabDone] = useState(false);
+  const [revealedBullets, setRevealedBullets] = useState([]);
+  const [lessonChoice, setLessonChoice] = useState(null);
 
   if (!subject) {
     return (
@@ -31,18 +34,33 @@ export default function SubjectView() {
     }
   };
 
+  const changeSlide = (nextIndex) => {
+    setSlideIdx(nextIndex);
+    setRevealedBullets([]);
+    setLessonChoice(null);
+  };
+
+  const toggleLessonBullet = (index) => {
+    setRevealedBullets((current) => current.includes(index)
+      ? current.filter((item) => item !== index)
+      : [...current, index]);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header and Back navigation */}
       <div className="flex justify-between items-center">
         <div>
-          <span className="text-xs px-2.5 py-1 rounded bg-[#00e6ff]/10 text-[#00e6ff] font-bold border border-[#00e6ff]/20">
-            {subject.difficulty}
-          </span>
-          <h2 className="text-2xl font-bold mt-2">{subject.title}</h2>
+          <h2 className="text-2xl font-bold">{subject.title}</h2>
         </div>
-        <Link to="/" className="px-4 py-2 rounded-lg bg-gray-800 text-xs hover:bg-gray-700 font-bold border border-gray-700">
-          חזרה לפורטל הלמידה
+        <Link
+          to="/"
+          onClick={() => setActiveViewRole('employee')}
+          className="group grid h-11 w-11 place-items-center rounded-xl border border-gray-700 bg-gray-800 text-gray-300 transition-all hover:border-[#00e6ff]/45 hover:bg-[#00e6ff]/10 hover:text-[#00e6ff]"
+          aria-label="חזרה לפורטל הלמידה"
+          title="חזרה לפורטל הלמידה"
+        >
+          <ArrowRight size={20} className="transition-transform group-hover:translate-x-0.5" />
         </Link>
       </div>
 
@@ -96,25 +114,47 @@ export default function SubjectView() {
         )}
 
         {activeTab === 'learn' && (
-          <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-6 sm:p-8 max-w-4xl mx-auto space-y-6">
+          <div className="bg-gray-900/40 border border-gray-800 rounded-3xl p-5 sm:p-7 max-w-5xl mx-auto space-y-6 shadow-2xl shadow-black/20">
             {subject.slides && subject.slides.length > 0 ? (
               <>
+                <div className="flex items-center gap-2" aria-label={`התקדמות בשיעור: שקף ${slideIdx + 1} מתוך ${subject.slides.length}`}>
+                  {subject.slides.map((_, index) => (
+                    <button
+                      key={index}
+                      type="button"
+                      onClick={() => changeSlide(index)}
+                      className={`h-1.5 flex-1 rounded-full transition-all ${index <= slideIdx ? 'bg-[#00e6ff]' : 'bg-gray-800 hover:bg-gray-700'}`}
+                      aria-label={`מעבר לשקף ${index + 1}`}
+                    />
+                  ))}
+                </div>
+
                 <div className={`grid items-center gap-8 ${subject.slides[slideIdx].visual ? 'md:grid-cols-[1.15fr_0.85fr]' : ''}`}>
                   <div className="space-y-5 text-right">
                     <div className="border-b border-gray-800 pb-4">
-                      <h3 className="text-xl font-bold text-white">{subject.slides[slideIdx].title}</h3>
+                      <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-[#00e6ff]">
+                        <Sparkles size={14} /> פרק {slideIdx + 1} · למידה פעילה
+                      </div>
+                      <h3 className="text-xl font-black text-white sm:text-2xl">{subject.slides[slideIdx].title}</h3>
                       {subject.slides[slideIdx].subtitle && <p className="mt-2 text-sm font-semibold text-[#00e6ff]">{subject.slides[slideIdx].subtitle}</p>}
                     </div>
                     {subject.slides[slideIdx].content && <p className="text-gray-300 text-sm leading-relaxed">{subject.slides[slideIdx].content}</p>}
                     {subject.slides[slideIdx].bullets?.length > 0 && (
-                      <ul className="space-y-2.5">
+                      <div className="space-y-2.5">
+                        <p className="flex items-center gap-2 text-[11px] font-bold text-gray-500"><Lightbulb size={14} className="text-amber-400" /> לחץ על כל נקודה כדי לסמן שהבנת</p>
                         {subject.slides[slideIdx].bullets.map((b, i) => (
-                          <li key={i} className="flex items-start gap-2.5 text-xs text-gray-300 bg-gray-950/40 border border-gray-850 p-3 rounded-lg">
-                            <span className="text-[#00e6ff]">⚡</span>
-                            <span>{b}</span>
-                          </li>
+                          <button
+                            type="button"
+                            key={i}
+                            onClick={() => toggleLessonBullet(i)}
+                            className={`flex w-full items-start gap-2.5 rounded-xl border p-3 text-right text-xs transition-all ${revealedBullets.includes(i) ? 'border-emerald-500/30 bg-emerald-500/8 text-emerald-100' : 'border-gray-800 bg-gray-950/40 text-gray-300 hover:border-[#00e6ff]/25 hover:bg-[#00e6ff]/5'}`}
+                          >
+                            {revealedBullets.includes(i) ? <CheckCircle2 size={17} className="shrink-0 text-emerald-400" /> : <span className="grid h-4 w-4 shrink-0 place-items-center rounded-full bg-[#00e6ff]/10 text-[9px] font-black text-[#00e6ff]">{i + 1}</span>}
+                            <span className="flex-1">{b}</span>
+                            {revealedBullets.includes(i) && <span className="text-[9px] font-black text-emerald-400">הבנתי</span>}
+                          </button>
                         ))}
-                      </ul>
+                      </div>
                     )}
                   </div>
                   {subject.slides[slideIdx].visual && (
@@ -122,9 +162,21 @@ export default function SubjectView() {
                   )}
                 </div>
 
+                {subject.slides[slideIdx].type !== 'title' && (
+                  <div className="rounded-2xl border border-amber-400/15 bg-gradient-to-l from-amber-400/[0.07] to-transparent p-4 sm:p-5">
+                    <div className="flex items-center gap-2 text-xs font-black text-amber-300"><span>⚡</span> עצירת חשיבה — מה היית עושה?</div>
+                    <p className="mt-2 text-sm font-bold text-gray-200">קיבלת בעבודה הודעה או בקשה שקשורה לנושא הזה, אבל משהו בה מרגיש לא תקין. מה הצעד הראשון?</p>
+                    <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                      <button type="button" onClick={() => setLessonChoice('safe')} className={`rounded-xl border p-3 text-right text-xs font-bold transition-all ${lessonChoice === 'safe' ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : 'border-gray-800 bg-gray-950/40 text-gray-300 hover:border-emerald-500/25'}`}>עוצר, בודק בערוץ נפרד ומדווח לגורם המתאים</button>
+                      <button type="button" onClick={() => setLessonChoice('risky')} className={`rounded-xl border p-3 text-right text-xs font-bold transition-all ${lessonChoice === 'risky' ? 'border-rose-500/40 bg-rose-500/10 text-rose-300' : 'border-gray-800 bg-gray-950/40 text-gray-300 hover:border-rose-500/25'}`}>ממשיך מיד כדי לא לעכב את העבודה</button>
+                    </div>
+                    {lessonChoice && <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-bold ${lessonChoice === 'safe' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>{lessonChoice === 'safe' ? '✓ נכון. עצירה, אימות ודיווח מונעים מרוב האירועים להפוך לנזק ממשי.' : 'כמעט. לחץ ודחיפות הם בדיוק מה שתוקפים מנצלים—כדאי לעצור ולאמת לפני שפועלים.'}</p>}
+                  </div>
+                )}
+
                 <div className="flex justify-between items-center pt-6 border-t border-gray-800 mt-6">
                   <button
-                    onClick={() => setSlideIdx(prev => Math.max(0, prev - 1))}
+                    onClick={() => changeSlide(Math.max(0, slideIdx - 1))}
                     disabled={slideIdx === 0}
                     className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-750 text-xs font-bold border border-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
@@ -134,7 +186,7 @@ export default function SubjectView() {
                     שקף {slideIdx + 1} מתוך {subject.slides.length}
                   </span>
                   <button
-                    onClick={() => setSlideIdx(prev => Math.min(subject.slides.length - 1, prev + 1))}
+                    onClick={() => changeSlide(Math.min(subject.slides.length - 1, slideIdx + 1))}
                     disabled={slideIdx === subject.slides.length - 1}
                     className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-750 text-xs font-bold border border-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
                   >
@@ -149,7 +201,7 @@ export default function SubjectView() {
         )}
 
         {activeTab === 'lab' && (
-          <div className="max-w-2xl mx-auto">
+          <div className="max-w-5xl mx-auto">
             {subject.simulations[0].type === 'phishing-analyzer' ? (
               <PhishingSimulation onComplete={() => setLabDone(true)} />
             ) : (
@@ -167,7 +219,7 @@ export default function SubjectView() {
                 </button>
               </div>
             )}
-            {labDone && (
+            {labDone && subject.simulations[0].type !== 'terminal' && (
               <div className="text-center mt-6 text-xs text-emerald-400 font-bold">
                 🎉 המעבדה הושלמה! כעת תוכל לעבור למבדק הידע.
               </div>

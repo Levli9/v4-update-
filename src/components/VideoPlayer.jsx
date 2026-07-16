@@ -204,6 +204,7 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
           <video
             ref={videoElementRef}
             src={videoUrl}
+            preload="metadata"
             onTimeUpdate={onTimeUpdate}
             onLoadedMetadata={onLoadedMetadata}
             onEnded={onVideoEnded}
@@ -254,15 +255,6 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
           </div>
         )}
 
-        {isRealVideo && (
-          <div className="pointer-events-none absolute inset-x-5 bottom-5 z-20 flex justify-center">
-            <div className="max-w-[90%] rounded-xl border border-white/15 bg-black/80 px-5 py-2.5 text-center text-sm font-bold leading-relaxed text-white shadow-2xl backdrop-blur-md">
-              {currentLineIdx >= 0 && videoScript?.[currentLineIdx]
-                ? videoScript[currentLineIdx].text
-                : 'לחץ על הפעלה לצפייה עם קריינות וכתוביות בעברית'}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* ── TIMELINE SCRUB BAR ── */}

@@ -10,7 +10,7 @@ const rawSubjects = [
     emoji: "🛡️",
     color: "#00e6ff",
     description: "הבנת הנוף הדיגיטלי המאוים ועקרונות ה-CIA Triad.",
-    simulations: [{ type: "terminal", instructions: "השתמש בפקודת 'nmap -v scanme.nmap.org' כדי לסרוק פורטים פתוחים ברשת." }]
+    simulations: [{ type: "phishing-analyzer", instructions: "זהה בתוך הודעת דוא״ל את כל סימני האזהרה המעידים על ניסיון פישינג." }]
   },
   {
     id: 1,
@@ -135,7 +135,11 @@ export const subjectsData = rawSubjects.map(subj => {
   // Dynamic videoURL fallback template:
   // By default, if the user places an MP4 video under `videos/topic{id}.mp4` in their public/assets folder, it will play.
   // Otherwise, it falls back to the interactive TTS presentation.
-  const bundledVideoUrl = subj.id === 0 ? `${import.meta.env.BASE_URL}videos/topic0.mp4` : "";
+  const bundledVideos = {
+    0: `${import.meta.env.BASE_URL}videos/topic0.mp4`,
+    1: `${import.meta.env.BASE_URL}videos/topic1.mp4`
+  };
+  const bundledVideoUrl = bundledVideos[subj.id] || "";
   const videoUrl = localStorage.getItem(`cyber_video_url_${subj.id}`) || bundledVideoUrl;
 
   return {
