@@ -7,6 +7,7 @@ export default function ManagerDashboard() {
   const { users } = useApp();
   const [activeTab, setActiveTab] = useState('stats'); // 'stats' or 'employees'
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
 
   // ── Data Calculations ──
   const employees = users.filter(u => u.role === 'employee' || u.role === 'special');
@@ -261,7 +262,11 @@ export default function ManagerDashboard() {
                       : 0;
 
                     return (
-                      <tr key={emp.username} className="hover:bg-gray-800/10 transition-colors">
+                      <tr 
+                        key={emp.username} 
+                        onClick={() => setSelectedEmployee(emp)}
+                        className="hover:bg-gray-800/20 transition-colors cursor-pointer"
+                      >
                         <td className="p-4 font-bold text-white">
                           <div>{emp.username}</div>
                           <div className="text-[10px] text-gray-500 font-semibold">{emp.email}</div>
@@ -282,6 +287,113 @@ export default function ManagerDashboard() {
                 )}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* Employee Details Modal */}
+      {selectedEmployee && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+          <div className="bg-[#0b0b14] border border-gray-800 rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl relative">
+            
+            {/* Modal Header */}
+            <div className="p-6 border-b border-gray-850 flex justify-between items-center bg-gray-950/40">
+              <div className="text-right">
+                <h3 className="text-lg font-bold text-white">📋 גיליון הישגים וציונים</h3>
+                <p className="text-xs text-gray-500 mt-1">עבור העובד: <strong>{selectedEmployee.username}</strong> ({getMockDept(selectedEmployee.username)})</p>
+              </div>
+              <button 
+                onClick={() => setSelectedEmployee(null)}
+                className="w-8 h-8 rounded-lg bg-gray-900 border border-gray-800 text-gray-400 hover:text-white flex items-center justify-center transition-all text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-6 max-h-[380px] overflow-y-auto space-y-4">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="bg-gray-900/40 border border-gray-850 p-3 rounded-2xl">
+                  <div className="text-lg font-extrabold text-[#00e6ff]">{(selectedEmployee.progress?.completedSubjects || []).length} / 11</div>
+                  <div className="text-[10px] text-gray-500 font-bold mt-0.5">נושאים שהושלמו</div>
+                </div>
+                <div className="bg-gray-900/40 border border-gray-850 p-3 rounded-2xl">
+                  <div className="text-lg font-extrabold text-[#9d4edd]">{selectedEmployee.progress?.xp || 0}</div>
+                  <div className="text-[10px] text-gray-500 font-bold mt-0.5">נקודות XP שנצברו</div>
+                </div>
+                <div className="bg-gray-900/40 border border-gray-850 p-3 rounded-2xl">
+                  <div className="text-lg font-extrabold text-amber-400">
+                    {(() => {
+                      const scs = Object.values(selectedEmployee.progress?.scores || {});
+                      return scs.length > 0 ? `${Math.round(scs.reduce((a,b)=>a+b, 0) / scs.length)}%` : '---';
+                    })()}
+                  </div>
+                  <div className="text-[10px] text-gray-500 font-bold mt-0.5">ציון ממוצע</div>
+                </div>
+              </div>
+
+              {/* Badges List */}
+              {selectedEmployee.progress?.badges && selectedEmployee.progress.badges.length > 0 && (
+                <div className="bg-gray-950/40 border border-gray-850 p-4 rounded-2xl text-right">
+                  <h4 className="text-xs font-bold text-gray-400 mb-2">🏅 מדליות והישגים:</h4>
+                  <div className="flex gap-2 flex-wrap justify-start">
+                    {selectedEmployee.progress.badges.map(badge => (
+                      <span key={badge} className="px-2.5 py-1 text-[10px] font-bold bg-[#9d4edd]/10 border border-[#9d4edd]/20 text-[#a25cf2] rounded-lg">
+                        ⭐ {badge}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Topics List Table */}
+              <div className="border border-gray-850 rounded-2xl overflow-hidden">
+                <table className="w-full text-right border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-gray-950/60 border-b border-gray-850 text-gray-400 font-bold">
+                      <th className="p-3">נושא הלימוד</th>
+                      <th className="p-3 text-center font-bold">סטטוס</th>
+                      <th className="p-3 text-center font-bold">ציון במבחן</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-850">
+                    {subjectsData.map(subject => {
+                      const isCompleted = (selectedEmployee.progress?.completedSubjects || []).includes(subject.id);
+                      const score = selectedEmployee.progress?.scores?.[subject.id];
+                      return (
+                        <tr key={subject.id} className="hover:bg-gray-900/20 transition-colors">
+                          <td className="p-3 font-semibold text-gray-200">
+                            <span className="ml-2">{subject.emoji}</span>
+                            {subject.title}
+                          </td>
+                          <td className="p-3 text-center">
+                            {isCompleted ? (
+                              <span className="text-emerald-450 font-bold">✓ הושלם</span>
+                            ) : (
+                              <span className="text-gray-600 font-semibold">טרם התחיל</span>
+                            )}
+                          </td>
+                          <td className="p-3 text-center font-bold text-white">
+                            {score !== undefined ? `${score}%` : '---'}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-4 border-t border-gray-850 bg-gray-950/40 text-left">
+              <button 
+                onClick={() => setSelectedEmployee(null)}
+                className="px-5 py-2 rounded-xl bg-gray-900 border border-gray-800 hover:border-gray-700 text-gray-300 font-bold text-xs transition-all"
+              >
+                סגור חלון
+              </button>
+            </div>
+
           </div>
         </div>
       )}

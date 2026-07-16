@@ -11,6 +11,10 @@ export default function Login() {
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
+  const [loginStep, setLoginStep] = useState(1); // 1: credentials, 2: 2FA OTP
+  const [loginOtpCode, setLoginOtpCode] = useState('');
+  const [generatedLoginOtp, setGeneratedLoginOtp] = useState(null);
+  const [loginOtpStatusMsg, setLoginOtpStatusMsg] = useState('');
 
   // Register State
   const [regUser, setRegUser] = useState('');
@@ -30,12 +34,41 @@ export default function Login() {
   const [recoveryStatusMsg, setRecoveryStatusMsg] = useState('');
   const [brevoStatus, setBrevoStatus] = useState(''); // 'sent' or 'fallback'
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
     setLoginError('');
-    const res = login(loginUser, loginPass);
-    if (!res.success) {
-      setLoginError(res.message);
+
+    if (loginStep === 1) {
+      const match = users.find(u => u.username.toLowerCase() === loginUser.trim().toLowerCase() && u.password === loginPass);
+      if (!match) {
+        setLoginError("שם משתמש או סיסמה שגויים!");
+        return;
+      }
+
+      // Generate 2FA OTP
+      const otp = Math.floor(100000 + Math.random() * 900000);
+      setGeneratedLoginOtp(otp);
+
+      // Send OTP via Brevo API
+      const isSent = await sendBrevoRecoveryCode(match.email, otp);
+      if (isSent) {
+        setLoginOtpStatusMsg(`קוד אימות דו-שלבי (2FA) נשלח לכתובת ${match.email} באמצעות Brevo.`);
+      } else {
+        setLoginOtpStatusMsg(`לא מוגדר מפתח Brevo API. קוד הדמיה לצורך בדיקה: ${otp}`);
+      }
+
+      setLoginStep(2);
+    } else {
+      // Validate OTP Code
+      if (parseInt(loginOtpCode, 10) === generatedLoginOtp) {
+        const res = login(loginUser, loginPass);
+        if (!res.success) {
+          setLoginError(res.message);
+          setLoginStep(1);
+        }
+      } else {
+        setLoginError("❌ קוד אימות לא נכון!");
+      }
     }
   };
 
@@ -168,48 +201,82 @@ export default function Login() {
               </div>
             )}
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-2">שם משתמש</label>
-                <input
-                  type="text"
-                  required
-                  value={loginUser}
-                  onChange={(e) => setLoginUser(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-gray-950/60 border border-gray-850 text-white text-sm focus:border-[#00e6ff] focus:outline-none transition-all"
-                  placeholder="הזן שם משתמש..."
-                />
+            {loginStep === 1 ? (
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-2">שם משתמש</label>
+                  <input
+                    type="text"
+                    required
+                    value={loginUser}
+                    onChange={(e) => setLoginUser(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-950/60 border border-gray-850 text-white text-sm focus:border-[#00e6ff] focus:outline-none transition-all"
+                    placeholder="הזן שם משתמש..."
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-2">סיסמה</label>
+                  <input
+                    type="password"
+                    required
+                    value={loginPass}
+                    onChange={(e) => setLoginPass(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-950/60 border border-gray-850 text-white text-sm focus:border-[#00e6ff] focus:outline-none transition-all"
+                    placeholder="הזן סיסמה..."
+                  />
+                </div>
+
+                <div className="flex justify-between items-center text-xs">
+                  <button
+                    type="button"
+                    onClick={() => setIsRecoveryOpen(true)}
+                    className="text-gray-400 hover:text-[#00e6ff] transition-colors"
+                  >
+                    שכחת את הסיסמה?
+                  </button>
+                </div>
+
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-[#00e6ff] hover:bg-[#00e6ff]/90 text-black font-extrabold text-sm transition-all shadow-lg shadow-cyan-950/30"
+                >
+                  המשך לאימות OTP
+                </button>
               </div>
+            ) : (
+              <div className="space-y-4">
+                <div className="p-3 text-xs bg-[#00e6ff]/5 border border-[#00e6ff]/10 text-cyan-455 rounded-xl leading-relaxed">
+                  {loginOtpStatusMsg}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-400 mb-2">קוד אימות (6 ספרות)</label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    value={loginOtpCode}
+                    onChange={(e) => setLoginOtpCode(e.target.value)}
+                    className="w-full px-4 py-3 rounded-xl bg-gray-950/60 border border-gray-850 text-white text-sm focus:border-[#00e6ff] focus:outline-none text-center tracking-widest font-bold"
+                    placeholder="123456"
+                  />
+                </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-2">סיסמה</label>
-                <input
-                  type="password"
-                  required
-                  value={loginPass}
-                  onChange={(e) => setLoginPass(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-gray-950/60 border border-gray-850 text-white text-sm focus:border-[#00e6ff] focus:outline-none transition-all"
-                  placeholder="הזן סיסמה..."
-                />
+                <button
+                  type="submit"
+                  className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-450 text-black font-extrabold text-sm transition-all shadow-lg"
+                >
+                  אמת קוד והתחבר
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setLoginStep(1); setLoginOtpCode(''); }}
+                  className="w-full py-2.5 rounded-xl bg-transparent border border-gray-850 hover:border-gray-800 text-gray-400 text-xs font-bold transition-all"
+                >
+                  חזור להזנת פרטים
+                </button>
               </div>
-            </div>
-
-            <div className="flex justify-between items-center text-xs">
-              <button
-                type="button"
-                onClick={() => setIsRecoveryOpen(true)}
-                className="text-gray-400 hover:text-[#00e6ff] transition-colors"
-              >
-                שכחת את הסיסמה?
-              </button>
-            </div>
-
-            <button
-              type="submit"
-              className="w-full py-3 rounded-xl bg-[#00e6ff] hover:bg-[#00e6ff]/90 text-black font-extrabold text-sm transition-all shadow-lg shadow-cyan-950/30"
-            >
-              התחבר למערכת
-            </button>
+            )}
           </form>
         )}
 
