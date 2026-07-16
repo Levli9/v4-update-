@@ -2,15 +2,33 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { subjectsData } from '../data/subjectsData';
+import { Link } from 'react-router-dom';
 
 export default function ManagerDashboard() {
-  const { users } = useApp();
+  const { users, currentUser } = useApp();
   const [activeTab, setActiveTab] = useState('stats'); // 'stats' or 'employees'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
 
+  // Department mapping helper
+  const getMockDept = (username) => {
+    if (!username) return 'כללי';
+    if (username.toLowerCase().includes('yaniv')) return 'פיתוח (R&D)';
+    if (username.toLowerCase().includes('lev')) return 'אבטחת מידע (Security)';
+    if (username.toLowerCase().includes('emp')) return 'תפעול (Operations)';
+    const depts = ['פיתוח (R&D)', 'שיווק ומכירות', 'משאבי אנוש', 'כספים (Finance)'];
+    return depts[username.length % depts.length];
+  };
+
+  const managerDept = getMockDept(currentUser?.username || '');
+  const isGlobalAdmin = currentUser?.role === 'special' || currentUser?.username.toLowerCase() === 'lev123' || currentUser?.username.toLowerCase() === 'yaniv123';
+
   // ── Data Calculations ──
-  const employees = users.filter(u => u.role === 'employee' || u.role === 'special');
+  const allEmployees = users.filter(u => u.role === 'employee' || u.role === 'special');
+  const employees = isGlobalAdmin 
+    ? allEmployees 
+    : allEmployees.filter(emp => getMockDept(emp.username) === managerDept);
+
   const totalEmployees = employees.length;
 
   // Average Score across all completed quizzes
@@ -38,25 +56,26 @@ export default function ManagerDashboard() {
   // Best student (highest XP or highest average score)
   let bestStudent = null;
   let maxXP = -1;
+  let safeCount = 0;
+  let vulnerableCount = 0;
+
   employees.forEach(emp => {
     const xp = emp.progress?.xp || 0;
     if (xp > maxXP) {
       maxXP = xp;
       bestStudent = emp;
     }
+
+    const scores = Object.values(emp.progress?.scores || {});
+    const avg = scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+    if (avg >= 80) {
+      safeCount++;
+    } else {
+      vulnerableCount++;
+    }
   });
 
-  // Department calculations (Mock departments mapped from emails or usernames)
-  // Let's group users into mock departments: "פיתוח", "שיווק", "משאבי אנוש"
-  const getMockDept = (username) => {
-    if (username === 'admin') return 'הנהלה';
-    if (username === 'special') return 'פיתוח';
-    if (username === 'user') return 'שיווק';
-    // Fallback based on name length
-    const depts = ['פיתוח', 'שיווק', 'משאבי אנוש', 'כספים'];
-    return depts[username.length % depts.length];
-  };
-
+  // Department calculations
   const deptStats = {};
   employees.forEach(emp => {
     const dept = getMockDept(emp.username);
@@ -90,11 +109,26 @@ export default function ManagerDashboard() {
 
   return (
     <div className="space-y-8">
+      {/* Back Button and Title Row */}
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <Link 
+          to="/select-role" 
+          className="px-4 py-2 rounded-xl bg-gray-900 border border-gray-850 hover:border-gray-700 text-xs font-bold text-gray-400 hover:text-white transition-all flex items-center gap-2"
+        >
+          ← חזרה למסך בחירת תפקיד
+        </Link>
+        {!isGlobalAdmin && (
+          <span className="px-3.5 py-1.5 rounded-lg bg-cyan-950/20 border border-cyan-800/30 text-cyan-400 text-xs font-bold">
+            🛡️ תצוגת מנהל מחלקה: <strong>{managerDept}</strong>
+          </span>
+        )}
+      </div>
+
       {/* Title & Tab Bar */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-800 pb-5">
         <div>
           <h1 className="text-2xl font-extrabold text-white">דשבורד בקרה וניהול ארגוני</h1>
-          <p className="text-xs text-gray-500 font-semibold mt-1">מעקב התקדמות וציוני אבטחת מידע של העובדים</p>
+          <p className="text-xs text-gray-500 font-semibold mt-1">معקב התקדמות וציוני אבטחת מידע של העובדים</p>
         </div>
 
         {/* Tab Selector Buttons */}
@@ -124,40 +158,52 @@ export default function ManagerDashboard() {
           {/* Stat Cards Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             
-            {/* Card 1 */}
-            <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 flex items-center gap-4 relative overflow-hidden">
-              <span className="text-3xl p-3 bg-gray-950 rounded-xl border border-gray-850">👥</span>
-              <div>
-                <div className="text-2xl font-extrabold text-white">{totalEmployees}</div>
-                <div className="text-[10px] text-gray-500 font-bold">עובדים רשומים</div>
+            {/* Card 1 - Employees */}
+            <div className="bg-gradient-to-br from-gray-900/80 to-gray-950/80 border border-gray-800 rounded-3xl p-6 flex items-center justify-between relative overflow-hidden shadow-xl">
+              <div className="space-y-1 z-10 text-right">
+                <div className="text-3xl font-black text-white">{totalEmployees}</div>
+                <div className="text-[10px] text-gray-500 font-extrabold tracking-wider uppercase">עובדים במחלקה</div>
               </div>
+              <div className="p-4 bg-[#00e6ff]/5 rounded-2xl border border-[#00e6ff]/10 text-[#00e6ff] text-2xl z-10">
+                👥
+              </div>
+              <div className="absolute -bottom-6 -left-6 w-20 h-20 bg-[#00e6ff]/5 rounded-full blur-xl"></div>
             </div>
 
-            {/* Card 2 */}
-            <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 flex items-center gap-4 relative overflow-hidden">
-              <span className="text-3xl p-3 bg-gray-950 rounded-xl border border-gray-850 text-amber-400">⭐</span>
-              <div>
-                <div className="text-2xl font-extrabold text-white">{averageScore}%</div>
-                <div className="text-[10px] text-gray-500 font-bold">ממוצע ציונים כללי</div>
+            {/* Card 2 - Resilience Index */}
+            <div className="bg-gradient-to-br from-gray-900/80 to-gray-950/80 border border-gray-800 rounded-3xl p-6 flex items-center justify-between relative overflow-hidden shadow-xl">
+              <div className="space-y-1 z-10 text-right">
+                <div className="text-3xl font-black text-amber-400">{averageScore}%</div>
+                <div className="text-[10px] text-gray-500 font-extrabold tracking-wider uppercase">מדד חוסן ממוצע</div>
               </div>
+              <div className="p-4 bg-amber-400/5 rounded-2xl border border-amber-450/10 text-amber-400 text-2xl z-10">
+                ⚡
+              </div>
+              <div className="absolute -bottom-6 -left-6 w-20 h-20 bg-amber-450/5 rounded-full blur-xl"></div>
             </div>
 
-            {/* Card 3 */}
-            <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 flex items-center gap-4 relative overflow-hidden">
-              <span className="text-3xl p-3 bg-gray-950 rounded-xl border border-gray-850 text-[#9d4edd]">📊</span>
-              <div>
-                <div className="text-2xl font-extrabold text-white">{totalExamsTaken}</div>
-                <div className="text-[10px] text-gray-500 font-bold">מבדקי ידע שבוצעו</div>
+            {/* Card 3 - Safe Employees */}
+            <div className="bg-gradient-to-br from-gray-900/80 to-gray-950/80 border border-gray-800 rounded-3xl p-6 flex items-center justify-between relative overflow-hidden shadow-xl">
+              <div className="space-y-1 z-10 text-right">
+                <div className="text-3xl font-black text-emerald-400">{safeCount}</div>
+                <div className="text-[10px] text-gray-500 font-extrabold tracking-wider uppercase">עובדים מוגנים (ציונים 80+)</div>
               </div>
+              <div className="p-4 bg-emerald-50/5 rounded-2xl border border-emerald-500/10 text-emerald-405 text-2xl z-10">
+                🛡️
+              </div>
+              <div className="absolute -bottom-6 -left-6 w-20 h-20 bg-emerald-500/5 rounded-full blur-xl"></div>
             </div>
 
-            {/* Card 4 */}
-            <div className="bg-gray-900/60 border border-gray-800 rounded-2xl p-5 flex items-center gap-4 relative overflow-hidden">
-              <span className="text-3xl p-3 bg-gray-950 rounded-xl border border-gray-850 text-emerald-400">🎓</span>
-              <div>
-                <div className="text-2xl font-extrabold text-white">{overallCompletionPct}%</div>
-                <div className="text-[10px] text-gray-500 font-bold">אחוז השלמה כולל</div>
+            {/* Card 4 - Vulnerable Employees */}
+            <div className="bg-gradient-to-br from-gray-900/80 to-gray-950/80 border border-gray-800 rounded-3xl p-6 flex items-center justify-between relative overflow-hidden shadow-xl">
+              <div className="space-y-1 z-10 text-right">
+                <div className="text-3xl font-black text-rose-500">{vulnerableCount}</div>
+                <div className="text-[10px] text-gray-500 font-extrabold tracking-wider uppercase">חשופים לסיכון (ציונים מתחת 80)</div>
               </div>
+              <div className="p-4 bg-rose-500/5 rounded-2xl border border-rose-500/10 text-rose-500 text-2xl z-10">
+                ⚠️
+              </div>
+              <div className="absolute -bottom-6 -left-6 w-20 h-20 bg-rose-500/5 rounded-full blur-xl"></div>
             </div>
 
           </div>
@@ -166,9 +212,9 @@ export default function ManagerDashboard() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
             {/* Chart Card */}
-            <div className="lg:col-span-2 bg-gray-900/40 border border-gray-800 rounded-2xl p-6">
-              <h3 className="text-md font-bold text-gray-200 mb-6 flex items-center gap-2">
-                <span>📈</span> ממוצע ציונים לפי מחלקה
+            <div className="lg:col-span-2 bg-gray-900/40 border border-gray-800 rounded-3xl p-6">
+              <h3 className="text-sm font-bold text-gray-200 mb-6 flex items-center gap-2 text-right justify-start">
+                <span>📊</span> ביצועי מחלקות ורמות חוסן אבטחתי
               </h3>
               
               {deptChartData.length === 0 ? (
@@ -176,42 +222,97 @@ export default function ManagerDashboard() {
                   אין מספיק נתונים להצגת גרף מחלקות.
                 </div>
               ) : (
-                <div className="space-y-4">
+                <div className="space-y-6">
                   {deptChartData.map(dept => (
-                    <div key={dept.name} className="space-y-1">
-                      <div className="flex justify-between text-xs font-bold text-gray-400">
+                    <div key={dept.name} className="space-y-2">
+                      <div className="flex justify-between text-xs font-bold text-gray-300">
                         <span>{dept.name}</span>
-                        <span>{dept.avgScore}%</span>
+                        <span className={dept.avgScore >= 80 ? 'text-emerald-400' : 'text-amber-400'}>
+                          {dept.avgScore}% חוסן
+                        </span>
                       </div>
-                      <div className="h-3 bg-gray-950 rounded-lg overflow-hidden border border-gray-850">
+                      <div className="h-4 bg-gray-950 rounded-xl overflow-hidden border border-gray-850 p-0.5">
                         <div 
-                          className="h-full bg-gradient-to-l from-[#00e6ff] to-cyan-500 rounded-lg transition-all duration-300"
+                          className={`h-full rounded-lg transition-all duration-500 bg-gradient-to-l ${
+                            dept.avgScore >= 80 ? 'from-emerald-500 to-teal-500' : 'from-amber-400 to-orange-500'
+                          }`}
                           style={{ width: `${dept.avgScore}%` }}
                         ></div>
                       </div>
                     </div>
                   ))}
+
+                  {/* Safety Ratio Visual Bar */}
+                  <div className="pt-6 border-t border-gray-850 space-y-3">
+                    <h4 className="text-xs font-bold text-gray-400 text-right">יחס חוסן עובדים כללי:</h4>
+                    <div className="h-6 w-full rounded-xl overflow-hidden flex border border-gray-850">
+                      {safeCount + vulnerableCount > 0 ? (
+                        <>
+                          <div 
+                            className="bg-emerald-500 flex items-center justify-center text-[10px] font-black text-black transition-all"
+                            style={{ width: `${(safeCount / (safeCount + vulnerableCount)) * 100}%` }}
+                          >
+                            {safeCount > 0 && `${Math.round((safeCount / (safeCount + vulnerableCount)) * 100)}% מוגנים`}
+                          </div>
+                          <div 
+                            className="bg-rose-500 flex items-center justify-center text-[10px] font-black text-black transition-all"
+                            style={{ width: `${(vulnerableCount / (safeCount + vulnerableCount)) * 100}%` }}
+                          >
+                            {vulnerableCount > 0 && `${Math.round((vulnerableCount / (safeCount + vulnerableCount)) * 100)}% חשופים`}
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full bg-gray-900 flex items-center justify-center text-xs text-gray-500">אין נתונים</div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Best student display */}
-            <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-6 flex flex-col justify-center items-center text-center">
-              <span className="text-5xl filter drop-shadow-[0_0_12px_rgba(255,183,3,0.3)] mb-4">🏆</span>
-              <h3 className="text-md font-bold text-gray-200">מוביל החודש בסייבר</h3>
-              {bestStudent ? (
-                <>
-                  <h4 className="text-xl font-extrabold text-[#00e6ff] mt-3">{bestStudent.username}</h4>
-                  <p className="text-xs text-gray-400 mt-2">
-                    מחלקה: <strong>{getMockDept(bestStudent.username)}</strong>
-                  </p>
-                  <p className="text-xs text-gray-400 mt-1">
-                    צברו: <strong>{bestStudent.progress?.xp || 0} XP</strong> • הושלמו <strong>{(bestStudent.progress?.completedSubjects || []).length}</strong> נושאים
-                  </p>
-                </>
-              ) : (
-                <p className="text-xs text-gray-500 mt-4">טרם נצברו נקודות XP.</p>
-              )}
+            {/* Circular Gauge and Best student display */}
+            <div className="bg-gray-900/40 border border-gray-800 rounded-3xl p-6 flex flex-col justify-between relative overflow-hidden">
+              
+              {/* Circular SVG Posture Gauge */}
+              <div className="flex flex-col items-center justify-center text-center py-4 border-b border-gray-850">
+                <span className="text-xs font-bold text-gray-400 mb-4">ציון חוסן ארגוני משוקלל</span>
+                <div className="relative w-32 h-32 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" stroke="#1f2937" strokeWidth="8" fill="transparent" />
+                    <circle 
+                      cx="50" 
+                      cy="50" 
+                      r="40" 
+                      stroke={averageScore >= 80 ? '#10b981' : '#f59e0b'} 
+                      strokeWidth="8" 
+                      fill="transparent" 
+                      strokeDasharray="251.2"
+                      strokeDashoffset={251.2 - (251.2 * averageScore) / 100}
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute text-2xl font-black text-white">{averageScore}%</div>
+                </div>
+              </div>
+
+              {/* Best student display */}
+              <div className="flex flex-col justify-center items-center text-center pt-6">
+                <span className="text-4xl filter drop-shadow-[0_0_12px_rgba(255,183,3,0.3)] mb-2">🏆</span>
+                <h3 className="text-xs font-bold text-gray-300">מוביל החודש בסייבר במחלקה</h3>
+                {bestStudent ? (
+                  <>
+                    <h4 className="text-lg font-extrabold text-[#00e6ff] mt-2">{bestStudent.username}</h4>
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      מחלקה: <strong>{getMockDept(bestStudent.username)}</strong>
+                    </p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">
+                      צברו: <strong>{bestStudent.progress?.xp || 0} XP</strong> • הושלמו <strong>{(bestStudent.progress?.completedSubjects || []).length}</strong> נושאים
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-[10px] text-gray-500 mt-2">טרם נצברו נקודות XP.</p>
+                )}
+              </div>
             </div>
 
           </div>

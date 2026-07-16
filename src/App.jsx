@@ -39,8 +39,8 @@ function AppInner() {
               </>
             )}
 
-            {/* Special Double View switcher */}
-            {currentUser.role === 'special' && (
+            {/* Special / Manager view switcher */}
+            {(currentUser.role === 'special' || currentUser.role === 'manager') && (
               <Link 
                 to="/select-role" 
                 className="text-xs font-bold px-3 py-1.5 rounded-lg bg-gray-900 border border-gray-800 hover:border-gray-700 text-gray-400 hover:text-white transition-all"
