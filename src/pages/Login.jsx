@@ -1,6 +1,7 @@
 // src/pages/Login.jsx
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import ShieldXLogo from '../components/ShieldXLogo';
 
 export default function Login() {
   const { login, register, users, sendBrevoRecoveryCode, changePassword } = useApp();
@@ -20,7 +21,6 @@ export default function Login() {
   const [regUser, setRegUser] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPass, setRegPass] = useState('');
-  const [regRole, setRegRole] = useState('employee'); // 'employee', 'manager', 'special'
   const [regSuccess, setRegSuccess] = useState('');
   const [regError, setRegError] = useState('');
 
@@ -70,7 +70,7 @@ export default function Login() {
       return;
     }
 
-    const res = register(regUser, regPass, regEmail, regRole);
+    const res = register(regUser, regPass, regEmail);
     if (res.success) {
       setRegSuccess("ההרשמה בוצעה בהצלחה! כעת ניתן להתחבר.");
       setRegUser('');
@@ -138,9 +138,13 @@ export default function Login() {
         
         {/* Title */}
         <div className="text-center">
-          <span className="text-5xl filter drop-shadow-[0_0_15px_rgba(0,230,255,0.25)]">🛡️</span>
-          <h2 className="mt-4 text-2xl font-extrabold text-white">אקדמיית סייבר ארגונית</h2>
-          <p className="mt-2 text-xs text-gray-500 font-semibold">אבטחת מידע והתמודדות עם איומים</p>
+          <div className="flex justify-center">
+            <ShieldXLogo />
+          </div>
+          <h2 className="mt-5 text-2xl font-extrabold text-white">
+            ברוכים הבאים ל־<span className="text-[#00e6ff]" dir="ltr">ShieldX</span>
+          </h2>
+          <p className="mt-2 text-sm text-gray-400 font-semibold">מערכת הדרכת עובדים בתחום הסייבר</p>
         </div>
 
         {/* Tab Selectors */}
@@ -268,16 +272,8 @@ export default function Login() {
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-400 mb-2">תפקיד במערכת</label>
-                <select
-                  value={regRole}
-                  onChange={(e) => setRegRole(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-gray-950/60 border border-gray-850 text-white text-sm focus:border-[#9d4edd] focus:outline-none transition-all"
-                >
-                  <option value="employee">עובד (Employee)</option>
-                  <option value="manager">מנהל (Manager)</option>
-                </select>
+              <div className="rounded-xl border border-gray-800 bg-gray-950/40 px-4 py-3 text-xs text-gray-400">
+                👤 חשבון חדש נפתח כחשבון עובד. הרשאת מנהל ניתנת על ידי הנהלת המערכת בלבד.
               </div>
             </div>
 

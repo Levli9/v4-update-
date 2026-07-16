@@ -21,3 +21,116 @@ body {
     linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
     linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
 }
+
+/* ShieldX animated brand mark */
+.shieldx-brand {
+  position: relative;
+  isolation: isolate;
+}
+
+.shieldx-brand::after {
+  content: '';
+  position: absolute;
+  inset: 15% -12%;
+  z-index: -1;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(0, 230, 255, 0.12), transparent 68%);
+  filter: blur(12px);
+  opacity: 0.8;
+  transition: opacity 200ms ease, transform 200ms ease;
+}
+
+.shieldx-brand:hover::after {
+  opacity: 1;
+  transform: scale(1.08);
+}
+
+.shieldx-logo {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 96px;
+  height: 96px;
+  flex: 0 0 auto;
+  filter: drop-shadow(0 0 16px rgba(0, 230, 255, 0.45));
+}
+
+.shieldx-logo--compact {
+  width: 62px;
+  height: 62px;
+}
+
+.shieldx-logo__shield {
+  width: 67%;
+  height: 76%;
+  z-index: 2;
+  animation: shieldx-float 3.2s ease-in-out infinite;
+}
+
+.shieldx-logo__ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 230, 255, 0.34);
+}
+
+.shieldx-logo__ring--outer {
+  inset: 2%;
+  border-style: dashed;
+  animation: shieldx-spin 13s linear infinite;
+}
+
+.shieldx-logo__ring--inner {
+  inset: 14%;
+  border-color: rgba(157, 78, 221, 0.42);
+  box-shadow: inset 0 0 15px rgba(0, 230, 255, 0.1), 0 0 14px rgba(157, 78, 221, 0.13);
+  animation: shieldx-pulse 2.4s ease-in-out infinite;
+}
+
+.shieldx-logo__spark {
+  position: absolute;
+  z-index: 3;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #c9fdff;
+  box-shadow: 0 0 9px #00e6ff;
+}
+
+.shieldx-logo__spark--one {
+  inset-block-start: 16%;
+  inset-inline-end: 12%;
+  animation: shieldx-spark 2.2s ease-in-out infinite;
+}
+
+.shieldx-logo__spark--two {
+  inset-block-end: 17%;
+  inset-inline-start: 14%;
+  animation: shieldx-spark 2.2s 1.1s ease-in-out infinite;
+}
+
+@keyframes shieldx-float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.035); }
+}
+
+@keyframes shieldx-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes shieldx-pulse {
+  0%, 100% { transform: scale(0.96); opacity: 0.52; }
+  50% { transform: scale(1.05); opacity: 1; }
+}
+
+@keyframes shieldx-spark {
+  0%, 100% { transform: scale(0.45); opacity: 0.25; }
+  50% { transform: scale(1.35); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shieldx-logo__shield,
+  .shieldx-logo__ring,
+  .shieldx-logo__spark {
+    animation: none;
+  }
+}

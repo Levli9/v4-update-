@@ -24,25 +24,25 @@ export default function RoleSelection() {
 
         <div className="grid grid-cols-1 gap-6">
           {/* Employee Card */}
-          <div 
+          <button
+            type="button"
             onClick={() => handleSelect('employee')}
-            className="group cursor-pointer bg-gray-900/60 border border-gray-800 hover:border-[#00e6ff] rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-cyan-950/20"
+            className="group w-full cursor-pointer bg-gray-900/60 border border-gray-800 hover:border-[#00e6ff] rounded-2xl p-6 transition-all duration-300 hover:-translate-y-1 shadow-lg hover:shadow-cyan-950/20"
           >
             <span className="text-4xl block mb-3 group-hover:scale-110 transition-transform">👤</span>
             <h3 className="text-lg font-bold text-gray-100 mb-1">ממשק עובד (למידה והדרכה)</h3>
             <p className="text-xs text-gray-400">גישה ללמידה, מעבדות, מבדקים ומעקב התקדמות אישי</p>
-          </div>
+          </button>
 
           {/* Manager Card */}
-          <div 
-            onClick={() => {
-              if (!isEmployeeOnly) {
-                handleSelect('manager');
-              }
-            }}
+          <button
+            type="button"
+            onClick={() => handleSelect('manager')}
+            disabled={isEmployeeOnly}
+            aria-disabled={isEmployeeOnly}
             className={`group rounded-2xl p-6 border transition-all duration-300 shadow-lg ${
               isEmployeeOnly 
-                ? 'opacity-30 cursor-not-allowed bg-gray-950/40 border-gray-900' 
+                ? 'grayscale opacity-40 cursor-not-allowed bg-gray-950/60 border-gray-900'
                 : 'cursor-pointer bg-gray-900/60 border-gray-800 hover:border-[#9d4edd] hover:-translate-y-1 hover:shadow-purple-950/20'
             }`}
           >
@@ -50,10 +50,10 @@ export default function RoleSelection() {
             <h3 className="text-lg font-bold text-gray-100 mb-1">ממשק מנהל (דשבורד ניהול)</h3>
             <p className="text-xs text-gray-400">
               {isEmployeeOnly 
-                ? '🔒 הגישה חסומה. דרושות הרשאות מנהל מערכת.' 
+                ? '🔒 הממשק זמין למשתמשים המוגדרים כמנהלים בלבד.'
                 : 'דשבורד מעקב כללי, ציוני מחלקות וסטטיסטיקת עובדים'}
             </p>
-          </div>
+          </button>
         </div>
       </div>
     </div>

@@ -42,7 +42,7 @@ export default function SubjectView() {
           <h2 className="text-2xl font-bold mt-2">{subject.title}</h2>
         </div>
         <Link to="/" className="px-4 py-2 rounded-lg bg-gray-800 text-xs hover:bg-gray-700 font-bold border border-gray-700">
-          חזרה ללוח הבקרה
+          חזרה לפורטל הלמידה
         </Link>
       </div>
 

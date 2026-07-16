@@ -122,6 +122,13 @@ export const AppProvider = ({ children }) => {
     }
   }, [currentUser, activeViewRole]);
 
+  // Never allow an employee session to retain or restore the manager view.
+  useEffect(() => {
+    if (currentUser?.role !== 'manager' && activeViewRole === 'manager') {
+      setActiveViewRole('employee');
+    }
+  }, [currentUser, activeViewRole]);
+
   // ── Auth Functions ──
   const login = (username, password) => {
     // Match username case-insensitively
@@ -134,7 +141,7 @@ export const AppProvider = ({ children }) => {
     return { success: false, message: "שם משתמש או סיסמה שגויים!" };
   };
 
-  const register = (username, password, email, role) => {
+  const register = (username, password, email) => {
     if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
       return { success: false, message: "שם משתמש זה כבר קיים במערכת!" };
     }
@@ -146,7 +153,8 @@ export const AppProvider = ({ children }) => {
       username,
       password: hashPassword(password),
       email,
-      role,
+      // Self-registration always creates an employee. Manager access is assigned separately.
+      role: 'employee',
       progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
     };
 
