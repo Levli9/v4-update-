@@ -1,16 +1,19 @@
 // src/context/AppContext.jsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { nosqlDb } from '../services/nosqlStorage';
 
 const AppContext = createContext();
+
+const usersCollection = nosqlDb.collection('users');
 
 export const AppProvider = ({ children }) => {
   // ── User Database ──
   const [users, setUsers] = useState(() => {
-    const saved = localStorage.getItem('users');
-    if (saved) return JSON.parse(saved);
+    const saved = usersCollection.find();
+    if (saved && saved.length > 0) return saved;
     
     // Default original users (mapped with special double view access)
-    return [
+    const defaults = [
       {
         username: "Yaniv123",
         password: "Yaniv123",
@@ -40,6 +43,10 @@ export const AppProvider = ({ children }) => {
         progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
       }
     ];
+
+    // Populate NoSQL database with defaults
+    defaults.forEach(u => usersCollection.insertOne(u));
+    return usersCollection.find();
   });
 
   // ── Session State ──
@@ -54,10 +61,6 @@ export const AppProvider = ({ children }) => {
   });
 
   useEffect(() => {
-    localStorage.setItem('users', JSON.stringify(users));
-  }, [users]);
-
-  useEffect(() => {
     localStorage.setItem('cyber_current_user', JSON.stringify(currentUser));
     if (currentUser) {
       localStorage.setItem('cyber_active_view_role', activeViewRole || currentUser.role);
@@ -68,10 +71,12 @@ export const AppProvider = ({ children }) => {
 
   // ── Auth Functions ──
   const login = (username, password) => {
-    const user = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
-    if (user) {
-      setCurrentUser(user);
-      setActiveViewRole(user.role === 'special' ? 'employee' : user.role);
+    const user = usersCollection.findOne({ password });
+    // Match username case-insensitively
+    const match = users.find(u => u.username.toLowerCase() === username.toLowerCase() && u.password === password);
+    if (match) {
+      setCurrentUser(match);
+      setActiveViewRole(match.role === 'special' ? 'employee' : match.role);
       return { success: true };
     }
     return { success: false, message: "שם משתמש או סיסמה שגויים!" };
@@ -93,7 +98,8 @@ export const AppProvider = ({ children }) => {
       progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
     };
 
-    setUsers(prev => [...prev, newUser]);
+    usersCollection.insertOne(newUser);
+    setUsers(usersCollection.find());
     return { success: true };
   };
 
@@ -103,13 +109,15 @@ export const AppProvider = ({ children }) => {
   };
 
   const changePassword = (username, newPassword) => {
-    setUsers(prev => prev.map(u => 
-      u.username.toLowerCase() === username.toLowerCase()
-        ? { ...u, password: newPassword }
-        : u
-    ));
-    if (currentUser && currentUser.username.toLowerCase() === username.toLowerCase()) {
-      setCurrentUser(prev => ({ ...prev, password: newPassword }));
+    // Check match and update in NoSQL DB
+    const match = users.find(u => u.username.toLowerCase() === username.toLowerCase());
+    if (match) {
+      usersCollection.updateOne({ username: match.username }, { password: newPassword });
+      setUsers(usersCollection.find());
+      
+      if (currentUser && currentUser.username.toLowerCase() === username.toLowerCase()) {
+        setCurrentUser(prev => ({ ...prev, password: newPassword }));
+      }
     }
   };
 
@@ -117,51 +125,45 @@ export const AppProvider = ({ children }) => {
   const completeSubject = (subjectId, score) => {
     if (!currentUser) return;
 
-    setUsers(prevUsers => {
-      const updatedUsers = prevUsers.map(user => {
-        if (user.username.toLowerCase() === currentUser.username.toLowerCase()) {
-          const prevProgress = user.progress || { completedSubjects: [], scores: {}, badges: [], xp: 0 };
-          const isNewCompletion = !prevProgress.completedSubjects.includes(subjectId);
-          
-          const updatedCompleted = isNewCompletion
-            ? [...prevProgress.completedSubjects, subjectId]
-            : prevProgress.completedSubjects;
+    const userRecord = usersCollection.findOne({ username: currentUser.username });
+    if (userRecord) {
+      const prevProgress = userRecord.progress || { completedSubjects: [], scores: {}, badges: [], xp: 0 };
+      const isNewCompletion = !prevProgress.completedSubjects.includes(subjectId);
+      
+      const updatedCompleted = isNewCompletion
+        ? [...prevProgress.completedSubjects, subjectId]
+        : prevProgress.completedSubjects;
 
-          const updatedScores = {
-            ...prevProgress.scores,
-            [subjectId]: Math.max(prevProgress.scores[subjectId] || 0, score)
-          };
+      const updatedScores = {
+        ...prevProgress.scores,
+        [subjectId]: Math.max(prevProgress.scores[subjectId] || 0, score)
+      };
 
-          const updatedBadges = [...prevProgress.badges];
-          if (updatedCompleted.length === 1 && !updatedBadges.includes('צעד ראשון')) {
-            updatedBadges.push('צעד ראשון');
-          }
-          if (updatedCompleted.length === 5 && !updatedBadges.includes('חצי הדרך')) {
-            updatedBadges.push('חצי הדרך');
-          }
-          if (updatedCompleted.length === 11 && !updatedBadges.includes('מאסטר סייבר')) {
-            updatedBadges.push('מאסטר סייבר');
-          }
+      const updatedBadges = [...prevProgress.badges];
+      if (updatedCompleted.length === 1 && !updatedBadges.includes('צעד ראשון')) {
+        updatedBadges.push('צעד ראשון');
+      }
+      if (updatedCompleted.length === 5 && !updatedBadges.includes('חצי הדרך')) {
+        updatedBadges.push('חצי הדרך');
+      }
+      if (updatedCompleted.length === 11 && !updatedBadges.includes('מאסטר סייבר')) {
+        updatedBadges.push('מאסטר סייבר');
+      }
 
-          const updatedProgress = {
-            completedSubjects: updatedCompleted,
-            scores: updatedScores,
-            badges: updatedBadges,
-            xp: prevProgress.xp + (isNewCompletion ? 100 : 20)
-          };
+      const updatedProgress = {
+        completedSubjects: updatedCompleted,
+        scores: updatedScores,
+        badges: updatedBadges,
+        xp: prevProgress.xp + (isNewCompletion ? 100 : 20)
+      };
 
-          // Sync current session state
-          setCurrentUser(prev => ({ ...prev, progress: updatedProgress }));
+      // Update in NoSQL DB
+      usersCollection.updateOne({ username: currentUser.username }, { progress: updatedProgress });
+      setUsers(usersCollection.find());
 
-          return {
-            ...user,
-            progress: updatedProgress
-          };
-        }
-        return user;
-      });
-      return updatedUsers;
-    });
+      // Sync current session state
+      setCurrentUser(prev => ({ ...prev, progress: updatedProgress }));
+    }
   };
 
   // ── Brevo API Password Recovery Integration ──
