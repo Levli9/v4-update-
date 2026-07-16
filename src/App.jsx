@@ -4,7 +4,6 @@ import { HashRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { AppProvider, useApp } from './context/AppContext';
 import Dashboard from './pages/Dashboard';
 import SubjectView from './pages/SubjectView';
-import Profile from './pages/Profile';
 import Login from './pages/Login';
 import ManagerDashboard from './pages/ManagerDashboard';
 import RoleSelection from './pages/RoleSelection';
@@ -35,7 +34,6 @@ function AppInner() {
             ) : (
               <>
                 <Link to="/" className="hover:text-[#00e6ff] transition-colors font-semibold text-xs">לוח בקרה</Link>
-                <Link to="/profile" className="hover:text-[#9d4edd] transition-colors font-semibold text-xs">פרופיל הישגים</Link>
               </>
             )}
 
@@ -67,7 +65,6 @@ function AppInner() {
           {/* Dashboard Route changes dynamically depending on selected view role */}
           <Route path="/" element={activeViewRole === 'manager' ? <ManagerDashboard /> : <Dashboard />} />
           <Route path="/subject/:id" element={<SubjectView />} />
-          <Route path="/profile" element={<Profile />} />
           <Route path="/select-role" element={<RoleSelection />} />
         </Routes>
       </main>
