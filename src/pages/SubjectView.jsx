@@ -5,6 +5,7 @@ import { useApp } from '../context/AppContext';
 import { subjectsData } from '../data/subjectsData';
 import PhishingSimulation from '../components/PhishingSimulation';
 import Quiz from '../components/Quiz';
+import VideoPlayer from '../components/VideoPlayer';
 
 export default function SubjectView() {
   const { id } = useParams();
@@ -12,7 +13,7 @@ export default function SubjectView() {
   const subject = subjectsData.find(s => s.id === subjectId);
   const { completeSubject } = useApp();
 
-  const [activeTab, setActiveTab] = useState('learn'); // learn, lab, quiz
+  const [activeTab, setActiveTab] = useState('video'); // video, learn, lab, quiz
   const [slideIdx, setSlideIdx] = useState(0);
   const [labDone, setLabDone] = useState(false);
 
@@ -48,6 +49,14 @@ export default function SubjectView() {
       {/* Tabs Menu */}
       <div className="flex border-b border-gray-800">
         <button
+          onClick={() => setActiveTab('video')}
+          className={`px-6 py-3 text-sm font-bold border-b-2 transition-all ${
+            activeTab === 'video' ? 'border-[#00e6ff] text-[#00e6ff]' : 'border-transparent text-gray-400 hover:text-gray-200'
+          }`}
+        >
+          🎬 סרטון הסבר
+        </button>
+        <button
           onClick={() => setActiveTab('learn')}
           className={`px-6 py-3 text-sm font-bold border-b-2 transition-all ${
             activeTab === 'learn' ? 'border-[#00e6ff] text-[#00e6ff]' : 'border-transparent text-gray-400 hover:text-gray-200'
@@ -77,6 +86,15 @@ export default function SubjectView() {
 
       {/* Tab Contents */}
       <div className="py-4">
+        {activeTab === 'video' && (
+          <VideoPlayer 
+            videoUrl={subject.videoUrl} 
+            videoScript={subject.videoScript} 
+            emoji={subject.emoji} 
+            color={subject.color} 
+          />
+        )}
+
         {activeTab === 'learn' && (
           <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-6 sm:p-8 max-w-3xl mx-auto space-y-6">
             {subject.slides && subject.slides.length > 0 ? (

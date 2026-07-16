@@ -1,5 +1,7 @@
 // src/data/subjectsData.js
-export const subjectsData = [
+import DETAILED_OFFLINE_COURSES from './courses_data';
+
+const rawSubjects = [
   {
     id: 0,
     title: "מבוא: מהי תקיפת סייבר?",
@@ -8,58 +10,7 @@ export const subjectsData = [
     emoji: "🛡️",
     color: "#00e6ff",
     description: "הבנת הנוף הדיגיטלי המאוים ועקרונות ה-CIA Triad.",
-    slides: [
-      {
-        title: "שלושת עמודי אבטחת המידע – CIA Triad",
-        content: "כל מדיניות אבטחת מידע נשענת על שלושה עקרונות יסוד: סודיות (Confidentiality), שלמות (Integrity), וזמינות (Availability). פגיעה באחד מהם מייצגת סוג אחר של כשל אבטחתי.",
-        bullets: [
-          "סודיות – רק משתמשים מורשים יכולים לגשת למידע.",
-          "שלמות – מניעת שינוי או מחיקה בלתי מורשים של מידע.",
-          "זמינות – מידע ומערכות צריכים להיות נגישים למורשים בעת הצורך."
-        ]
-      },
-      {
-        title: "מי עומד מאחורי מתקפות הסייבר?",
-        content: "תוקפים בעולם הסייבר מתחלקים לקבוצות שונות בעלות אינטרסים ויכולות מגוונות:",
-        bullets: [
-          "Script Kiddies – חובבנים המשתמשים בכלים מוכנים ללא הבנה מעמיקה.",
-          "Cybercriminals – פושעים מתוחכמים המונעים בעיקר מרווח פיננסי.",
-          "Hacktivists – קבוצות המבצעות פריצות למטרות אידיאולוגיות או פוליטיות.",
-          "Nation-States – תקיפות בחסות מדינות בעלות משאבים אדירים למטרות ריגול או פגיעה בתשתיות."
-        ]
-      }
-    ],
-    simulations: [
-      {
-        type: "phishing-analyzer"
-      }
-    ],
-    quizzes: [
-      {
-        id: "q1_1",
-        question: "מה מייצגת האות I במודל ה-CIA?",
-        options: [
-          "סודיות (Information)",
-          "שלמות (Integrity)",
-          "זמינות (Availability)",
-          "אימות (Identity)"
-        ],
-        answer: 1,
-        explanation: "האות I מייצגת Integrity (שלמות) - העיקרון שמונע שינוי לא מורשה של המידע."
-      },
-      {
-        id: "q1_2",
-        question: "מי מהתוקפים מונע בעיקר מאידיאולוגיה פוליטית?",
-        options: [
-          "Script Kiddies",
-          "Cybercriminals",
-          "Hacktivists",
-          "Nation-State Developers"
-        ],
-        answer: 2,
-        explanation: "Hacktivists מבצעים פריצות למטרות חברתיות, פוליטיות או אידיאולוגיות."
-      }
-    ]
+    simulations: [{ type: "terminal", instructions: "השתמש בפקודת 'nmap -v scanme.nmap.org' כדי לסרוק פורטים פתוחים ברשת." }]
   },
   {
     id: 1,
@@ -69,36 +20,7 @@ export const subjectsData = [
     emoji: "🔑",
     color: "#9d4edd",
     description: "כיצד ליצור סיסמאות חזקות וליישם אימות דו-שלבי (MFA).",
-    slides: [
-      {
-        title: "חוזק סיסמאות ומנגנון Brute Force",
-        content: "מערכות Brute Force מסוגלות לנסות מיליארדי שילובים בשנייה. אורך הסיסמה ומגוון התווים שלה קובעים את הזמן הנדרש לפריצתה.",
-        bullets: [
-          "אורך מומלץ: לפחות 12 תווים.",
-          "שילוב תווים: אותיות גדולות, קטנות, מספרים וסימנים מיוחדים.",
-          "מנהל סיסמאות: פתרון מומלץ למניעת שימוש חוזר בסיסמאות."
-        ]
-      }
-    ],
-    simulations: [
-      {
-        type: "password-validator"
-      }
-    ],
-    quizzes: [
-      {
-        id: "q2_1",
-        question: "מהי השיטה המומלצת ביותר למנוע גניבת חשבונות גם אם הסיסמה נפרצה?",
-        options: [
-          "שינוי סיסמה מדי שבוע",
-          "הפעלת אימות דו-שלבי (MFA)",
-          "שימוש בתווים מיוחדים בלבד",
-          "מחיקת היסטוריית הדפדפן"
-        ],
-        answer: 1,
-        explanation: "MFA מוסיף שכבת הגנה נוספת שדורשת אימות זיהוי נפרד, מה שמונע כניסה גם עם סיסמה נכונה."
-      }
-    ]
+    simulations: [{ type: "password-validator" }]
   },
   {
     id: 2,
@@ -108,36 +30,7 @@ export const subjectsData = [
     emoji: "🎣",
     color: "#ffb703",
     description: "זיהוי הודעות דוא\"ל מזויפות ומניעת מתקפות הנדסה חברתית.",
-    slides: [
-      {
-        title: "מהו פישינג (Phishing)?",
-        content: "פישינג הוא שיטת תקיפה שבה מתחזה התוקף לגורם אמין כדי לגרום לקורבן לחשוף מידע רגיש, ללחוץ על קישור זדוני או להוריד קובץ נגוע.",
-        bullets: [
-          "דחיפות מוגזמת או איומים ('חשבונך ייחסם תוך 24 שעות').",
-          "דומיינים מזויפים הנראים דומים למקור (למשל: paypa1.com).",
-          "בקשה לפרטי זיהוי רגישים או כרטיסי אשראי."
-        ]
-      }
-    ],
-    simulations: [
-      {
-        type: "phishing-analyzer"
-      }
-    ],
-    quizzes: [
-      {
-        id: "q3_1",
-        question: "איזה מהבאים הוא סימן אזהרה קלאסי לפישינג?",
-        options: [
-          "הודעה בשפה רשמית עם לוגו נקי",
-          "דרישה לפעולה דחופה תחת איום של השעיית החשבון",
-          "קישור שמוביל לאתר הרשמי של השירות",
-          "שימוש באימות דו-שלבי"
-        ],
-        answer: 1,
-        explanation: "הנדסה חברתית מנצלת לחץ פסיכולוגי כמו פחד או דחיפות כדי למנוע חשיבה הגיונית."
-      }
-    ]
+    simulations: [{ type: "phishing-analyzer" }]
   },
   {
     id: 3,
@@ -147,9 +40,7 @@ export const subjectsData = [
     emoji: "🦠",
     color: "#ff007f",
     description: "סוגי Malware וכיצד למנוע הדבקה והצפנת קבצים.",
-    slides: [],
-    simulations: [],
-    quizzes: []
+    simulations: []
   },
   {
     id: 4,
@@ -159,9 +50,7 @@ export const subjectsData = [
     emoji: "🧑‍💻",
     color: "#00e676",
     description: "כיצד תוקפים מיירטים תקשורת ברשתות Wi-Fi ציבוריות.",
-    slides: [],
-    simulations: [],
-    quizzes: []
+    simulations: []
   },
   {
     id: 5,
@@ -171,9 +60,7 @@ export const subjectsData = [
     emoji: "💻",
     color: "#4cc9f0",
     description: "עקרונות פיתוח מאובטח ומניעת פרצות XSS ו-SQL Injection.",
-    slides: [],
-    simulations: [],
-    quizzes: []
+    simulations: []
   },
   {
     id: 6,
@@ -183,9 +70,7 @@ export const subjectsData = [
     emoji: "🗄️",
     color: "#f72585",
     description: "הגנה על המידע הארגוני המאוחסן ושימוש בשאילתות מפרמטרות.",
-    slides: [],
-    simulations: [],
-    quizzes: []
+    simulations: []
   },
   {
     id: 7,
@@ -195,9 +80,7 @@ export const subjectsData = [
     emoji: "🌐",
     color: "#3a86c8",
     description: "עקרונות Zero Trust, שימוש ב-Firewall והגדרות ענן מאובטחות.",
-    slides: [],
-    simulations: [],
-    quizzes: []
+    simulations: []
   },
   {
     id: 8,
@@ -207,9 +90,7 @@ export const subjectsData = [
     emoji: "🎯",
     color: "#f3722c",
     description: "ריגול סייבר מתקדם, שלבי ה-Cyber Kill Chain וציד איומים.",
-    slides: [],
-    simulations: [],
-    quizzes: []
+    simulations: []
   },
   {
     id: 9,
@@ -219,9 +100,7 @@ export const subjectsData = [
     emoji: "💥",
     color: "#f94144",
     description: "הצפת שרתים באמצעות רשתות בוטנט ושימוש ב-CDN להגנה.",
-    slides: [],
-    simulations: [],
-    quizzes: []
+    simulations: []
   },
   {
     id: 10,
@@ -231,9 +110,40 @@ export const subjectsData = [
     emoji: "📋",
     color: "#90be6d",
     description: "תקני אבטחה בינלאומיים כגון ISO 27001 ונוהל תגובה לאירועים.",
-    slides: [],
-    simulations: [],
-    quizzes: []
+    simulations: []
   }
 ];
+
+export const subjectsData = rawSubjects.map(subj => {
+  const detailed = DETAILED_OFFLINE_COURSES[subj.id] || {};
+  
+  // Format quizzes options to match the React Quiz component expectations if needed
+  const rawQuizzes = detailed.quizzes || detailed.quiz || [];
+  const formattedQuizzes = rawQuizzes.map(q => {
+    // If the format in the old json is answers / correctIndex
+    const options = q.answers || q.options || [];
+    const answer = q.correctIndex !== undefined ? q.correctIndex : q.answer;
+    return {
+      id: q.id || `q_${subj.id}_${Math.random()}`,
+      question: q.question,
+      options: options,
+      answer: answer,
+      explanation: q.explanation || "זוהי התשובה הנכונה על בסיס עקרונות אבטחת המידע שנלמדו."
+    };
+  });
+
+  // Dynamic videoURL fallback template:
+  // By default, if the user places an MP4 video under `videos/topic{id}.mp4` in their public/assets folder, it will play.
+  // Otherwise, it falls back to the interactive TTS presentation.
+  const videoUrl = localStorage.getItem(`cyber_video_url_${subj.id}`) || "";
+
+  return {
+    ...subj,
+    slides: detailed.slides || [],
+    videoScript: detailed.videoScript || [],
+    quizzes: formattedQuizzes,
+    videoUrl: videoUrl
+  };
+});
+
 export default subjectsData;
