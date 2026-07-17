@@ -4,6 +4,7 @@ import { Camera, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import ShieldXLogo from '../components/ShieldXLogo';
+import ShieldXWordmark from '../components/ShieldXWordmark';
 import PasswordInput from '../components/PasswordInput';
 import { prepareProfileImage } from '../services/imageService';
 import loginBackground from '../assets/login-cybersecurity.jpg';
@@ -180,7 +181,7 @@ export default function Login() {
             <ShieldXLogo />
           </div>
           <h2 className="mt-5 text-2xl font-extrabold text-white">
-            ברוכים הבאים ל־<span className="text-[#00e6ff]" dir="ltr">ShieldX</span>
+            ברוכים הבאים ל־<ShieldXWordmark className="inline-flex text-[1.08em]" />
           </h2>
           <p className="mt-2 text-sm text-gray-400 font-semibold">מערכת הדרכת עובדים בתחום הסייבר</p>
         </div>

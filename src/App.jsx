@@ -34,6 +34,7 @@ import FinalExam from './pages/FinalExam';
 import KnowledgeLibrary from './pages/KnowledgeLibrary';
 import GlobalSearch from './components/GlobalSearch';
 import ShieldXLogo from './components/ShieldXLogo';
+import ShieldXWordmark from './components/ShieldXWordmark';
 
 const DEFAULT_ACCESSIBILITY = {
   monochrome: false,
@@ -205,9 +206,7 @@ function AppInner() {
           >
             <ShieldXLogo compact />
             <span className="flex flex-col items-center leading-tight">
-              <span className="text-2xl font-black tracking-[0.08em] text-white" dir="ltr">
-                Shield<span className="text-[#00e6ff]">X</span>
-              </span>
+              <ShieldXWordmark className="text-2xl tracking-[0.08em]" />
               <span className="mt-1 text-[11px] sm:text-xs font-semibold text-gray-400 tracking-wide">
                 מערכת הדרכת עובדים בתחום הסייבר
               </span>

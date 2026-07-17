@@ -68,6 +68,82 @@ body {
   transform: scale(1.08);
 }
 
+.shieldx-wordmark {
+  display: inline-flex;
+  align-items: center;
+  color: #f8fbff;
+  font-weight: 900;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.shieldx-wordmark__x {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 0.94em;
+  height: 0.94em;
+  margin-inline-start: 0.1em;
+  color: #b9fbff;
+  font-size: 1.18em;
+  font-weight: 950;
+  line-height: 1;
+  letter-spacing: 0;
+  border: 0.055em solid rgba(76, 241, 255, 0.86);
+  border-radius: 0.2em;
+  background:
+    linear-gradient(135deg, rgba(0, 230, 255, 0.24), rgba(31, 81, 255, 0.1) 52%, rgba(157, 78, 221, 0.2)),
+    #081522;
+  box-shadow:
+    inset 0 0 0 0.055em rgba(255, 255, 255, 0.08),
+    inset 0 0 0.42em rgba(0, 230, 255, 0.18),
+    0 0 0.42em rgba(0, 230, 255, 0.32);
+  text-shadow: 0 0 0.25em rgba(0, 230, 255, 0.92);
+  transform: rotate(2deg);
+  animation: shieldx-wordmark-pulse 3.4s ease-in-out infinite;
+}
+
+.shieldx-wordmark__x::before,
+.shieldx-wordmark__x::after {
+  content: '';
+  position: absolute;
+  width: 0.16em;
+  height: 0.16em;
+  border-color: #bafaff;
+  opacity: 0.9;
+}
+
+.shieldx-wordmark__x::before {
+  inset-block-start: -0.1em;
+  inset-inline-start: -0.1em;
+  border-block-start: 0.045em solid;
+  border-inline-start: 0.045em solid;
+}
+
+.shieldx-wordmark__x::after {
+  inset-block-end: -0.1em;
+  inset-inline-end: -0.1em;
+  border-block-end: 0.045em solid;
+  border-inline-end: 0.045em solid;
+}
+
+@keyframes shieldx-wordmark-pulse {
+  0%, 100% {
+    filter: brightness(1);
+    box-shadow:
+      inset 0 0 0 0.055em rgba(255, 255, 255, 0.08),
+      inset 0 0 0.42em rgba(0, 230, 255, 0.18),
+      0 0 0.42em rgba(0, 230, 255, 0.3);
+  }
+  50% {
+    filter: brightness(1.12);
+    box-shadow:
+      inset 0 0 0 0.055em rgba(255, 255, 255, 0.12),
+      inset 0 0 0.5em rgba(0, 230, 255, 0.25),
+      0 0 0.62em rgba(0, 230, 255, 0.48);
+  }
+}
+
 .shieldx-logo {
   position: relative;
   display: inline-grid;
@@ -151,6 +227,10 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .shieldx-wordmark__x {
+    animation: none;
+  }
+
   .shieldx-logo__shield,
   .shieldx-logo__ring,
   .shieldx-logo__spark {
