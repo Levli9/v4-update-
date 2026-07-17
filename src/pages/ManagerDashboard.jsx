@@ -2,7 +2,8 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { subjectsData } from '../data/subjectsData';
-import { Link } from 'react-router-dom';
+import BackButton from '../components/BackButton';
+import LearningTimeline from '../components/LearningTimeline';
 
 export default function ManagerDashboard() {
   const { users, currentUser, setActiveViewRole } = useApp();
@@ -10,9 +11,15 @@ export default function ManagerDashboard() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [selectedDepartment, setSelectedDepartment] = useState('all');
+  const [finalStatusFilter, setFinalStatusFilter] = useState('all');
 
   // Department mapping helper
-  const getMockDept = (username) => {
+  const getMockDept = (userOrUsername) => {
+    const userRecord = typeof userOrUsername === 'object'
+      ? userOrUsername
+      : users.find((user) => user.username === userOrUsername);
+    if (userRecord?.department) return userRecord.department;
+    const username = typeof userOrUsername === 'string' ? userOrUsername : userOrUsername?.username;
     if (!username) return 'כללי';
     if (username.toLowerCase().includes('yaniv')) return 'פיתוח (R&D)';
     if (username.toLowerCase().includes('lev')) return 'אבטחת מידע (Security)';
@@ -21,8 +28,19 @@ export default function ManagerDashboard() {
     return depts[username.length % depts.length];
   };
 
+  const getShortDeptName = (department = '') => {
+    const normalized = department.toLowerCase();
+    if (normalized.includes('r&d') || normalized.includes('פיתוח')) return 'פיתוח';
+    if (normalized.includes('security') || normalized.includes('אבטחת')) return 'אבטחת מידע';
+    if (normalized.includes('משאבי')) return 'משאבי אנוש';
+    if (normalized.includes('finance') || normalized.includes('כספים')) return 'כספים';
+    if (normalized.includes('operations') || normalized.includes('תפעול')) return 'תפעול';
+    if (normalized.includes('שיווק')) return 'שיווק ומכירות';
+    return department.replace(/\s*\([^)]*\)\s*/g, '').trim();
+  };
+
   const managerDept = getMockDept(currentUser?.username || '');
-  const isGlobalAdmin = currentUser?.username.toLowerCase() === 'lev123' || currentUser?.username.toLowerCase() === 'yaniv123';
+  const isGlobalAdmin = currentUser?.role === 'admin' || currentUser?.username.toLowerCase() === 'lev123' || currentUser?.username.toLowerCase() === 'yaniv123';
 
   // ── Data Calculations ──
   const allEmployees = users.filter(u => u.role === 'employee');
@@ -180,7 +198,28 @@ export default function ManagerDashboard() {
     };
   });
   const criticalEmployees = employeeRiskPoints.filter(emp => emp.completionRate < 40 || (emp.hasAssessment && emp.avgScore < 70)).length;
+  const finalExamPassed = employees.filter((emp) => emp.progress?.finalExam?.passed).length;
+  const finalExamFailed = employees.filter((emp) => emp.progress?.finalExam && !emp.progress.finalExam.passed).length;
+  const finalExamNotTaken = Math.max(0, totalEmployees - finalExamPassed - finalExamFailed);
+  const finalExamAttempts = employees.reduce((total, emp) => total + (emp.progress?.finalExam?.attempts || 0), 0);
+  const finalExamSuccessRate = finalExamAttempts
+    ? Math.round((employees.reduce((total, emp) => total + (emp.progress?.finalExam?.history || []).filter((attempt) => attempt.passed).length, 0) / finalExamAttempts) * 100)
+    : 0;
+  const certificationNotifications = employees
+    .filter((emp) => emp.progress?.finalExam?.history?.length)
+    .flatMap((emp) => emp.progress.finalExam.history.map((attempt) => ({ ...attempt, username: emp.username, department: getMockDept(emp) })))
+    .sort((a, b) => new Date(b.attemptedAt) - new Date(a.attemptedAt))
+    .slice(0, 8);
+  const now = Date.now();
+  const isPresenceLive = (emp) => emp.presence?.lastSeen && now - new Date(emp.presence.lastSeen).getTime() < 90000;
+  const learningNow = employees.filter((emp) => isPresenceLive(emp) && emp.presence.activity === 'learning').length;
+  const testingNow = employees.filter((emp) => isPresenceLive(emp) && emp.presence.activity === 'final-exam').length;
+  const inactiveThisWeek = employees.filter((emp) => !emp.lastActivity || now - new Date(emp.lastActivity).getTime() > 7 * 86400000).length;
+  const completedRecently = employees.filter((emp) => Object.values(emp.analytics?.courses || {}).some((course) => course.completedAt && now - new Date(course.completedAt).getTime() < 24 * 3600000)).length;
+  const certifiedRecently = employees.filter((emp) => emp.progress?.finalExam?.passedAt && now - new Date(emp.progress.finalExam.passedAt).getTime() < 24 * 3600000).length;
   const managementInsights = [
+    finalExamPassed > 0 && { tone: 'emerald', icon: '🎓', title: `${finalExamPassed} עובדים מוסמכים`, text: `${finalExamSuccessRate}% הצלחה בניסיונות המבחן המסכם.` },
+    finalExamFailed > 0 && { tone: 'rose', icon: '📕', title: `${finalExamFailed} עובדים טרם עברו את המבחן המסכם`, text: 'מומלץ להקצות חזרה ממוקדת על הנושאים החלשים וניסיון נוסף.' },
     notStartedCount > 0 && { tone: 'rose', icon: '🚨', title: `${notStartedCount} עובדים טרם התחילו`, text: 'מומלץ לשלוח תזכורת ולהגדיר מועד יעד להתחלת הלמידה.' },
     failedAssessments > 0 && { tone: 'amber', icon: '📝', title: `${failedAssessments} מבדקים מתחת לציון המעבר`, text: 'כדאי להקצות חזרה על החומר ולתאם ניסיון נוסף.' },
     activeEmployeesCount < totalEmployees && { tone: 'purple', icon: '🕒', title: `${totalEmployees - activeEmployeesCount} עובדים ללא פעילות ב־30 יום`, text: 'יש לבדוק זמינות, עומס עבודה או צורך בסיוע אישי.' },
@@ -188,13 +227,16 @@ export default function ManagerDashboard() {
   ].filter(Boolean);
 
   const exportManagementReport = () => {
-    const headers = ['עובד', 'מחלקה', 'השלמת קורסים', 'ציון ממוצע', 'נקודות XP', 'פעילות אחרונה', 'סטטוס'];
+    const headers = ['עובד', 'מחלקה', 'השלמת קורסים', 'ציון ממוצע', 'נקודות XP', 'מבחן מסכם', 'ציון אחרון', 'ניסיונות', 'פעילות אחרונה', 'סטטוס'];
     const rows = employeeRiskPoints.map(emp => [
       emp.username,
       getMockDept(emp.username),
       `${emp.completionRate}%`,
       emp.hasAssessment ? `${emp.avgScore}%` : 'ללא מבדק',
       emp.progress?.xp || 0,
+      emp.progress?.finalExam?.passed ? 'עבר בהצלחה' : emp.progress?.finalExam ? 'לא עבר' : 'טרם ניגש',
+      emp.progress?.finalExam?.lastScore ?? '',
+      emp.progress?.finalExam?.attempts || 0,
       formatActivityDate(emp.lastActivity || emp.lastLogin),
       emp.completionRate === 0 ? 'טרם התחיל' : emp.completionRate === 100 ? 'הושלם' : 'בתהליך'
     ]);
@@ -241,20 +283,17 @@ export default function ManagerDashboard() {
     const matchesUser = emp.username.toLowerCase().includes(query);
     const matchesEmail = emp.email.toLowerCase().includes(query);
     const matchesDept = getMockDept(emp.username).toLowerCase().includes(query);
-    return matchesUser || matchesEmail || matchesDept;
+    const exam = emp.progress?.finalExam;
+    const examStatus = exam?.passed ? 'passed' : exam ? 'failed' : 'not-taken';
+    const matchesFinalStatus = finalStatusFilter === 'all' || finalStatusFilter === examStatus;
+    return (matchesUser || matchesEmail || matchesDept) && matchesFinalStatus;
   });
 
   return (
     <div className="space-y-8">
       {/* Back Button and Title Row */}
       <div className="flex justify-between items-center flex-wrap gap-4">
-        <Link
-          to="/"
-          onClick={() => setActiveViewRole('employee')}
-          className="px-4 py-2 rounded-xl bg-gray-900 border border-gray-850 hover:border-gray-700 text-xs font-bold text-gray-400 hover:text-white transition-all flex items-center gap-2"
-        >
-          ← חזרה לפורטל הלמידה
-        </Link>
+        <BackButton onClick={() => setActiveViewRole('employee')} />
         {!isGlobalAdmin && (
           <span className="px-3.5 py-1.5 rounded-lg bg-cyan-950/20 border border-cyan-800/30 text-cyan-400 text-xs font-bold">
             🛡️ תצוגת מנהל מחלקה: <strong>{managerDept}</strong>
@@ -293,6 +332,10 @@ export default function ManagerDashboard() {
       {/* STATS VIEW */}
       {activeTab === 'stats' && (
         <div className="space-y-8">
+          <section className="rounded-3xl border border-gray-800 bg-gray-900/45 p-4"><div className="mb-3 flex items-center justify-between gap-3 px-1"><span className="text-[9px] font-bold text-gray-600">נתוני עובדים בלבד · מתעדכן בזמן אמת</span><h2 className="text-sm font-black text-white">👥 מעקב עובדים בזמן אמת</h2></div><div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+            {[[`🟢 ${learningNow}`, 'עובדים לומדים עכשיו'], [`🟡 ${testingNow}`, 'עובדים במבחן כרגע'], [`🔴 ${inactiveThisWeek}`, 'עובדים שלא התחברו השבוע'], [`🔵 ${completedRecently}`, 'עובדים שסיימו קורס היום'], [`🟣 ${certifiedRecently}`, 'עובדים שהוסמכו היום']].map(([value, label]) => <div key={label} className="rounded-2xl border border-gray-800 bg-gray-950/45 p-3 text-center"><strong className="block text-lg text-white">{value}</strong><span className="mt-1 block text-[9px] font-bold text-gray-600">{label}</span></div>)}
+          </div>
+          </section>
           <section className="relative overflow-hidden rounded-[2rem] border border-[#00e6ff]/20 bg-gradient-to-l from-[#071b2a] via-[#0b1120] to-[#151126] p-6 shadow-[0_25px_80px_rgba(0,0,0,0.35)] sm:p-8">
             <div className="absolute -left-16 -top-20 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl" />
             <div className="absolute -bottom-24 right-12 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
@@ -456,14 +499,16 @@ export default function ManagerDashboard() {
                 <h3 className="text-sm font-extrabold text-white">השוואת מחלקות</h3>
               </div>
               {deptChartData.length ? (
-                <div className="flex h-[260px] items-end justify-around gap-3 border-b border-gray-800 px-2 pb-1">
+                <div className="grid h-[280px] grid-cols-2 items-end gap-x-3 gap-y-5 border-b border-gray-800 px-2 pb-3 sm:grid-cols-3 lg:grid-cols-5">
                   {deptChartData.map(dept => (
-                    <div key={dept.name} className="flex h-full min-w-0 flex-1 flex-col items-center justify-end gap-2">
-                      <div className="flex h-[190px] items-end gap-1.5">
-                        <div className="w-7 rounded-t-lg bg-gradient-to-t from-cyan-700 to-cyan-400 transition-all" style={{ height: `${Math.max(4, dept.completionRate)}%` }} title={`${dept.completionRate}% השלמה`} />
-                        <div className="w-7 rounded-t-lg bg-gradient-to-t from-amber-700 to-amber-400 transition-all" style={{ height: `${Math.max(4, dept.avgScore)}%` }} title={`${dept.avgScore}% חוסן`} />
+                    <div key={dept.name} className="flex h-full min-w-0 flex-col items-center justify-end">
+                      <div className="flex h-[205px] items-end gap-2">
+                        <div className="w-6 rounded-t-lg bg-gradient-to-t from-cyan-700 to-cyan-400 transition-all sm:w-7" style={{ height: `${Math.max(4, dept.completionRate)}%` }} title={`${dept.completionRate}% השלמה`} />
+                        <div className="w-6 rounded-t-lg bg-gradient-to-t from-amber-700 to-amber-400 transition-all sm:w-7" style={{ height: `${Math.max(4, dept.avgScore)}%` }} title={`${dept.avgScore}% חוסן`} />
                       </div>
-                      <span className="max-w-24 truncate text-[9px] font-bold text-gray-400" title={dept.name}>{dept.name}</span>
+                      <span className="mt-3 flex min-h-8 w-full items-start justify-center px-1 text-center text-[10px] font-bold leading-4 text-gray-400" title={dept.name}>
+                        {getShortDeptName(dept.name)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -719,6 +764,14 @@ export default function ManagerDashboard() {
               <div className="mt-4 flex flex-wrap justify-center gap-4 text-[9px] font-bold text-gray-500"><span>🟩 עבר בהצלחה</span><span>🟥 דורש חיזוק</span><span>🟦 הושלם</span><span>⬛ טרם התחיל</span></div>
             </section>
           </div>
+
+          <section className="rounded-3xl border border-purple-500/15 bg-gradient-to-br from-gray-900/70 to-gray-950/80 p-6">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <div className="flex gap-2 text-[10px] font-black"><span className="rounded-lg bg-emerald-500/10 px-3 py-1.5 text-emerald-400">{finalExamPassed} עברו</span><span className="rounded-lg bg-rose-500/10 px-3 py-1.5 text-rose-400">{finalExamFailed} לא עברו</span><span className="rounded-lg bg-gray-800 px-3 py-1.5 text-gray-500">{finalExamNotTaken} טרם ניגשו</span></div>
+              <div className="text-right"><h3 className="text-sm font-extrabold text-white">🔔 מרכז התראות הסמכה</h3><p className="mt-1 text-[10px] font-semibold text-gray-600">תוצאות אחרונות מהמבחן המסכם</p></div>
+            </div>
+            {certificationNotifications.length ? <div className="grid gap-3 md:grid-cols-2">{certificationNotifications.map((notification) => <button key={`${notification.username}-${notification.attemptedAt}`} type="button" onClick={() => setSelectedEmployee(employees.find((emp) => emp.username === notification.username))} className={`flex items-center justify-between gap-4 rounded-2xl border p-4 text-right transition hover:border-purple-500/30 ${notification.passed ? 'border-emerald-500/15 bg-emerald-500/5' : 'border-rose-500/15 bg-rose-500/5'}`}><time className="shrink-0 text-[9px] font-bold text-gray-600">{formatActivityDate(notification.attemptedAt)}</time><span><strong className="block text-xs text-white">{notification.passed ? '🎓 עבר בהצלחה' : '⚠️ ניסיון שלא עבר'} — {notification.username}</strong><small className={`mt-1 block text-[10px] font-bold ${notification.passed ? 'text-emerald-400' : 'text-rose-400'}`}>ציון {notification.score} · {notification.department}</small></span></button>)}</div> : <p className="rounded-2xl border border-gray-800 bg-gray-950/40 p-6 text-center text-xs font-bold text-gray-600">התראות יופיעו לאחר שעובדים ייגשו למבחן המסכם.</p>}
+          </section>
         </div>
       )}
 
@@ -728,19 +781,15 @@ export default function ManagerDashboard() {
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h3 className="text-md font-bold text-gray-200">רשימת עובדים ומעקב למידה</h3>
             
-            {/* Search Input */}
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:max-w-xs px-4 py-2 rounded-xl bg-gray-950 border border-gray-850 text-white text-xs focus:border-[#00e6ff] focus:outline-none"
-              placeholder="חפש עובד, אימייל או מחלקה..."
-            />
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <select value={finalStatusFilter} onChange={(event) => setFinalStatusFilter(event.target.value)} className="rounded-xl border border-gray-850 bg-gray-950 px-4 py-2 text-xs font-bold text-gray-300 outline-none focus:border-purple-500"><option value="all">כל סטטוסי ההסמכה</option><option value="passed">עבר בהצלחה</option><option value="failed">לא עבר</option><option value="not-taken">טרם ניגש</option></select>
+              <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full rounded-xl border border-gray-850 bg-gray-950 px-4 py-2 text-xs text-white focus:border-[#00e6ff] focus:outline-none sm:w-72" placeholder="חפש עובד, אימייל או מחלקה..." />
+            </div>
           </div>
 
           {/* Table Container */}
           <div className="overflow-x-auto border border-gray-850 rounded-xl">
-            <table className="w-full text-right border-collapse">
+            <table className="min-w-[1150px] w-full text-right border-collapse">
               <thead>
                 <tr className="bg-gray-950/60 border-b border-gray-850 text-xs font-bold text-gray-400">
                   <th className="p-4">שם עובד</th>
@@ -749,13 +798,17 @@ export default function ManagerDashboard() {
                   <th className="p-4 text-center">נקודות XP</th>
                   <th className="p-4 text-center">ציון ממוצע</th>
                   <th className="p-4 text-center">סטטוס למידה</th>
+                  <th className="p-4 text-center">מבחן מסכם</th>
+                  <th className="p-4 text-center">ציון אחרון</th>
+                  <th className="p-4 text-center">ניסיונות</th>
+                  <th className="p-4 text-center">תאריך אחרון</th>
                   <th className="p-4">פעילות אחרונה</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-850 text-xs">
                 {filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="p-8 text-center text-gray-500">
+                    <td colSpan={11} className="p-8 text-center text-gray-500">
                       לא נמצאו עובדים התואמים את החיפוש.
                     </td>
                   </tr>
@@ -794,6 +847,10 @@ export default function ManagerDashboard() {
                             {completedCount === 0 ? 'טרם התחיל' : completedCount === subjectsData.length ? 'הושלם' : 'בתהליך'}
                           </span>
                         </td>
+                        <td className="p-4 text-center"><span className={`rounded-lg px-2.5 py-1 text-[10px] font-black ${emp.progress?.finalExam?.passed ? 'bg-emerald-500/10 text-emerald-400' : emp.progress?.finalExam ? 'bg-rose-500/10 text-rose-400' : 'bg-gray-850 text-gray-500'}`}>{emp.progress?.finalExam?.passed ? '🟢 עבר' : emp.progress?.finalExam ? '🔴 לא עבר' : '⚪ טרם ניגש'}</span></td>
+                        <td className="p-4 text-center font-black text-white">{emp.progress?.finalExam?.lastScore ?? '—'}</td>
+                        <td className="p-4 text-center font-bold text-purple-400">{emp.progress?.finalExam?.attempts || 0}</td>
+                        <td className="p-4 text-center text-[10px] font-semibold text-gray-500">{emp.progress?.finalExam?.lastAttemptAt ? formatActivityDate(emp.progress.finalExam.lastAttemptAt) : '—'}</td>
                         <td className="p-4 text-[10px] font-semibold text-gray-400">{formatActivityDate(emp.lastActivity || emp.lastLogin)}</td>
                       </tr>
                     );
@@ -845,6 +902,13 @@ export default function ManagerDashboard() {
                   <div className="text-[10px] text-gray-500 font-bold mt-0.5">ציון ממוצע</div>
                 </div>
               </div>
+
+              <div className={`rounded-2xl border p-4 ${selectedEmployee.progress?.finalExam?.passed ? 'border-emerald-500/20 bg-emerald-500/5' : selectedEmployee.progress?.finalExam ? 'border-rose-500/20 bg-rose-500/5' : 'border-gray-850 bg-gray-950/40'}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3"><span><strong className="block text-xs text-white">מבחן הסמכה מסכם</strong><small className="mt-1 block text-[10px] font-semibold text-gray-500">{selectedEmployee.progress?.finalExam?.lastAttemptAt ? `ניסיון אחרון: ${formatActivityDate(selectedEmployee.progress.finalExam.lastAttemptAt)}` : 'העובד טרם ניגש'}</small></span><span className={`rounded-full px-3 py-1.5 text-[10px] font-black ${selectedEmployee.progress?.finalExam?.passed ? 'bg-emerald-500/10 text-emerald-400' : selectedEmployee.progress?.finalExam ? 'bg-rose-500/10 text-rose-400' : 'bg-gray-800 text-gray-500'}`}>{selectedEmployee.progress?.finalExam?.passed ? '🟢 מוסמך' : selectedEmployee.progress?.finalExam ? '🔴 לא מוסמך' : '⚪ טרם ניגש'}</span></div>
+                {selectedEmployee.progress?.finalExam && <div className="mt-4 grid grid-cols-3 gap-3 border-t border-white/5 pt-4 text-center"><span><b className="block text-lg text-white">{selectedEmployee.progress.finalExam.lastScore}</b><small className="text-[9px] text-gray-600">ציון אחרון</small></span><span><b className="block text-lg text-white">{selectedEmployee.progress.finalExam.bestScore}</b><small className="text-[9px] text-gray-600">ציון מיטבי</small></span><span><b className="block text-lg text-white">{selectedEmployee.progress.finalExam.attempts}</b><small className="text-[9px] text-gray-600">ניסיונות</small></span></div>}
+              </div>
+
+              <div className="rounded-2xl border border-gray-850 bg-gray-950/30 p-4"><h4 className="mb-3 text-xs font-black text-gray-300">🕒 Learning Timeline</h4><LearningTimeline user={selectedEmployee} limit={8} /></div>
 
               {/* Badges List */}
               {selectedEmployee.progress?.badges && selectedEmployee.progress.badges.length > 0 && (

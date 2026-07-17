@@ -7,6 +7,99 @@ const AppContext = createContext();
 
 const usersCollection = nosqlDb.collection('users');
 
+const ago = (days, hours = 0) => new Date(Date.now() - ((days * 24 + hours) * 60 * 60 * 1000)).toISOString();
+const progress = (completedSubjects, scores, xp) => ({
+  completedSubjects,
+  completedLabs: [],
+  scores,
+  badges: completedSubjects.length >= 11 ? ['צעד ראשון', 'חצי הדרך', 'מאסטר סייבר'] : completedSubjects.length >= 5 ? ['צעד ראשון', 'חצי הדרך'] : completedSubjects.length ? ['צעד ראשון'] : [],
+  xp
+});
+
+const seedCertificationDemoData = () => {
+  const demoResults = [
+    { username: 'DanaBar', score: 90, passed: true, daysAgo: 1 },
+    { username: 'NoaCohen', score: 70, passed: false, daysAgo: 2 }
+  ];
+  demoResults.forEach(({ username, score, passed, daysAgo }) => {
+    const user = usersCollection.findOne({ username });
+    if (!user || user.progress?.finalExam) return;
+    const allSubjects = Array.from({ length: 11 }, (_, index) => index);
+    const scores = Object.fromEntries(allSubjects.map((id) => [id, user.progress?.scores?.[id] || 84 + (id % 12)]));
+    const analytics = buildDemoAnalytics({ ...user, role: 'employee', progress: { ...user.progress, completedSubjects: allSubjects, scores } });
+    const attemptedAt = ago(daysAgo);
+    const finalExam = {
+      status: passed ? 'passed' : 'failed',
+      passed,
+      score,
+      lastScore: score,
+      bestScore: score,
+      attempts: 1,
+      lastAttemptAt: attemptedAt,
+      passedAt: passed ? attemptedAt : null,
+      history: [{ attempt: 1, score, passed, correctCount: score / 10, wrongCount: 10 - score / 10, attemptedAt, answers: [] }]
+    };
+    usersCollection.updateOne({ username }, {
+      progress: { ...user.progress, completedSubjects: allSubjects, completedLabs: allSubjects, scores, finalExam },
+      analytics
+    });
+  });
+};
+
+const buildDemoAnalytics = (user) => {
+  if (user.role !== 'employee') return { videos: {}, quizzes: {}, courses: {} };
+  const seed = [...user.username].reduce((total, character) => total + character.charCodeAt(0), 0);
+  const completed = user.progress.completedSubjects;
+  const videos = {};
+  const quizzes = {};
+  const courses = {};
+
+  completed.forEach((subjectId, index) => {
+    const durationSeconds = 430 + ((subjectId * 37 + seed) % 170);
+    const watchSeconds = Math.round(durationSeconds * (0.82 + ((seed + index) % 18) / 100));
+    videos[subjectId] = { watchSeconds, durationSeconds, lastPosition: durationSeconds, completed: true, sessions: 1 + ((seed + index) % 3), updatedAt: ago(index + 1) };
+    quizzes[subjectId] = Array.from({ length: 10 }, (_, questionIndex) => ({ attempts: 1 + ((seed + questionIndex + subjectId) % 2), correct: ((seed + questionIndex * 3 + subjectId) % 10) > 2 ? 1 : 0 }));
+    const minutes = 18 + ((seed + subjectId * 7) % 39);
+    courses[subjectId] = { startedAt: ago(index + 3), completedAt: ago(index + 2), durationMinutes: minutes };
+  });
+
+  const nextSubject = Math.min(10, completed.length);
+  if (!completed.includes(nextSubject)) {
+    const durationSeconds = 480 + ((seed + nextSubject) % 90);
+    const lastPosition = Math.round(durationSeconds * (0.18 + (seed % 50) / 100));
+    videos[nextSubject] = { watchSeconds: lastPosition, durationSeconds, lastPosition, completed: false, sessions: 1, updatedAt: ago((seed % 9) + 1) };
+    courses[nextSubject] = { startedAt: ago((seed % 9) + 1) };
+  }
+  return { videos, quizzes, courses };
+};
+
+const DEMO_USERS = [
+  { username: 'admin', password: 'admin', email: 'admin@shieldx.demo', role: 'admin', department: 'הנהלת מערכת', progress: progress([], {}, 0) },
+  { username: 'Yaniv123', password: 'yaniv123', email: 'yaniv.manager@shieldx.demo', role: 'manager', department: 'פיתוח (R&D)', progress: progress([0, 1, 2, 3, 4, 5], { 0: 96, 1: 92, 2: 88, 3: 94, 4: 86, 5: 91 }, 720), lastActivity: ago(0, 2) },
+  { username: 'Lev123', password: 'lev123', email: 'lev.manager@shieldx.demo', role: 'manager', department: 'אבטחת מידע (Security)', progress: progress([0, 1, 2, 3, 4, 7, 8], { 0: 98, 1: 95, 2: 93, 3: 90, 4: 94, 7: 97, 8: 92 }, 860), lastActivity: ago(0, 1) },
+  { username: 'MayaManager', password: 'Manager123!', email: 'maya.manager@shieldx.demo', role: 'manager', department: 'משאבי אנוש', progress: progress([0, 1, 2, 10], { 0: 91, 1: 89, 2: 87, 10: 94 }, 480), lastActivity: ago(1) },
+  { username: 'RonManager', password: 'Manager123!', email: 'ron.manager@shieldx.demo', role: 'manager', department: 'כספים (Finance)', progress: progress([0, 1, 2, 6, 10], { 0: 88, 1: 84, 2: 90, 6: 86, 10: 92 }, 560), lastActivity: ago(2) },
+  { username: 'NoaCohen', password: 'Employee123!', email: 'noa.cohen@shieldx.demo', role: 'employee', department: 'פיתוח (R&D)', progress: progress([0, 1, 2, 3, 4, 5, 7, 9], { 0: 94, 1: 88, 2: 91, 3: 86, 4: 82, 5: 89, 7: 93, 9: 85 }, 930), lastActivity: ago(0, 4) },
+  { username: 'AmitLevi', password: 'Employee123!', email: 'amit.levi@shieldx.demo', role: 'employee', department: 'פיתוח (R&D)', progress: progress([0, 1, 2, 5, 7], { 0: 87, 1: 83, 2: 79, 5: 85, 7: 90 }, 580), lastActivity: ago(1, 3) },
+  { username: 'DanaBar', password: 'Employee123!', email: 'dana.bar@shieldx.demo', role: 'employee', department: 'אבטחת מידע (Security)', progress: progress([0, 1, 2, 3, 4, 6, 7, 8, 9, 10], { 0: 99, 1: 96, 2: 98, 3: 94, 4: 97, 6: 93, 7: 96, 8: 91, 9: 95, 10: 94 }, 1220), lastActivity: ago(0, 1) },
+  { username: 'OmerTal', password: 'Employee123!', email: 'omer.tal@shieldx.demo', role: 'employee', department: 'אבטחת מידע (Security)', progress: progress([0, 1, 2, 3, 4, 8], { 0: 91, 1: 86, 2: 88, 3: 84, 4: 90, 8: 82 }, 690), lastActivity: ago(3) },
+  { username: 'ShiraKatz', password: 'Employee123!', email: 'shira.katz@shieldx.demo', role: 'employee', department: 'משאבי אנוש', progress: progress([0, 1, 2, 10], { 0: 89, 1: 92, 2: 84, 10: 90 }, 470), lastActivity: ago(2, 5) },
+  { username: 'GilMor', password: 'Employee123!', email: 'gil.mor@shieldx.demo', role: 'employee', department: 'משאבי אנוש', progress: progress([0, 1], { 0: 76, 1: 81 }, 220), lastActivity: ago(8) },
+  { username: 'YaelShah', password: 'Employee123!', email: 'yael.shah@shieldx.demo', role: 'employee', department: 'כספים (Finance)', progress: progress([0, 1, 2, 3, 6, 10], { 0: 93, 1: 90, 2: 88, 3: 91, 6: 87, 10: 95 }, 710), lastActivity: ago(1, 7) },
+  { username: 'EitanRaz', password: 'Employee123!', email: 'eitan.raz@shieldx.demo', role: 'employee', department: 'כספים (Finance)', progress: progress([0, 1, 2], { 0: 82, 1: 74, 2: 78 }, 310), lastActivity: ago(12) },
+  { username: 'LiorBen', password: 'Employee123!', email: 'lior.ben@shieldx.demo', role: 'employee', department: 'תפעול (Operations)', progress: progress([0, 1, 2, 3, 4, 7, 9], { 0: 90, 1: 86, 2: 84, 3: 88, 4: 81, 7: 89, 9: 92 }, 810), lastActivity: ago(0, 6) },
+  { username: 'HilaDan', password: 'Employee123!', email: 'hila.dan@shieldx.demo', role: 'employee', department: 'תפעול (Operations)', progress: progress([], {}, 0), lastActivity: ago(35) }
+].map((user) => ({ ...user, password: hashPassword(user.password), status: 'approved', analytics: buildDemoAnalytics(user) }));
+
+const ensureDemoUsers = () => {
+  const existing = usersCollection.find();
+  DEMO_USERS.forEach((demoUser) => {
+    if (!existing.some((user) => user.username.toLowerCase() === demoUser.username.toLowerCase())) {
+      usersCollection.insertOne(demoUser);
+    }
+  });
+};
+
 export const AppProvider = ({ children }) => {
   // ── User Database ──
   const [users, setUsers] = useState(() => {
@@ -17,6 +110,11 @@ export const AppProvider = ({ children }) => {
       let migrated = false;
       saved = saved.map(u => {
         const usernameLwr = u.username.toLowerCase();
+        if (!u.status) {
+          u.status = 'approved';
+          usersCollection.updateOne({ username: u.username }, { status: 'approved' });
+          migrated = true;
+        }
         
         // Force roles migration
         if (usernameLwr === 'lev123' || usernameLwr === 'yaniv123') {
@@ -60,45 +158,16 @@ export const AppProvider = ({ children }) => {
         return u;
       });
       if (migrated) {
-        return usersCollection.find();
+        saved = usersCollection.find();
       }
-      return saved;
+      ensureDemoUsers();
+      seedCertificationDemoData();
+      return usersCollection.find();
     }
     
     // Default original users (mapped with standard manager/employee roles)
-    const defaults = [
-      {
-        username: "Yaniv123",
-        password: hashPassword("yaniv123"),
-        email: "thebeastcom71@gmail.com",
-        role: "manager",
-        progress: { completedSubjects: [0, 1], scores: { 0: 90, 1: 85 }, badges: ["צעד ראשון"], xp: 200 }
-      },
-      {
-        username: "Lev123",
-        password: hashPassword("lev123"),
-        email: "thebeastcom71@gmail.com",
-        role: "manager",
-        progress: { completedSubjects: [0], scores: { 0: 80 }, badges: ["צעד ראשון"], xp: 100 }
-      },
-      {
-        username: "Yaniv123_emp",
-        password: hashPassword("yaniv123"),
-        email: "thebeastcom71@gmail.com",
-        role: "employee",
-        progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
-      },
-      {
-        username: "Lev123_emp",
-        password: hashPassword("lev123"),
-        email: "thebeastcom71@gmail.com",
-        role: "employee",
-        progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
-      }
-    ];
-
-    // Populate NoSQL database with defaults
-    defaults.forEach(u => usersCollection.insertOne(u));
+    ensureDemoUsers();
+    seedCertificationDemoData();
     return usersCollection.find();
   });
 
@@ -141,6 +210,12 @@ export const AppProvider = ({ children }) => {
     // Match username case-insensitively
     const match = users.find(u => u.username.toLowerCase() === username.trim().toLowerCase());
     if (match && verifyPassword(password, match.password)) {
+      if (match.status === 'pending') {
+        return { success: false, message: 'החשבון ממתין לאישור מנהל המערכת.' };
+      }
+      if (match.status === 'rejected') {
+        return { success: false, message: 'בקשת ההרשמה נדחתה. יש לפנות למנהל המערכת.' };
+      }
       const updatedUser = usersCollection.updateOne(
         { username: match.username },
         { lastLogin: new Date().toISOString() }
@@ -148,12 +223,12 @@ export const AppProvider = ({ children }) => {
       setUsers(usersCollection.find());
       setCurrentUser(updatedUser);
       setActiveViewRole('employee');
-      return { success: true };
+      return { success: true, user: updatedUser };
     }
     return { success: false, message: "שם משתמש או סיסמה שגויים!" };
   };
 
-  const register = (username, password, email, avatar = '') => {
+  const register = (username, password, email, avatar = '', role = 'employee', department = 'כללי') => {
     if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
       return { success: false, message: "שם משתמש זה כבר קיים במערכת!" };
     }
@@ -165,17 +240,29 @@ export const AppProvider = ({ children }) => {
       username,
       password: hashPassword(password),
       email,
-      // Self-registration always creates an employee. Manager access is assigned separately.
-      role: 'employee',
+      role: role === 'manager' ? 'manager' : 'employee',
+      requestedRole: role === 'manager' ? 'manager' : 'employee',
+      department,
+      status: 'pending',
       avatar,
       progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
     };
 
     usersCollection.insertOne(newUser);
     setUsers(usersCollection.find());
-    setCurrentUser(newUser);
-    setActiveViewRole('employee');
-    return { success: true };
+    return { success: true, message: 'ההרשמה נשלחה לאישור מנהל המערכת.' };
+  };
+
+  const reviewRegistration = (username, decision) => {
+    if (currentUser?.role !== 'admin') return { success: false, message: 'אין הרשאה לביצוע הפעולה.' };
+    const status = decision === 'approve' ? 'approved' : 'rejected';
+    const updated = usersCollection.updateOne({ username }, {
+      status,
+      reviewedAt: new Date().toISOString(),
+      reviewedBy: currentUser.username
+    });
+    setUsers(usersCollection.find());
+    return updated ? { success: true } : { success: false, message: 'המשתמש לא נמצא.' };
   };
 
   const logout = () => {
@@ -212,10 +299,15 @@ export const AppProvider = ({ children }) => {
       return { success: false, message: 'שם המשתמש כבר קיים במערכת.' };
     }
 
-    const updated = usersCollection.updateOne(
-      { username: currentUser.username },
-      { username: normalizedUsername, avatar: avatar || '' }
-    );
+    let updated;
+    try {
+      updated = usersCollection.updateOne(
+        { username: currentUser.username },
+        { username: normalizedUsername, avatar: avatar || '' }
+      );
+    } catch (error) {
+      return { success: false, message: 'לא ניתן לשמור את התמונה בדפדפן. נסה תמונה קטנה יותר.' };
+    }
 
     if (!updated) return { success: false, message: 'לא ניתן לעדכן את החשבון.' };
     setUsers(usersCollection.find());
@@ -238,6 +330,145 @@ export const AppProvider = ({ children }) => {
     setUsers(usersCollection.find());
     setCurrentUser(updated);
     return { success: true, message: 'הסיסמה הוחלפה בהצלחה.' };
+  };
+
+  const trackVideoProgress = (subjectId, telemetry) => {
+    if (!currentUser || currentUser.role === 'admin') return;
+    const userRecord = usersCollection.findOne({ username: currentUser.username });
+    if (!userRecord) return;
+
+    const analytics = userRecord.analytics || { videos: {}, quizzes: {}, courses: {} };
+    const previousVideo = analytics.videos?.[subjectId] || { watchSeconds: 0, sessions: 0 };
+    const previousCourse = analytics.courses?.[subjectId] || {};
+    const videoEntry = {
+      ...previousVideo,
+      watchSeconds: Math.round((previousVideo.watchSeconds || 0) + (telemetry.watchedDelta || 0)),
+      durationSeconds: telemetry.duration || previousVideo.durationSeconds || 0,
+      lastPosition: telemetry.currentTime ?? previousVideo.lastPosition ?? 0,
+      completed: Boolean(previousVideo.completed || telemetry.completed),
+      sessions: (previousVideo.sessions || 0) + (telemetry.event === 'play' ? 1 : 0),
+      updatedAt: new Date().toISOString()
+    };
+    const updatedAnalytics = {
+      ...analytics,
+      videos: { ...(analytics.videos || {}), [subjectId]: videoEntry },
+      courses: {
+        ...(analytics.courses || {}),
+        [subjectId]: { ...previousCourse, startedAt: previousCourse.startedAt || new Date().toISOString() }
+      }
+    };
+    const updated = usersCollection.updateOne({ username: currentUser.username }, { analytics: updatedAnalytics, lastActivity: new Date().toISOString() });
+    setUsers(usersCollection.find());
+    if (updated) setCurrentUser(updated);
+  };
+
+  const recordQuizAnswer = (subjectId, questionIndex, correct) => {
+    if (!currentUser || currentUser.role === 'admin') return;
+    const userRecord = usersCollection.findOne({ username: currentUser.username });
+    if (!userRecord) return;
+    const analytics = userRecord.analytics || { videos: {}, quizzes: {}, courses: {} };
+    const topicStats = [...(analytics.quizzes?.[subjectId] || Array.from({ length: 10 }, () => ({ attempts: 0, correct: 0 })) )];
+    const current = topicStats[questionIndex] || { attempts: 0, correct: 0 };
+    topicStats[questionIndex] = { attempts: current.attempts + 1, correct: current.correct + (correct ? 1 : 0) };
+    const updatedAnalytics = { ...analytics, quizzes: { ...(analytics.quizzes || {}), [subjectId]: topicStats } };
+    const updated = usersCollection.updateOne({ username: currentUser.username }, { analytics: updatedAnalytics, lastActivity: new Date().toISOString() });
+    setUsers(usersCollection.find());
+    if (updated) setCurrentUser(updated);
+  };
+
+  const completeLab = (subjectId) => {
+    if (!currentUser || currentUser.role === 'admin') return;
+    const userRecord = usersCollection.findOne({ username: currentUser.username });
+    if (!userRecord) return;
+    const previousProgress = userRecord.progress || {};
+    const completedLabs = previousProgress.completedLabs?.includes(subjectId)
+      ? previousProgress.completedLabs
+      : [...(previousProgress.completedLabs || []), subjectId];
+    const lastActivity = new Date().toISOString();
+    const updated = usersCollection.updateOne({ username: currentUser.username }, {
+      progress: { ...previousProgress, completedLabs },
+      lastActivity
+    });
+    setUsers(usersCollection.find());
+    if (updated) setCurrentUser(updated);
+  };
+
+  const submitFinalExam = (score, attemptDetails = {}) => {
+    if (!currentUser || currentUser.role === 'admin') return null;
+    const userRecord = usersCollection.findOne({ username: currentUser.username });
+    if (!userRecord) return null;
+    const attemptedAt = new Date().toISOString();
+    const previousProgress = userRecord.progress || {};
+    const previousExam = previousProgress.finalExam || { attempts: 0, bestScore: 0, history: [] };
+    const passedThisAttempt = score >= 80;
+    const passed = Boolean(previousExam.passed || passedThisAttempt);
+    const attempt = {
+      attempt: previousExam.attempts + 1,
+      score,
+      passed: passedThisAttempt,
+      correctCount: attemptDetails.correctCount ?? Math.round(score / 10),
+      wrongCount: attemptDetails.wrongCount ?? 10 - Math.round(score / 10),
+      attemptedAt,
+      answers: attemptDetails.answers || []
+    };
+    const finalExam = {
+      status: passed ? 'passed' : 'failed',
+      passed,
+      score,
+      lastScore: score,
+      bestScore: Math.max(previousExam.bestScore || 0, score),
+      attempts: attempt.attempt,
+      lastAttemptAt: attemptedAt,
+      passedAt: previousExam.passedAt || (passedThisAttempt ? attemptedAt : null),
+      history: [...(previousExam.history || []), attempt]
+    };
+    const badges = [...(previousProgress.badges || [])];
+    if (passedThisAttempt && !badges.includes('מוסמך ShieldX')) badges.push('מוסמך ShieldX');
+    const updatedProgress = { ...previousProgress, badges, finalExam };
+    const updated = usersCollection.updateOne({ username: currentUser.username }, {
+      progress: updatedProgress,
+      lastActivity: attemptedAt
+    });
+    setUsers(usersCollection.find());
+    if (updated) setCurrentUser(updated);
+    window.dispatchEvent(new CustomEvent('shieldx-certification-updated', { detail: { username: currentUser.username, ...attempt } }));
+    return finalExam;
+  };
+
+  const rateCourse = (subjectId, value) => {
+    if (!currentUser || value < 1 || value > 5) return;
+    const userRecord = usersCollection.findOne({ username: currentUser.username });
+    if (!userRecord) return;
+    const previousProgress = userRecord.progress || {};
+    const courseRatings = {
+      ...(previousProgress.courseRatings || {}),
+      [subjectId]: { value, ratedAt: new Date().toISOString() }
+    };
+    const updated = usersCollection.updateOne({ username: currentUser.username }, { progress: { ...previousProgress, courseRatings } });
+    setUsers(usersCollection.find());
+    if (updated) setCurrentUser(updated);
+  };
+
+  const updatePresence = (activity = 'idle', context = {}) => {
+    if (!currentUser || currentUser.role === 'admin') return;
+    const now = new Date().toISOString();
+    const updated = usersCollection.updateOne({ username: currentUser.username }, {
+      presence: { activity, ...context, lastSeen: now },
+      lastActivity: activity === 'idle' ? currentUser.lastActivity : now
+    });
+    setUsers(usersCollection.find());
+    if (updated) setCurrentUser(updated);
+  };
+
+  const markDocumentRead = (documentId) => {
+    if (!currentUser) return;
+    const userRecord = usersCollection.findOne({ username: currentUser.username });
+    if (!userRecord) return;
+    const previousProgress = userRecord.progress || {};
+    const readDocuments = { ...(previousProgress.readDocuments || {}), [documentId]: { readAt: new Date().toISOString() } };
+    const updated = usersCollection.updateOne({ username: currentUser.username }, { progress: { ...previousProgress, readDocuments }, lastActivity: new Date().toISOString() });
+    setUsers(usersCollection.find());
+    if (updated) setCurrentUser(updated);
   };
 
   // ── Progress & Learning Functions ──
@@ -270,19 +501,34 @@ export const AppProvider = ({ children }) => {
       }
 
       const updatedProgress = {
+        ...prevProgress,
         completedSubjects: updatedCompleted,
         scores: updatedScores,
         badges: updatedBadges,
         xp: prevProgress.xp + (isNewCompletion ? 100 : 20)
       };
 
+      const analytics = userRecord.analytics || { videos: {}, quizzes: {}, courses: {} };
+      const previousCourse = analytics.courses?.[subjectId] || {};
+      const completedAt = new Date().toISOString();
+      const durationMinutes = previousCourse.startedAt
+        ? Math.max(1, Math.round((new Date(completedAt) - new Date(previousCourse.startedAt)) / 60000))
+        : null;
+      const updatedAnalytics = {
+        ...analytics,
+        courses: {
+          ...(analytics.courses || {}),
+          [subjectId]: { ...previousCourse, completedAt, durationMinutes }
+        }
+      };
+
       // Update in NoSQL DB
       const lastActivity = new Date().toISOString();
-      usersCollection.updateOne({ username: currentUser.username }, { progress: updatedProgress, lastActivity });
+      usersCollection.updateOne({ username: currentUser.username }, { progress: updatedProgress, analytics: updatedAnalytics, lastActivity });
       setUsers(usersCollection.find());
 
       // Sync current session state
-      setCurrentUser(prev => ({ ...prev, progress: updatedProgress, lastActivity }));
+      setCurrentUser(prev => ({ ...prev, progress: updatedProgress, analytics: updatedAnalytics, lastActivity }));
     }
   };
 
@@ -339,11 +585,19 @@ export const AppProvider = ({ children }) => {
       userProgress,
       login,
       register,
+      reviewRegistration,
       logout,
       changePassword,
       updateCurrentProfile,
       updateCurrentPassword,
       completeSubject,
+      completeLab,
+      submitFinalExam,
+      rateCourse,
+      updatePresence,
+      markDocumentRead,
+      trackVideoProgress,
+      recordQuizAnswer,
       sendBrevoRecoveryCode,
       setActiveViewRole
     }}>

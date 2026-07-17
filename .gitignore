@@ -1,1 +1,6 @@
 generate_all_courses.py
+node_modules/
+dist/
+tmp/
+work/
+.DS_Store

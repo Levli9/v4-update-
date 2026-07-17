@@ -1,24 +1,33 @@
 // src/pages/SubjectView.jsx
-import React, { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle2, Lightbulb, Sparkles } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { CheckCircle2, Lightbulb, Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { subjectsData } from '../data/subjectsData';
 import PhishingSimulation from '../components/PhishingSimulation';
 import Quiz from '../components/Quiz';
 import VideoPlayer from '../components/VideoPlayer';
+import BackButton from '../components/BackButton';
+import ScenarioLab from '../components/ScenarioLab';
 
 export default function SubjectView() {
   const { id } = useParams();
   const subjectId = parseInt(id, 10);
   const subject = subjectsData.find(s => s.id === subjectId);
-  const { completeSubject, setActiveViewRole } = useApp();
+  const { completeSubject, completeLab, recordQuizAnswer, trackVideoProgress, rateCourse, updatePresence, currentUser, setActiveViewRole } = useApp();
 
   const [activeTab, setActiveTab] = useState('video'); // video, learn, lab, quiz
   const [slideIdx, setSlideIdx] = useState(0);
   const [labDone, setLabDone] = useState(false);
   const [revealedBullets, setRevealedBullets] = useState([]);
   const [lessonChoice, setLessonChoice] = useState(null);
+  const [showFeedback, setShowFeedback] = useState(false);
+
+  useEffect(() => {
+    updatePresence('learning', { subjectId });
+    const heartbeat = window.setInterval(() => updatePresence('learning', { subjectId }), 30000);
+    return () => { window.clearInterval(heartbeat); updatePresence('idle'); };
+  }, [subjectId]);
 
   if (!subject) {
     return (
@@ -31,7 +40,13 @@ export default function SubjectView() {
   const handleQuizComplete = (score) => {
     if (score >= 80) {
       completeSubject(subjectId, score);
+      setShowFeedback(true);
     }
+  };
+
+  const handleLabComplete = () => {
+    setLabDone(true);
+    completeLab(subjectId);
   };
 
   const changeSlide = (nextIndex) => {
@@ -53,22 +68,14 @@ export default function SubjectView() {
         <div>
           <h2 className="text-2xl font-bold">{subject.title}</h2>
         </div>
-        <Link
-          to="/"
-          onClick={() => setActiveViewRole('employee')}
-          className="group grid h-11 w-11 place-items-center rounded-xl border border-gray-700 bg-gray-800 text-gray-300 transition-all hover:border-[#00e6ff]/45 hover:bg-[#00e6ff]/10 hover:text-[#00e6ff]"
-          aria-label="חזרה לפורטל הלמידה"
-          title="חזרה לפורטל הלמידה"
-        >
-          <ArrowRight size={20} className="transition-transform group-hover:translate-x-0.5" />
-        </Link>
+        <BackButton onClick={() => setActiveViewRole('employee')} />
       </div>
 
       {/* Tabs Menu */}
-      <div className="flex border-b border-gray-800">
+      <div className="grid grid-cols-2 border-b border-gray-800 sm:flex" role="tablist" aria-label="חלקי הקורס">
         <button
           onClick={() => setActiveTab('video')}
-          className={`px-6 py-3 text-sm font-bold border-b-2 transition-all ${
+          className={`min-h-12 px-3 py-3 text-xs font-bold border-b-2 transition-all sm:flex-1 sm:px-5 sm:text-sm ${
             activeTab === 'video' ? 'border-[#00e6ff] text-[#00e6ff]' : 'border-transparent text-gray-400 hover:text-gray-200'
           }`}
         >
@@ -76,7 +83,7 @@ export default function SubjectView() {
         </button>
         <button
           onClick={() => setActiveTab('learn')}
-          className={`px-6 py-3 text-sm font-bold border-b-2 transition-all ${
+          className={`min-h-12 px-3 py-3 text-xs font-bold border-b-2 transition-all sm:flex-1 sm:px-5 sm:text-sm ${
             activeTab === 'learn' ? 'border-[#00e6ff] text-[#00e6ff]' : 'border-transparent text-gray-400 hover:text-gray-200'
           }`}
         >
@@ -85,7 +92,7 @@ export default function SubjectView() {
         {subject.simulations && subject.simulations.length > 0 && (
           <button
             onClick={() => setActiveTab('lab')}
-            className={`px-6 py-3 text-sm font-bold border-b-2 transition-all ${
+            className={`min-h-12 px-3 py-3 text-xs font-bold border-b-2 transition-all sm:flex-1 sm:px-5 sm:text-sm ${
               activeTab === 'lab' ? 'border-[#ffb703] text-[#ffb703]' : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
           >
@@ -94,7 +101,7 @@ export default function SubjectView() {
         )}
         <button
           onClick={() => setActiveTab('quiz')}
-          className={`px-6 py-3 text-sm font-bold border-b-2 transition-all ${
+          className={`min-h-12 px-3 py-3 text-xs font-bold border-b-2 transition-all sm:flex-1 sm:px-5 sm:text-sm ${
             activeTab === 'quiz' ? 'border-[#9d4edd] text-[#9d4edd]' : 'border-transparent text-gray-400 hover:text-gray-200'
           }`}
         >
@@ -110,6 +117,8 @@ export default function SubjectView() {
             videoScript={subject.videoScript} 
             emoji={subject.emoji} 
             color={subject.color} 
+            initialTime={currentUser?.analytics?.videos?.[subjectId]?.lastPosition || 0}
+            onAnalytics={(telemetry) => trackVideoProgress(subjectId, telemetry)}
           />
         )}
 
@@ -203,7 +212,9 @@ export default function SubjectView() {
         {activeTab === 'lab' && (
           <div className="max-w-5xl mx-auto">
             {subject.simulations[0].type === 'phishing-analyzer' ? (
-              <PhishingSimulation onComplete={() => setLabDone(true)} />
+              <PhishingSimulation onComplete={handleLabComplete} />
+            ) : subject.simulations[0].type === 'scenario' ? (
+              <ScenarioLab scenario={subject.simulations[0]} color={subject.color} onComplete={handleLabComplete} />
             ) : (
               <div className="bg-[#0b0b14] border border-gray-800 rounded-xl p-6 text-center space-y-4">
                 <h4 className="text-xl font-bold">🖥️ סימולטור פקודות רשת</h4>
@@ -212,7 +223,7 @@ export default function SubjectView() {
                   $ nmap -v scanme.nmap.org
                 </div>
                 <button
-                  onClick={() => setLabDone(true)}
+                  onClick={handleLabComplete}
                   className="px-6 py-2.5 rounded-lg bg-emerald-500 text-black font-bold text-sm"
                 >
                   השלם מעבדה
@@ -228,7 +239,7 @@ export default function SubjectView() {
         )}
 
         {activeTab === 'quiz' && (
-          <Quiz questions={subject.quizzes} onQuizComplete={handleQuizComplete} />
+          <div className="space-y-5"><Quiz questions={subject.quizzes} onQuizComplete={handleQuizComplete} onQuestionAnswered={(questionIndex, correct) => recordQuizAnswer(subjectId, questionIndex, correct)} />{showFeedback && <section className="mx-auto max-w-xl rounded-3xl border border-yellow-500/15 bg-yellow-500/5 p-6 text-center"><h3 className="text-base font-black text-white">איך היה הקורס?</h3><p className="mt-1 text-xs font-semibold text-gray-500">הדירוג שלך עוזר לנו לשפר את חוויית הלמידה</p><div className="mt-4 flex justify-center gap-2" dir="ltr">{[1,2,3,4,5].map((star) => <button key={star} type="button" onClick={() => rateCourse(subjectId, star)} className={`text-3xl transition hover:scale-125 ${star <= (currentUser?.progress?.courseRatings?.[subjectId]?.value || 0) ? 'text-yellow-400' : 'text-gray-700'}`} aria-label={`דירוג ${star} מתוך 5`}>★</button>)}</div></section>}</div>
         )}
       </div>
     </div>

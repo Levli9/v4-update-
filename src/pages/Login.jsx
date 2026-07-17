@@ -4,6 +4,7 @@ import { Camera, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import ShieldXLogo from '../components/ShieldXLogo';
+import PasswordInput from '../components/PasswordInput';
 import { prepareProfileImage } from '../services/imageService';
 import loginBackground from '../assets/login-cybersecurity.jpg';
 
@@ -26,6 +27,8 @@ export default function Login() {
   const [regUser, setRegUser] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPass, setRegPass] = useState('');
+  const [regRole, setRegRole] = useState('employee');
+  const [regDepartment, setRegDepartment] = useState('כללי');
   const [regAvatar, setRegAvatar] = useState('');
   const [regImageError, setRegImageError] = useState('');
   const [regSuccess, setRegSuccess] = useState('');
@@ -48,8 +51,9 @@ export default function Login() {
     if (!res.success) {
       setLoginError(res.message);
     } else {
-      window.location.hash = '#/';
-      navigate('/', { replace: true });
+      const destination = res.user?.role === 'admin' ? '/admin' : '/';
+      window.location.hash = `#${destination}`;
+      navigate(destination, { replace: true });
     }
   };
 
@@ -80,15 +84,15 @@ export default function Login() {
       return;
     }
 
-    const res = register(regUser, regPass, regEmail, regAvatar);
+    const res = register(regUser, regPass, regEmail, regAvatar, regRole, regDepartment);
     if (res.success) {
-      setRegSuccess("ההרשמה בוצעה בהצלחה! מעבירים אותך לפורטל הלמידה...");
+      setRegSuccess('ההרשמה נשלחה בהצלחה וממתינה לאישור מנהל המערכת. לאחר האישור ניתן יהיה להתחבר.');
       setRegUser('');
       setRegEmail('');
       setRegPass('');
       setRegAvatar('');
-      window.location.hash = '#/';
-      navigate('/', { replace: true });
+      setRegRole('employee');
+      setRegDepartment('כללי');
     } else {
       setRegError(res.message);
     }
@@ -225,8 +229,7 @@ export default function Login() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-2">סיסמה</label>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   value={loginPass}
                   onChange={(e) => setLoginPass(e.target.value)}
@@ -258,17 +261,6 @@ export default function Login() {
         {/* Register Form */}
         {activeTab === 'register' && (
           <form className="mt-6 space-y-6" onSubmit={handleRegisterSubmit}>
-            {regError && (
-              <div className="p-3 text-xs bg-red-950/20 border border-red-500/20 text-red-400 rounded-lg text-center">
-                {regError}
-              </div>
-            )}
-            {regSuccess && (
-              <div className="p-3 text-xs bg-emerald-950/20 border border-emerald-500/20 text-emerald-455 rounded-lg text-center">
-                {regSuccess}
-              </div>
-            )}
-
             <div className="space-y-4">
               <div className="flex flex-col items-center rounded-2xl border border-gray-800 bg-gray-950/35 p-4">
                 <div className="profile-avatar profile-avatar--large">
@@ -316,8 +308,7 @@ export default function Login() {
 
               <div>
                 <label className="block text-xs font-semibold text-gray-400 mb-2">סיסמה</label>
-                <input
-                  type="password"
+                <PasswordInput
                   required
                   value={regPass}
                   onChange={(e) => setRegPass(e.target.value)}
@@ -326,8 +317,28 @@ export default function Login() {
                 />
               </div>
 
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-2">סוג חשבון מבוקש</label>
+                <div className="grid grid-cols-2 gap-2 rounded-xl border border-gray-800 bg-gray-950/40 p-2">
+                  <button type="button" onClick={() => setRegRole('employee')} className={`rounded-lg px-3 py-2.5 text-xs font-black transition-all ${regRole === 'employee' ? 'bg-[#00e6ff] text-black' : 'text-gray-500 hover:text-white'}`}>עובד רגיל</button>
+                  <button type="button" onClick={() => setRegRole('manager')} className={`rounded-lg px-3 py-2.5 text-xs font-black transition-all ${regRole === 'manager' ? 'bg-[#9d4edd] text-white' : 'text-gray-500 hover:text-white'}`}>מנהל</button>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-400 mb-2">מחלקה</label>
+                <select value={regDepartment} onChange={(event) => setRegDepartment(event.target.value)} className="w-full rounded-xl border border-gray-850 bg-gray-950/60 px-4 py-3 text-sm text-white outline-none transition-all focus:border-[#9d4edd]">
+                  <option value="כללי">כללי</option>
+                  <option value="פיתוח (R&D)">פיתוח (R&amp;D)</option>
+                  <option value="אבטחת מידע (Security)">אבטחת מידע (Security)</option>
+                  <option value="משאבי אנוש">משאבי אנוש</option>
+                  <option value="כספים (Finance)">כספים (Finance)</option>
+                  <option value="תפעול (Operations)">תפעול (Operations)</option>
+                </select>
+              </div>
+
               <div className="rounded-xl border border-gray-800 bg-gray-950/40 px-4 py-3 text-xs text-gray-400">
-                👤 חשבון חדש נפתח כחשבון עובד. הרשאת מנהל ניתנת על ידי הנהלת המערכת בלבד.
+                🛡️ כל חשבון חדש, עובד או מנהל, מופעל רק לאחר אישור מנהל המערכת.
               </div>
             </div>
 
@@ -337,6 +348,10 @@ export default function Login() {
             >
               הרשמה למערכת
             </button>
+            {(regError || regSuccess) && <div aria-live="polite" aria-atomic="true">
+              {regError && <div className="rounded-xl border border-red-500/20 bg-red-950/20 p-3 text-center text-xs font-bold text-red-400">{regError}</div>}
+              {regSuccess && <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 text-center text-xs font-bold leading-6 text-emerald-400"><span className="mb-1 block text-lg">✓</span>{regSuccess}</div>}
+            </div>}
           </form>
         )}
 

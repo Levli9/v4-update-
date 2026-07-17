@@ -1,5 +1,6 @@
 // src/data/subjectsData.js
 import DETAILED_OFFLINE_COURSES from './courses_data';
+import { buildCourseQuiz, quizBank, simulationScenarios } from './learningEnhancements';
 
 const rawSubjects = [
   {
@@ -118,12 +119,17 @@ export const subjectsData = rawSubjects.map(subj => {
   const detailed = DETAILED_OFFLINE_COURSES[subj.id] || {};
   
   // Format quizzes options to match the React Quiz component expectations if needed
-  const rawQuizzes = detailed.quizzes || detailed.quiz || [];
-  const formattedQuizzes = rawQuizzes.map(q => {
+  const rawQuizzes = detailed.quizzes?.length
+    ? detailed.quizzes
+    : detailed.quiz?.length
+      ? detailed.quiz
+      : quizBank[subj.id] || [];
+  const formattedQuizzes = buildCourseQuiz(subj.id, rawQuizzes).map(q => {
     // If the format in the old json is answers / correctIndex
     const options = q.answers || q.options || [];
     const answer = q.correctIndex !== undefined ? q.correctIndex : q.answer;
     return {
+      ...q,
       id: q.id || `q_${subj.id}_${Math.random()}`,
       question: q.question,
       options: options,
@@ -132,18 +138,13 @@ export const subjectsData = rawSubjects.map(subj => {
     };
   });
 
-  // Dynamic videoURL fallback template:
-  // By default, if the user places an MP4 video under `videos/topic{id}.mp4` in their public/assets folder, it will play.
-  // Otherwise, it falls back to the interactive TTS presentation.
-  const bundledVideos = {
-    0: `${import.meta.env.BASE_URL}videos/topic0.mp4`,
-    1: `${import.meta.env.BASE_URL}videos/topic1.mp4`
-  };
-  const bundledVideoUrl = bundledVideos[subj.id] || "";
+  // Every learning category has a bundled, Hebrew MP4 lesson under public/videos.
+  const bundledVideoUrl = `${import.meta.env.BASE_URL}videos/topic${subj.id}.mp4`;
   const videoUrl = localStorage.getItem(`cyber_video_url_${subj.id}`) || bundledVideoUrl;
 
   return {
     ...subj,
+    simulations: simulationScenarios[subj.id] || subj.simulations || [],
     slides: detailed.slides || [],
     videoScript: detailed.videoScript || [],
     quizzes: formattedQuizzes,

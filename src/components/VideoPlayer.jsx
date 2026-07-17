@@ -1,7 +1,8 @@
 // src/components/VideoPlayer.jsx
 import React, { useState, useEffect, useRef } from 'react';
+import { Maximize2, Minimize2, Volume2, VolumeX } from 'lucide-react';
 
-export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
+export default function VideoPlayer({ videoUrl, videoScript, emoji, color, initialTime = 0, onAnalytics }) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -9,12 +10,17 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [volume, setVolume] = useState(1);
   
   const timerRef = useRef(null);
   const wrapperRef = useRef(null);
   
   // Real HTML5 Video element reference
   const videoElementRef = useRef(null);
+  const previousPlaybackTimeRef = useRef(0);
+  const pendingWatchSecondsRef = useRef(0);
+  const lastTelemetryAtRef = useRef(0);
+  const restoredPositionRef = useRef(false);
 
   // If a real video url is provided, use the native HTML5 player
   const isRealVideo = !!videoUrl;
@@ -27,6 +33,7 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = 'he-IL';
     utterance.rate = playbackRate;
+    utterance.volume = volume;
     
     // Pick Hebrew voice if available
     const voices = window.speechSynthesis.getVoices();
@@ -94,9 +101,8 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
         videoElementRef.current.pause();
       } else {
         videoElementRef.current.muted = !ttsEnabled;
-        videoElementRef.current.play();
+        videoElementRef.current.play().catch(() => setIsPlaying(false));
       }
-      setIsPlaying(!isPlaying);
     } else {
       if (isPlaying) {
         setIsPlaying(false);
@@ -133,28 +139,58 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
     return `${m}:${String(s).padStart(2, '0')}`;
   };
 
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      wrapperRef.current.requestFullscreen().then(() => {
-        setIsFullscreen(true);
-      }).catch(err => console.error(err));
-    } else {
-      document.exitFullscreen().then(() => {
-        setIsFullscreen(false);
-      });
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await wrapperRef.current?.requestFullscreen();
+      } else {
+        await document.exitFullscreen();
+      }
+    } catch (error) {
+      console.error('Fullscreen is unavailable', error);
     }
   };
+
+  useEffect(() => {
+    const syncFullscreenState = () => {
+      setIsFullscreen(document.fullscreenElement === wrapperRef.current);
+    };
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
+  }, []);
 
   // Sync state with HTML5 native events
   const onTimeUpdate = () => {
     if (videoElementRef.current) {
-      setCurrentTime(videoElementRef.current.currentTime);
+      const nextTime = videoElementRef.current.currentTime;
+      const delta = nextTime - previousPlaybackTimeRef.current;
+      if (!videoElementRef.current.paused && delta > 0 && delta < 2.5) {
+        pendingWatchSecondsRef.current += delta;
+      }
+      previousPlaybackTimeRef.current = nextTime;
+      setCurrentTime(nextTime);
+      if (Date.now() - lastTelemetryAtRef.current > 5000) {
+        onAnalytics?.({
+          currentTime: nextTime,
+          duration: videoElementRef.current.duration || duration,
+          watchedDelta: pendingWatchSecondsRef.current
+        });
+        pendingWatchSecondsRef.current = 0;
+        lastTelemetryAtRef.current = Date.now();
+      }
     }
   };
 
   const onLoadedMetadata = () => {
     if (videoElementRef.current) {
       setDuration(videoElementRef.current.duration);
+      if (!restoredPositionRef.current && initialTime > 1 && initialTime < videoElementRef.current.duration - 2) {
+        videoElementRef.current.currentTime = initialTime;
+        previousPlaybackTimeRef.current = initialTime;
+        setCurrentTime(initialTime);
+      }
+      restoredPositionRef.current = true;
+      onAnalytics?.({ currentTime: videoElementRef.current.currentTime, duration: videoElementRef.current.duration, watchedDelta: 0 });
     }
   };
 
@@ -163,6 +199,8 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
     setCurrentTime(0);
     setCurrentLineIdx(-1);
     stopTts();
+    onAnalytics?.({ currentTime: duration, duration, watchedDelta: pendingWatchSecondsRef.current, completed: true });
+    pendingWatchSecondsRef.current = 0;
   };
 
   // Timeline scrub
@@ -174,6 +212,30 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
     }
   };
 
+  const handleVolumeChange = (event) => {
+    const nextVolume = Number(event.target.value);
+    setVolume(nextVolume);
+    setTtsEnabled(nextVolume > 0);
+    if (videoElementRef.current) {
+      videoElementRef.current.volume = nextVolume;
+      videoElementRef.current.muted = nextVolume === 0;
+    }
+    if (nextVolume === 0) stopTts();
+  };
+
+  const toggleMute = () => {
+    const nextEnabled = !ttsEnabled;
+    setTtsEnabled(nextEnabled);
+    if (videoElementRef.current) {
+      videoElementRef.current.volume = volume;
+      videoElementRef.current.muted = !nextEnabled;
+    } else if (!nextEnabled) {
+      stopTts();
+    } else if (isPlaying && currentLineIdx >= 0 && videoScript?.[currentLineIdx]) {
+      speakText(videoScript[currentLineIdx].text);
+    }
+  };
+
   // Cleanup TTS on unmount
   useEffect(() => {
     return () => stopTts();
@@ -182,13 +244,13 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
   return (
     <div 
       ref={wrapperRef}
-      className={`bg-[#06060e] border border-gray-800 rounded-3xl overflow-hidden shadow-2xl relative flex flex-col ${
-        isFullscreen ? 'w-screen h-screen rounded-none' : 'max-w-3xl mx-auto'
+      className={`bg-[#06060e] border border-gray-800 overflow-hidden shadow-2xl relative flex flex-col ${
+        isFullscreen ? 'h-screen w-screen rounded-none border-0' : 'mx-auto w-full max-w-5xl rounded-3xl'
       }`}
       style={{ '--vcolor': color }}
     >
       {/* ── SCREEN AREA ── */}
-      <div className="relative bg-radial-gradient flex-1 flex flex-col items-center justify-center min-h-[260px] overflow-hidden select-none">
+      <div className={`relative bg-radial-gradient flex flex-1 flex-col items-center justify-center overflow-hidden select-none ${isFullscreen ? 'min-h-0' : 'min-h-[320px] sm:min-h-[430px]'}`}>
         
         {/* Background Grid Accent */}
         <div className="absolute inset-0 bg-grid-lines pointer-events-none opacity-20"></div>
@@ -205,10 +267,21 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
             ref={videoElementRef}
             src={videoUrl}
             preload="metadata"
+            playsInline
             onTimeUpdate={onTimeUpdate}
             onLoadedMetadata={onLoadedMetadata}
             onEnded={onVideoEnded}
-            className="w-full h-full max-h-[380px] aspect-video object-contain"
+            onPlay={() => {
+              setIsPlaying(true);
+              previousPlaybackTimeRef.current = videoElementRef.current?.currentTime || 0;
+              onAnalytics?.({ currentTime: videoElementRef.current?.currentTime || 0, duration: videoElementRef.current?.duration || duration, watchedDelta: 0, event: 'play' });
+            }}
+            onPause={() => {
+              setIsPlaying(false);
+              onAnalytics?.({ currentTime: videoElementRef.current?.currentTime || currentTime, duration: videoElementRef.current?.duration || duration, watchedDelta: pendingWatchSecondsRef.current });
+              pendingWatchSecondsRef.current = 0;
+            }}
+            className={`block w-full object-contain ${isFullscreen ? 'h-full max-h-none flex-1' : 'h-auto max-h-[min(68vh,620px)] aspect-video'}`}
             onClick={handlePlayPause}
           />
         ) : (
@@ -292,24 +365,18 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
 
         {/* Right Cluster */}
         <div className="flex items-center gap-4">
-          <button
-            onClick={() => {
-              setTtsEnabled(!ttsEnabled);
-              if (isRealVideo && videoElementRef.current) {
-                videoElementRef.current.muted = ttsEnabled;
-              } else if (ttsEnabled) {
-                stopTts();
-              } else if (isPlaying && currentLineIdx >= 0 && videoScript?.[currentLineIdx]) {
-                speakText(videoScript[currentLineIdx].text);
-              }
-            }}
-            className={`px-3 py-1.5 rounded-lg border font-bold transition-all ${
+          <div className={`flex items-center gap-2 rounded-xl border px-2.5 py-1.5 transition-all ${
               ttsEnabled ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400' : 'border-gray-800 text-gray-500'
-            }`}
-            aria-pressed={ttsEnabled}
-          >
-            {ttsEnabled ? '🔊 קול בעברית פעיל' : '🔇 קול כבוי'}
-          </button>
+            }`}>
+            <button type="button" onClick={toggleMute} className="grid h-7 w-7 shrink-0 place-items-center rounded-lg hover:bg-white/5" aria-label={ttsEnabled ? 'השתקת קול' : 'הפעלת קול'} aria-pressed={!ttsEnabled} title={ttsEnabled ? 'השתקת קול' : 'הפעלת קול'}>
+              {ttsEnabled && volume > 0 ? <Volume2 size={17} /> : <VolumeX size={17} />}
+            </button>
+            <label className="flex items-center gap-2" title={`עוצמת קול ${Math.round(volume * 100)}%`}>
+              <span className="hidden whitespace-nowrap text-[10px] font-black sm:inline">עוצמת קול</span>
+              <input dir="ltr" type="range" min="0" max="1" step="0.05" value={ttsEnabled ? volume : 0} onChange={handleVolumeChange} className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-gray-700 accent-emerald-400 sm:w-28" aria-label="עוצמת קול" />
+              <span className="w-7 text-left font-mono text-[9px]">{ttsEnabled ? Math.round(volume * 100) : 0}%</span>
+            </label>
+          </div>
 
           {/* Speed Selector */}
           <select
@@ -332,10 +399,11 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color }) {
           {/* Fullscreen Button */}
           <button
             onClick={toggleFullscreen}
-            className="text-lg hover:text-white transition-colors"
-            title="מסך מלא"
+            className="grid h-9 w-9 place-items-center rounded-lg border border-gray-800 bg-gray-900 text-gray-300 transition-colors hover:border-gray-700 hover:text-white"
+            title={isFullscreen ? 'יציאה ממסך מלא' : 'מסך מלא'}
+            aria-label={isFullscreen ? 'יציאה ממסך מלא' : 'מסך מלא'}
           >
-            {isFullscreen ? '⛶' : '⛶'}
+            {isFullscreen ? <Minimize2 size={17} /> : <Maximize2 size={17} />}
           </button>
         </div>
       </div>

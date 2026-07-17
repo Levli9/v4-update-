@@ -7,11 +7,7 @@ import {
   ChevronDown,
   ChevronLeft,
   Contrast,
-  Eye,
-  Heading,
-  Image,
   LayoutDashboard,
-  Link2,
   LogOut,
   Menu,
   Minus,
@@ -19,8 +15,10 @@ import {
   MousePointer2,
   Plus,
   RotateCcw,
+  Sparkles,
   Sun,
   Type,
+  UserCheck,
   X,
   ZoomIn
 } from 'lucide-react';
@@ -30,6 +28,11 @@ import SubjectView from './pages/SubjectView';
 import Login from './pages/Login';
 import ManagerDashboard from './pages/ManagerDashboard';
 import UserSettings from './pages/UserSettings';
+import AdminApprovals from './pages/AdminApprovals';
+import AIPresentationStudio from './pages/AIPresentationStudio';
+import FinalExam from './pages/FinalExam';
+import KnowledgeLibrary from './pages/KnowledgeLibrary';
+import GlobalSearch from './components/GlobalSearch';
 import ShieldXLogo from './components/ShieldXLogo';
 
 const DEFAULT_ACCESSIBILITY = {
@@ -38,10 +41,7 @@ const DEFAULT_ACCESSIBILITY = {
   fontScale: 0,
   readableFont: false,
   pageZoom: false,
-  cursor: 'default',
-  imageDescriptions: false,
-  highlightHeadings: false,
-  highlightLinks: false
+  cursor: 'default'
 };
 
 const getSavedAccessibility = () => {
@@ -51,6 +51,9 @@ const getSavedAccessibility = () => {
     const migrated = { ...DEFAULT_ACCESSIBILITY, ...saved, theme };
     delete migrated.darkContrast;
     delete migrated.lightContrast;
+    delete migrated.imageDescriptions;
+    delete migrated.highlightHeadings;
+    delete migrated.highlightLinks;
     return migrated;
   } catch {
     return DEFAULT_ACCESSIBILITY;
@@ -95,9 +98,7 @@ function AppInner() {
       'a11y-readable-font': accessibility.readableFont,
       'a11y-page-zoom': accessibility.pageZoom,
       'a11y-cursor-black': accessibility.cursor === 'black',
-      'a11y-cursor-white': accessibility.cursor === 'white',
-      'a11y-highlight-headings': accessibility.highlightHeadings,
-      'a11y-highlight-links': accessibility.highlightLinks
+      'a11y-cursor-white': accessibility.cursor === 'white'
     };
 
     Object.entries(classMap).forEach(([className, enabled]) => {
@@ -105,21 +106,6 @@ function AppInner() {
     });
     root.style.fontSize = `${100 + accessibility.fontScale * 12}%`;
 
-    document.querySelectorAll('img').forEach((image) => {
-      if (accessibility.imageDescriptions) {
-        image.setAttribute('data-a11y-description', image.alt || image.title || 'תמונה');
-        if (!image.getAttribute('aria-label')) {
-          image.setAttribute('aria-label', image.alt || image.title || 'תמונה');
-          image.setAttribute('data-a11y-added-label', 'true');
-        }
-      } else {
-        image.removeAttribute('data-a11y-description');
-        if (image.getAttribute('data-a11y-added-label') === 'true') {
-          image.removeAttribute('aria-label');
-          image.removeAttribute('data-a11y-added-label');
-        }
-      }
-    });
   }, [accessibility]);
 
   // If not logged in, force Login page
@@ -127,8 +113,15 @@ function AppInner() {
     return <Login />;
   }
 
-  const canAccessManager = currentUser.role === 'manager';
+  const isAdmin = currentUser.role === 'admin';
+  const canAccessManager = currentUser.role === 'manager' || isAdmin;
   const isManagerView = canAccessManager && location.pathname === '/manager';
+  const isAdminView = isAdmin && location.pathname === '/admin';
+  const isAIStudioView = canAccessManager && location.pathname === '/ai-studio';
+  const isLearningPortalView = location.pathname === '/';
+  const isFinalExamView = location.pathname === '/final-exam';
+  const isKnowledgeView = location.pathname === '/knowledge';
+  const isProfileView = location.pathname === '/settings';
 
   const openLearningPortal = () => {
     setActiveViewRole('employee');
@@ -138,6 +131,11 @@ function AppInner() {
   const openManagerDashboard = () => {
     if (!canAccessManager) return;
     setActiveViewRole('manager');
+    closeMenu();
+  };
+
+  const openAdminApprovals = () => {
+    if (!isAdmin) return;
     closeMenu();
   };
 
@@ -178,10 +176,7 @@ function AppInner() {
     accessibility.fontScale !== 0,
     accessibility.readableFont,
     accessibility.pageZoom,
-    accessibility.cursor !== 'default',
-    accessibility.imageDescriptions,
-    accessibility.highlightHeadings,
-    accessibility.highlightLinks
+    accessibility.cursor !== 'default'
   ].filter(Boolean).length;
 
   return (
@@ -190,7 +185,7 @@ function AppInner() {
       <header className="border-b border-gray-800 bg-[#0a0a14]/80 backdrop-blur-md sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 py-3 grid grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-6">
           <div className="justify-self-start">
-            <button
+            <div className="flex items-center gap-2"><button
               type="button"
               onClick={() => setIsMenuOpen(true)}
               aria-label="פתיחת תוכן העניינים"
@@ -199,7 +194,7 @@ function AppInner() {
               className="group relative grid h-11 w-12 place-items-center rounded-xl border border-[#00e6ff]/25 bg-[#0f1828] text-[#00e6ff] shadow-[0_0_18px_rgba(0,230,255,0.08)] transition-all hover:border-[#00e6ff]/60 hover:bg-[#132238] hover:shadow-[0_0_22px_rgba(0,230,255,0.18)] focus:outline-none focus:ring-2 focus:ring-[#00e6ff]/40"
             >
               <Menu size={25} strokeWidth={2.4} className="transition-transform group-hover:scale-110" />
-            </button>
+            </button><GlobalSearch buttonClassName="hidden h-11 items-center gap-2 rounded-xl border border-gray-800 bg-gray-900/50 px-3 text-xs font-bold text-gray-400 transition hover:border-[#00e6ff]/30 hover:text-white md:flex" /></div>
           </div>
 
           <Link
@@ -239,7 +234,7 @@ function AppInner() {
                   שלום, <strong className="text-gray-200">{currentUser.username}</strong>
                 </span>
                 <span className={`mt-1 block text-[10px] font-bold ${canAccessManager ? 'text-purple-400' : 'text-[#00e6ff]'}`}>
-                  {canAccessManager ? 'מנהל' : 'עובד רגיל'}
+                  {isAdmin ? 'מנהל מערכת' : canAccessManager ? 'מנהל' : 'עובד רגיל'}
                 </span>
               </span>
             </Link>
@@ -290,7 +285,7 @@ function AppInner() {
                 <Link
                   to="/"
                   onClick={openLearningPortal}
-                  className={`shieldx-menu-item ${!isManagerView ? 'shieldx-menu-item--active' : ''}`}
+                  className={`shieldx-menu-item ${isLearningPortalView ? 'shieldx-menu-item--active' : ''}`}
                 >
                   <span className="shieldx-menu-item__icon"><BookOpen size={20} /></span>
                   <span className="flex-1">
@@ -299,6 +294,10 @@ function AppInner() {
                   </span>
                   <ChevronLeft size={17} className="text-gray-600" />
                 </Link>
+
+                <Link to="/final-exam" onClick={closeMenu} className={`shieldx-menu-item ${isFinalExamView ? 'shieldx-menu-item--active' : ''}`}><span className="shieldx-menu-item__icon"><UserCheck size={20} /></span><span className="flex-1"><span className="block text-sm font-bold">מבחן מסכם</span><span className="mt-0.5 block text-[11px] text-gray-500">הסמכה סופית לאחר השלמת המסלול</span></span><ChevronLeft size={17} className="text-gray-600" /></Link>
+                <Link to="/knowledge" onClick={closeMenu} className={`shieldx-menu-item ${isKnowledgeView ? 'shieldx-menu-item--active' : ''}`}><span className="shieldx-menu-item__icon"><BookOpen size={20} /></span><span className="flex-1"><span className="block text-sm font-bold">ספריית ידע</span><span className="mt-0.5 block text-[11px] text-gray-500">נהלים, מסמכים וסימון קראתי</span></span><ChevronLeft size={17} className="text-gray-600" /></Link>
+                <Link to="/settings" onClick={closeMenu} className={`shieldx-menu-item ${isProfileView ? 'shieldx-menu-item--active' : ''}`}><span className="shieldx-menu-item__icon"><Type size={20} /></span><span className="flex-1"><span className="block text-sm font-bold">פרופיל והישגים</span><span className="mt-0.5 block text-[11px] text-gray-500">הסמכה, תעודות וציר זמן אישי</span></span><ChevronLeft size={17} className="text-gray-600" /></Link>
 
                 </div>
 
@@ -317,6 +316,32 @@ function AppInner() {
                       </span>
                       <ChevronLeft size={17} className="text-gray-600" />
                     </Link>
+                    <Link
+                      to="/ai-studio"
+                      onClick={closeMenu}
+                      className={`shieldx-menu-item mt-2 ${isAIStudioView ? 'shieldx-menu-item--active' : ''}`}
+                    >
+                      <span className="shieldx-menu-item__icon"><Sparkles size={20} /></span>
+                      <span className="flex-1">
+                        <span className="block text-sm font-bold">AI Course Generator</span>
+                        <span className="mt-0.5 block text-[11px] text-gray-500">יצירת קורס מלא מפרומפט ומחומר מקור</span>
+                      </span>
+                      <ChevronLeft size={17} className="text-gray-600" />
+                    </Link>
+                    {isAdmin && (
+                      <Link
+                        to="/admin"
+                        onClick={openAdminApprovals}
+                        className={`shieldx-menu-item mt-2 ${isAdminView ? 'shieldx-menu-item--active' : ''}`}
+                      >
+                        <span className="shieldx-menu-item__icon shieldx-menu-item__icon--purple"><UserCheck size={20} /></span>
+                        <span className="flex-1">
+                          <span className="block text-sm font-bold">אישור משתמשים</span>
+                          <span className="mt-0.5 block text-[11px] text-gray-500">אישור או דחיית נרשמים חדשים</span>
+                        </span>
+                        <ChevronLeft size={17} className="text-gray-600" />
+                      </Link>
+                    )}
                   </>
                 )}
               </div>
@@ -380,18 +405,6 @@ function AppInner() {
                         <MousePointer2 size={19} />
                         <span>סמן לבן גדול</span>
                       </button>
-                      <button type="button" onClick={() => toggleAccessibility('imageDescriptions')} className={`a11y-option ${accessibility.imageDescriptions ? 'a11y-option--active' : ''}`} aria-pressed={accessibility.imageDescriptions}>
-                        <Image size={19} />
-                        <span>תיאור תמונות</span>
-                      </button>
-                      <button type="button" onClick={() => toggleAccessibility('highlightHeadings')} className={`a11y-option ${accessibility.highlightHeadings ? 'a11y-option--active' : ''}`} aria-pressed={accessibility.highlightHeadings}>
-                        <Heading size={19} />
-                        <span>הדגשת כותרות</span>
-                      </button>
-                      <button type="button" onClick={() => toggleAccessibility('highlightLinks')} className={`a11y-option ${accessibility.highlightLinks ? 'a11y-option--active' : ''}`} aria-pressed={accessibility.highlightLinks}>
-                        <Link2 size={19} />
-                        <span>הדגשת קישורים</span>
-                      </button>
                     </div>
 
                     <div className="mt-3 flex items-center justify-between rounded-xl border border-gray-800 bg-gray-900/50 px-3 py-2">
@@ -429,10 +442,19 @@ function AppInner() {
         <Routes>
           <Route path="/" element={<Dashboard />} />
           <Route path="/manager" element={canAccessManager ? <ManagerDashboard /> : <Navigate to="/" replace />} />
+          <Route path="/admin" element={isAdmin ? <AdminApprovals /> : <Navigate to="/" replace />} />
+          <Route path="/ai-studio" element={canAccessManager ? <AIPresentationStudio /> : <Navigate to="/" replace />} />
           <Route path="/subject/:id" element={<SubjectView />} />
+          <Route path="/final-exam" element={<FinalExam />} />
+          <Route path="/knowledge" element={<KnowledgeLibrary />} />
           <Route path="/settings" element={<UserSettings />} />
         </Routes>
       </main>
+      <footer className="border-t border-gray-900/80 px-4 py-5 text-center" dir="ltr">
+        <span className="text-[10px] font-semibold tracking-[0.16em] text-gray-700">
+          Developed by <span className="text-gray-500">Yaniv &amp; Lev</span>
+        </span>
+      </footer>
     </div>
   );
 }
