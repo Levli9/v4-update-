@@ -53,6 +53,10 @@ export default function FinalExam() {
       <section className="rounded-3xl border border-gray-800 bg-gray-900/55 p-8 text-center shadow-2xl">
         <div className="mx-auto grid h-20 w-20 place-items-center rounded-3xl border border-gray-700 bg-gray-950 text-gray-500"><LockKeyhole size={34} /></div>
         <h1 className="mt-5 text-2xl font-black text-white">המבחן המסכם עדיין נעול</h1>
+        <div className="mx-auto mt-4 max-w-md rounded-2xl border border-rose-500/30 bg-rose-500/10 px-5 py-4 text-rose-300" role="status">
+          <strong className="block text-sm font-black">🔴 טרם הוסמכת</strong>
+          <span className="mt-1 block text-[11px] font-bold leading-5 text-rose-300/75">אין לך עדיין הסמכת ShieldX פעילה. יש להשלים את ההכשרה ולעבור את המבחן המסכם בציון 80 ומעלה.</span>
+        </div>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-gray-400">יש להשלים את כל הקורסים לפני שניתן לגשת למבחן המסכם.</p>
         <div className="mx-auto mt-6 max-w-md"><div className="mb-2 flex justify-between text-xs font-bold text-gray-500"><span>{completedCount}/{subjectsData.length}</span><span>התקדמות לפתיחת המבחן</span></div><div className="h-3 overflow-hidden rounded-full bg-gray-950"><div className="h-full rounded-full bg-gradient-to-l from-[#00e6ff] to-[#9d4edd]" style={{ width: `${Math.round((completedCount / subjectsData.length) * 100)}%` }} /></div></div>
         <div className="mx-auto mt-5 grid max-w-xl grid-cols-2 gap-2 text-[11px] font-bold sm:grid-cols-4">{[['100% קורסים', readiness.coursesDone], ['כל הסרטונים', readiness.videosDone], ['כל התרגולים', readiness.labsDone], ['כל המבדקים', readiness.quizzesDone]].map(([label, done]) => <span key={label} className={`rounded-xl border px-3 py-2 ${done ? 'border-emerald-500/20 bg-emerald-500/8 text-emerald-400' : 'border-gray-800 bg-gray-950 text-gray-600'}`}>{done ? '✓' : '○'} {label}</span>)}</div>
