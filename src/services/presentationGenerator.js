@@ -239,44 +239,194 @@ export function generateLocalPresentation({ prompt, sourceText, audience = 'עו
 }
 
 export async function generatePresentation(input) {
+  // Read Gemini API key saved by admin panel
+  const geminiKey = localStorage.getItem('shieldx_gemini_api_key') || '';
+
+  // If no key → fall back to local generator immediately
+  if (!geminiKey) {
+    console.info('[AI] No Gemini API key configured — using local generator.');
+    await new Promise((resolve) => window.setTimeout(resolve, 1200));
+    return generateLocalPresentation(input);
+  }
+
+  const { prompt, sourceText = '', audience = 'עובדי החברה', slideCount = 7, difficulty = 'בינוני', duration = 30, language = 'עברית', passScore = 80 } = input;
+
+  const systemPrompt = `אתה מומחה לבניית קורסי הדרכה ארגוניים בתחום אבטחת מידע וסייבר.
+צור מצגת הדרכה מקצועית בנושא: "${prompt}".
+קהל יעד: ${audience}. רמת קושי: ${difficulty}. משך: ${duration} דקות. שפה: ${language}.
+${sourceText ? `השתמש גם בתוכן הבא שהמשתמש סיפק:\n${sourceText.slice(0, 3000)}` : ''}
+
+החזר JSON בדיוק בפורמט הבא (ללא markdown, רק JSON טהור):
+{
+  "title": "כותרת הקורס",
+  "description": "תיאור קצר",
+  "learningObjectives": ["מטרה 1", "מטרה 2", "מטרה 3"],
+  "slides": [
+    {
+      "id": 1,
+      "title": "כותרת השקופית",
+      "content": "תוכן ראשי של השקופית (2-3 משפטים)",
+      "bulletPoints": ["נקודה 1", "נקודה 2", "נקודה 3"],
+      "speakerNotes": "הערות למרצה",
+      "visualSuggestion": "תיאור ויזואלי מוצע"
+    }
+  ],
+  "finalExam": {
+    "questions": [
+      {
+        "question": "שאלה בנושא",
+        "answers": ["תשובה נכונה", "תשובה שגויה 1", "תשובה שגויה 2", "תשובה שגויה 3"],
+        "correctAnswerIndex": 0,
+        "explanation": "הסבר קצר"
+      }
+    ]
+  }
+}
+
+צור בדיוק ${Math.min(12, Math.max(4, Number(slideCount)))} שקופיות.
+צור בדיוק 5 שאלות מבחן בסוף.
+ציון מעבר: ${passScore}.
+הכל בעברית. אל תוסיף markdown, code blocks או טקסט מחוץ ל-JSON.`;
+
   try {
-    const response = await fetch('/api/generate-course', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input)
-    });
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: systemPrompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 8192,
+            responseMimeType: 'application/json'
+          }
+        })
+      }
+    );
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || 'שירות ה-AI לא זמין כרגע. נסו שוב בעוד רגע.');
+      const errData = await response.json().catch(() => ({}));
+      const errMsg = errData?.error?.message || `שגיאת Gemini API (${response.status})`;
+      throw new Error(errMsg);
     }
 
-    const data = await response.json();
-    return { ...data, mode: 'ai' };
-  } catch (error) {
-    console.warn('API call failed, falling back to local simulation:', error.message);
-    // If the backend failed due to lack of API key, bubble up that error instead of silent fallback
-    if (error.message.includes('ספק AI אינו מוגדר') || error.message.includes('API key')) {
-      throw error;
+    const geminiData = await response.json();
+    const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // Parse JSON — strip any accidental markdown fences
+    const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+    const parsed = JSON.parse(cleaned);
+
+    if (!parsed.slides || !Array.isArray(parsed.slides)) {
+      throw new Error('תגובת ה-AI לא כללה שקופיות תקינות.');
     }
-    
-    // Otherwise fallback to local generator
-    await new Promise((resolve) => window.setTimeout(resolve, 1500));
+
+    // Normalise slide schema
+    const slides = parsed.slides.map((s, idx) => ({
+      id: idx + 1,
+      title: s.title || `שקופית ${idx + 1}`,
+      content: s.content || '',
+      bulletPoints: Array.isArray(s.bulletPoints) ? s.bulletPoints : [],
+      speakerNotes: s.speakerNotes || '',
+      visualSuggestion: s.visualSuggestion || ''
+    }));
+
+    // Normalise exam questions
+    const questions = Array.isArray(parsed.finalExam?.questions)
+      ? parsed.finalExam.questions.map((q) => ({
+          question: q.question || '',
+          answers: Array.isArray(q.answers) ? q.answers : ['א', 'ב', 'ג', 'ד'],
+          correctAnswerIndex: typeof q.correctAnswerIndex === 'number' ? q.correctAnswerIndex : 0,
+          explanation: q.explanation || ''
+        }))
+      : [];
+
+    return {
+      id: `deck-${Date.now()}`,
+      title: parsed.title || prompt,
+      description: parsed.description || '',
+      learningObjectives: Array.isArray(parsed.learningObjectives) ? parsed.learningObjectives : [],
+      slides,
+      finalExam: {
+        questions,
+        pointsPerQuestion: 10,
+        passScore,
+        randomized: true
+      },
+      mode: 'gemini'
+    };
+
+  } catch (err) {
+    console.warn('[AI] Gemini call failed:', err.message);
+    // Surface API key errors clearly without fallback
+    if (err.message.includes('API_KEY') || err.message.includes('API key') || err.message.includes('401') || err.message.includes('403')) {
+      throw new Error(`🔑 מפתח Gemini API שגוי או לא תקין. בדוק את המפתח בהגדרות Admin. (${err.message})`);
+    }
+    // Other errors → silent fallback to local
+    await new Promise((resolve) => window.setTimeout(resolve, 800));
     return generateLocalPresentation(input);
   }
 }
 
 export async function refineSlide(action, slide, topic) {
-  const response = await fetch('/api/refine-slide', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, slide, topic })
-  });
+  const geminiKey = localStorage.getItem('shieldx_gemini_api_key') || '';
 
-  if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || 'תקלה בעריכת השקופית באמצעות AI.');
+  if (!geminiKey) {
+    // Offline refinement — basic local transformation
+    await new Promise((resolve) => window.setTimeout(resolve, 600));
+    const refined = { ...slide };
+    if (action === 'expand') {
+      refined.content = `${slide.content} פירוט נוסף: ניתן להרחיב כאן את ההסבר עם דוגמאות נוספות מהשטח הרלוונטיות ל${topic}.`;
+      refined.bulletPoints = [...(slide.bulletPoints || []), 'נקודה נוספת להרחבה'];
+    } else if (action === 'simplify') {
+      refined.content = slide.content.split('.').slice(0, 1).join('.') + '.';
+    } else if (action === 'example') {
+      refined.bulletPoints = [...(slide.bulletPoints || []), `דוגמה מעשית: מקרה אמיתי בתחום ${topic}`];
+    }
+    return refined;
   }
 
-  return await response.json();
+  const actionMap = {
+    expand: 'הרחב את תוכן השקופית, הוסף פרטים ודוגמאות',
+    simplify: 'פשט את השקופית לשפה ברורה יותר, קצר כל נקודה',
+    example: 'הוסף דוגמה מעשית אמיתית לשקופית',
+    quiz: 'הפוך את השקופית לשאלה אינטראקטיבית'
+  };
+
+  const refinePrompt = `${actionMap[action] || action} עבור שקופית זו בנושא "${topic}":
+כותרת: ${slide.title}
+תוכן: ${slide.content}
+נקודות: ${(slide.bulletPoints || []).join(' | ')}
+
+החזר JSON בלבד:
+{
+  "title": "...",
+  "content": "...",
+  "bulletPoints": ["...", "...", "..."],
+  "speakerNotes": "...",
+  "visualSuggestion": "..."
+}`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: refinePrompt }] }],
+        generationConfig: { temperature: 0.5, maxOutputTokens: 2048, responseMimeType: 'application/json' }
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData?.error?.message || 'תקלה בעריכת השקופית באמצעות AI.');
+  }
+
+  const geminiData = await response.json();
+  const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  return JSON.parse(cleaned);
 }
