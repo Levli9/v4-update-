@@ -56,18 +56,6 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 ${readiness.unlocked ? 'border-purple-500/30 bg-gradient-to-l from-purple-500/10 to-gray-900/70' : 'border-gray-800 bg-gray-900/45'}`}>
-        <div className="absolute -left-20 -top-20 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl" />
-        <div className="relative flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
-          <div className="flex items-start gap-4">
-            <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl border ${readiness.unlocked ? 'border-purple-400/30 bg-purple-500/15 text-purple-300' : 'border-gray-700 bg-gray-950 text-gray-600'}`}>{readiness.unlocked ? <Award size={28} /> : <LockKeyhole size={25} />}</div>
-            <div><div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-black text-white">מבחן הסמכה מסכם</h2>{finalExam && <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${finalExam.passed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{finalExam.passed ? '🟢 מוסמך' : '🔴 לא מוסמך'}</span>}</div><p className="mt-2 text-sm leading-6 text-gray-400">10 שאלות מכל חומרי הקורס · ציון מעבר 80 · תיעוד מלא של התוצאה</p>{!readiness.unlocked && <p className="mt-3 text-xs font-bold text-amber-400">יש להשלים את כל הקורסים לפני שניתן לגשת למבחן המסכם.</p>}</div>
-          </div>
-          {readiness.unlocked ? <Link to="/final-exam" className="w-full rounded-xl bg-purple-500 px-6 py-3 text-center text-sm font-black text-white shadow-lg shadow-purple-950/30 sm:w-auto">{finalExam ? 'גישה למבחן נוסף' : 'התחלת מבחן מסכם'}</Link> : <button type="button" disabled className="w-full cursor-not-allowed rounded-xl border border-gray-800 bg-gray-950 px-6 py-3 text-sm font-black text-gray-600 sm:w-auto">מבחן מסכם נעול</button>}
-        </div>
-        {!readiness.unlocked && <div className="relative mt-5 grid grid-cols-2 gap-2 text-[10px] font-bold sm:grid-cols-4">{[['קורסים', readiness.coursesDone], ['סרטונים', readiness.videosDone], ['תרגולים', readiness.labsDone], ['מבדקים', readiness.quizzesDone]].map(([label, done]) => <span key={label} className={`rounded-lg border px-3 py-2 text-center ${done ? 'border-emerald-500/15 bg-emerald-500/5 text-emerald-400' : 'border-gray-800 bg-gray-950/50 text-gray-600'}`}>{done ? '✓' : '○'} {label}</span>)}</div>}
-      </section>
-
       {/* Grid of subjects */}
       <section className="space-y-4">
         <h2 className="text-xl font-bold text-gray-200">נושאי הלימוד</h2>
@@ -79,6 +67,19 @@ export default function Dashboard() {
             />
           ))}
         </div>
+      </section>
+
+      {/* Final Exam Section (moved below courses) */}
+      <section className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 ${readiness.unlocked ? 'border-purple-500/30 bg-gradient-to-l from-purple-500/10 to-gray-900/70' : 'border-gray-800 bg-gray-900/45'}`}>
+        <div className="absolute -left-20 -top-20 h-56 w-56 rounded-full bg-purple-500/10 blur-3xl" />
+        <div className="relative flex flex-col items-start justify-between gap-6 sm:flex-row sm:items-center">
+          <div className="flex items-start gap-4">
+            <div className={`grid h-14 w-14 shrink-0 place-items-center rounded-2xl border ${readiness.unlocked ? 'border-purple-400/30 bg-purple-500/15 text-purple-300' : 'border-gray-700 bg-gray-950 text-gray-600'}`}>{readiness.unlocked ? <Award size={28} /> : <LockKeyhole size={25} />}</div>
+            <div><div className="flex flex-wrap items-center gap-2"><h2 className="text-xl font-black text-white">מבחן הסמכה מסכם</h2>{finalExam && <span className={`rounded-full px-2.5 py-1 text-[10px] font-black ${finalExam.passed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{finalExam.passed ? '🟢 מוסמך' : '🔴 לא מוסמך'}</span>}</div><p className="mt-2 text-sm leading-6 text-gray-400">10 שאלות מכל חומרי הקורס · ציון מעבר 80 · תיעוד מלא של התוצאה</p>{!readiness.unlocked && <p className="mt-3 text-xs font-bold text-amber-400">יש להשלים את כל הקורסים לפני שניתן לגשת למבחן המסכם.</p>}</div>
+          </div>
+          {readiness.unlocked ? <Link to="/final-exam" className="w-full rounded-xl bg-purple-500 px-6 py-3 text-center text-sm font-black text-white shadow-lg shadow-purple-950/30 sm:w-auto">{finalExam ? 'גישה למבחן נוסף' : 'התחלת מבחן מסכם'}</Link> : <button type="button" disabled className="w-full cursor-not-allowed rounded-xl border border-gray-800 bg-gray-950 px-6 py-3 text-sm font-black text-gray-600 sm:w-auto">מבחן מסכם נעול</button>}
+        </div>
+        {!readiness.unlocked && <div className="relative mt-5 grid grid-cols-2 gap-2 text-[10px] font-bold sm:grid-cols-4">{[['קורסים', readiness.coursesDone], ['סרטונים', readiness.videosDone], ['תרגולים', readiness.labsDone], ['מבדקים', readiness.quizzesDone]].map(([label, done]) => <span key={label} className={`rounded-lg border px-3 py-2 text-center ${done ? 'border-emerald-500/15 bg-emerald-500/5 text-emerald-400' : 'border-gray-800 bg-gray-950/50 text-gray-600'}`}>{done ? '✓' : '○'} {label}</span>)}</div>}
       </section>
     </div>
   );
