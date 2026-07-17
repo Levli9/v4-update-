@@ -40,18 +40,20 @@ export default function SubjectCard({ subject }) {
 
   const cardContent = (
     <>
-      <div className="mb-4 flex items-start justify-between">
-        <span className="text-3xl filter drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]">{emoji}</span>
-        <div className="flex gap-2">
-          <span className="rounded-full border border-gray-700/30 bg-gray-800 px-2.5 py-1 text-xs font-semibold text-gray-400">{difficulty}</span>
-          <span className="rounded-full border border-gray-700/30 bg-gray-800 px-2.5 py-1 text-xs font-semibold text-gray-400">{estimatedTime}</span>
+      <div className="flex-1">
+        <div className="mb-4 flex items-start justify-between">
+          <span className="text-3xl filter drop-shadow-[0_0_8px_rgba(255,255,255,0.1)]">{emoji}</span>
+          <div className="flex gap-2">
+            <span className="rounded-full border border-gray-700/30 bg-gray-800 px-2.5 py-1 text-xs font-semibold text-gray-400">{difficulty}</span>
+            <span className="rounded-full border border-gray-700/30 bg-gray-800 px-2.5 py-1 text-xs font-semibold text-gray-400">{estimatedTime}</span>
+          </div>
         </div>
+        <h3 className="mb-2 text-lg font-bold text-gray-100">{title}</h3>
+        <p className="mb-5 line-clamp-2 text-sm leading-relaxed text-gray-400">{description}</p>
       </div>
-      <h3 className="mb-2 text-lg font-bold text-gray-100">{title}</h3>
-      <p className="mb-5 line-clamp-2 text-sm leading-relaxed text-gray-400">{description}</p>
       
-      {/* Chapter Progress Bar */}
-      <div className="mt-auto pt-3 border-t border-gray-800/40 mb-4">
+      {/* Chapter Progress Bar - Pushed to bottom */}
+      <div className="pt-3 border-t border-gray-800/40 mb-4">
         <div className="flex justify-between text-[10px] font-bold text-gray-500 mb-1.5">
           <span>התקדמות בפרק</span>
           <span>{progressPct}%</span>
@@ -82,7 +84,7 @@ export default function SubjectCard({ subject }) {
     </>
   );
 
-  const cardClassName = 'group relative block cursor-pointer overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-[#00e6ff]/40 hover:shadow-cyan-950/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#00e6ff]';
+  const cardClassName = 'group relative flex flex-col h-full cursor-pointer overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/60 p-6 shadow-lg transition-all duration-300 hover:-translate-y-1 hover:border-[#00e6ff]/40 hover:shadow-cyan-950/20 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#00e6ff]';
   const cardStyle = { borderRight: `4px solid ${color}` };
 
   return <Link to={`/subject/${id}`} className={cardClassName} style={cardStyle} aria-label={`פתיחת הקורס ${title}`}>{cardContent}</Link>;

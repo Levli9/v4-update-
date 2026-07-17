@@ -20,7 +20,8 @@ import {
   Type,
   UserCheck,
   X,
-  ZoomIn
+  ZoomIn,
+  Award
 } from 'lucide-react';
 import { AppProvider, useApp } from './context/AppContext';
 import Dashboard from './pages/Dashboard';
@@ -296,7 +297,7 @@ function AppInner() {
 
                 <Link to="/final-exam" onClick={closeMenu} className={`shieldx-menu-item ${isFinalExamView ? 'shieldx-menu-item--active' : ''}`}><span className="shieldx-menu-item__icon"><UserCheck size={20} /></span><span className="flex-1"><span className="block text-sm font-bold">מבחן מסכם</span><span className="mt-0.5 block text-[11px] text-gray-500">הסמכה סופית לאחר השלמת המסלול</span></span><ChevronLeft size={17} className="text-gray-600" /></Link>
                 <Link to="/knowledge" onClick={closeMenu} className={`shieldx-menu-item ${isKnowledgeView ? 'shieldx-menu-item--active' : ''}`}><span className="shieldx-menu-item__icon"><BookOpen size={20} /></span><span className="flex-1"><span className="block text-sm font-bold">ספריית ידע</span><span className="mt-0.5 block text-[11px] text-gray-500">נהלים, מסמכים וסימון קראתי</span></span><ChevronLeft size={17} className="text-gray-600" /></Link>
-                <Link to="/settings" onClick={closeMenu} className={`shieldx-menu-item ${isProfileView ? 'shieldx-menu-item--active' : ''}`}><span className="shieldx-menu-item__icon"><Type size={20} /></span><span className="flex-1"><span className="block text-sm font-bold">פרופיל והישגים</span><span className="mt-0.5 block text-[11px] text-gray-500">הסמכה, תעודות וציר זמן אישי</span></span><ChevronLeft size={17} className="text-gray-600" /></Link>
+                <Link to="/settings" onClick={closeMenu} className={`shieldx-menu-item ${isProfileView ? 'shieldx-menu-item--active' : ''}`}><span className="shieldx-menu-item__icon"><Award size={20} /></span><span className="flex-1"><span className="block text-sm font-bold">הסמכות ותעודות</span><span className="mt-0.5 block text-[11px] text-gray-500">סטטוס הסמכה, תעודות וציר זמן אישי</span></span><ChevronLeft size={17} className="text-gray-600" /></Link>
 
                 </div>
 

@@ -83,10 +83,31 @@ const buildDemoAnalytics = (user) => {
   return { videos, quizzes, courses };
 };
 
+const certifiedProgress = {
+  completedSubjects: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  completedLabs: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  scores: { 0: 98, 1: 95, 2: 93, 3: 90, 4: 94, 5: 92, 6: 88, 7: 97, 8: 92, 9: 90, 10: 91 },
+  badges: ['צעד ראשון', 'חצי הדרך', 'מאסטר סייבר', 'מוסמך ShieldX'],
+  xp: 1540,
+  finalExam: {
+    status: 'passed',
+    passed: true,
+    score: 95,
+    lastScore: 95,
+    bestScore: 95,
+    attempts: 1,
+    lastAttemptAt: ago(0, 1),
+    passedAt: ago(0, 1),
+    history: [
+      { attempt: 1, score: 95, passed: true, correctCount: 9, wrongCount: 1, attemptedAt: ago(0, 1) }
+    ]
+  }
+};
+
 const DEMO_USERS = [
   { username: 'admin', password: 'admin', email: 'admin@shieldx.demo', role: 'admin', department: 'הנהלת מערכת', progress: progress([], {}, 0) },
   { username: 'Yaniv123', password: 'yaniv123', email: 'yaniv.manager@shieldx.demo', role: 'manager', department: 'פיתוח (R&D)', progress: progress([0, 1, 2, 3, 4, 5], { 0: 96, 1: 92, 2: 88, 3: 94, 4: 86, 5: 91 }, 720), lastActivity: ago(0, 2) },
-  { username: 'Lev123', password: 'lev123', email: 'lev.manager@shieldx.demo', role: 'manager', department: 'אבטחת מידע (Security)', progress: progress([0, 1, 2, 3, 4, 7, 8], { 0: 98, 1: 95, 2: 93, 3: 90, 4: 94, 7: 97, 8: 92 }, 860), lastActivity: ago(0, 1) },
+  { username: 'Lev123', password: 'lev123', email: 'lev.manager@shieldx.demo', role: 'manager', department: 'אבטחת מידע (Security)', progress: certifiedProgress, lastActivity: ago(0, 1) },
   { username: 'MayaManager', password: 'Manager123!', email: 'maya.manager@shieldx.demo', role: 'manager', department: 'משאבי אנוש', progress: progress([0, 1, 2, 10], { 0: 91, 1: 89, 2: 87, 10: 94 }, 480), lastActivity: ago(1) },
   { username: 'RonManager', password: 'Manager123!', email: 'ron.manager@shieldx.demo', role: 'manager', department: 'כספים (Finance)', progress: progress([0, 1, 2, 6, 10], { 0: 88, 1: 84, 2: 90, 6: 86, 10: 92 }, 560), lastActivity: ago(2) },
   { username: 'NoaCohen', password: 'Employee123!', email: 'noa.cohen@shieldx.demo', role: 'employee', department: 'פיתוח (R&D)', progress: progress([0, 1, 2, 3, 4, 5, 7, 9], { 0: 94, 1: 88, 2: 91, 3: 86, 4: 82, 5: 89, 7: 93, 9: 85 }, 930), lastActivity: ago(0, 4) },
@@ -98,14 +119,32 @@ const DEMO_USERS = [
   { username: 'YaelShah', password: 'Employee123!', email: 'yael.shah@shieldx.demo', role: 'employee', department: 'כספים (Finance)', progress: progress([0, 1, 2, 3, 6, 10], { 0: 93, 1: 90, 2: 88, 3: 91, 6: 87, 10: 95 }, 710), lastActivity: ago(1, 7) },
   { username: 'EitanRaz', password: 'Employee123!', email: 'eitan.raz@shieldx.demo', role: 'employee', department: 'כספים (Finance)', progress: progress([0, 1, 2], { 0: 82, 1: 74, 2: 78 }, 310), lastActivity: ago(12) },
   { username: 'LiorBen', password: 'Employee123!', email: 'lior.ben@shieldx.demo', role: 'employee', department: 'תפעול (Operations)', progress: progress([0, 1, 2, 3, 4, 7, 9], { 0: 90, 1: 86, 2: 84, 3: 88, 4: 81, 7: 89, 9: 92 }, 810), lastActivity: ago(0, 6) },
-  { username: 'HilaDan', password: 'Employee123!', email: 'hila.dan@shieldx.demo', role: 'employee', department: 'תפעול (Operations)', progress: progress([], {}, 0), lastActivity: ago(35) }
+  { username: 'HilaDan', password: 'Employee123!', email: 'hila.dan@shieldx.demo', role: 'employee', department: 'תפעול (Operations)', progress: progress([], {}, 0), lastActivity: ago(35) },
+  // Additional rich dummy users for leaderboard / dashboard charts
+  { username: 'RoyHarel', password: 'Employee123!', email: 'roy.harel@shieldx.demo', role: 'employee', department: 'פיתוח (R&D)', progress: progress([0, 1, 2, 3, 4, 5, 6, 7, 8, 9], { 0: 92, 1: 90, 2: 88, 3: 86, 4: 92, 5: 85, 6: 87, 7: 90, 8: 91, 9: 88 }, 1380), lastActivity: ago(0, 2) },
+  { username: 'TaliRabin', password: 'Employee123!', email: 'tali.rabin@shieldx.demo', role: 'employee', department: 'משאבי אנוש', progress: progress([0, 1, 2], { 0: 85, 1: 88, 2: 80 }, 320), lastActivity: ago(5) },
+  { username: 'GuySadeh', password: 'Employee123!', email: 'guy.sadeh@shieldx.demo', role: 'employee', department: 'תפעול (Operations)', progress: progress([0, 1, 2, 3, 4, 5], { 0: 90, 1: 84, 2: 86, 3: 92, 4: 88, 5: 80 }, 680), lastActivity: ago(2) },
+  { username: 'RoniShahar', password: 'Employee123!', email: 'roni.shahar@shieldx.demo', role: 'employee', department: 'כספים (Finance)', progress: progress([0, 1, 2, 3, 4, 5, 6, 7], { 0: 88, 1: 92, 2: 90, 3: 86, 4: 84, 5: 89, 6: 82, 7: 85 }, 1020), lastActivity: ago(1) },
+  { username: 'AdiPerez', password: 'Employee123!', email: 'adi.perez@shieldx.demo', role: 'employee', department: 'פיתוח (R&D)', progress: progress([0], { 0: 82 }, 110), lastActivity: ago(10) },
+  { username: 'GalAlon', password: 'Employee123!', email: 'gal.alon@shieldx.demo', role: 'employee', department: 'אבטחת מידע (Security)', progress: progress([0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10], { 0: 95, 1: 94, 2: 91, 3: 90, 4: 93, 5: 89, 6: 88, 7: 92, 8: 91, 9: 93, 10: 94 }, 1480), lastActivity: ago(0, 1) }
 ].map((user) => ({ ...user, password: hashPassword(user.password), status: 'approved', analytics: buildDemoAnalytics(user) }));
 
 const ensureDemoUsers = () => {
-  const existing = usersCollection.find();
   DEMO_USERS.forEach((demoUser) => {
-    if (!existing.some((user) => user.username.toLowerCase() === demoUser.username.toLowerCase())) {
+    const match = usersCollection.findOne({ username: demoUser.username });
+    if (!match) {
       usersCollection.insertOne(demoUser);
+    } else {
+      // Force sync demo users data to allow updates to Lev123 progress to reflect immediately
+      usersCollection.updateOne(
+        { username: demoUser.username },
+        { 
+          progress: demoUser.progress, 
+          role: demoUser.role,
+          department: demoUser.department,
+          analytics: demoUser.analytics || buildDemoAnalytics(demoUser)
+        }
+      );
     }
   });
 };

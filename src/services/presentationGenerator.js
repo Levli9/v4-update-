@@ -99,102 +99,143 @@ export function generateLocalPresentation({ prompt, sourceText, audience = 'עו
 
   const slides = [
     {
-      type: 'cover',
+      id: 1,
       title: subject,
-      subtitle: `מצגת הדרכה עבור ${audience}`,
-      bullets: [],
-      accent: '#00e6ff'
+      content: `ברוכים הבאים לשיעור הדרכה מיוחד בנושא ${subject}. במצגת זו נלמד על עקרונות המפתח, דרכי התמודדות והנחיות עבודה נכונות.`,
+      bulletPoints: [
+        `קהל יעד: ${audience}`,
+        `רמת קושי: ${difficulty}`,
+        'חשוב לשמור על ערנות ולדווח על כל אירוע חריג'
+      ],
+      speakerNotes: 'הציגו את עצמכם והסבירו על חשיבות המודעות לנושא זה בארגון.',
+      visualSuggestion: 'שקף פתיחה מעוצב עם לוגו ShieldX ואנימציה קלה.'
     },
     {
-      type: 'content',
+      id: 2,
       title: 'למה הנושא חשוב?',
-      subtitle: 'התמונה הגדולה',
-      bullets: [
-        sourceBullet(ranked, 0, facts[0]),
-        sourceBullet(ranked, 1, 'טעות אנוש קטנה יכולה להפוך לאירוע אבטחה משמעותי.'),
-        sourceBullet(ranked, 2, 'המטרה היא לזהות את הסיכון לפני שמבצעים פעולה.')
+      content: facts[0] || 'טעות אנוש קטנה יכולה להוביל לפגיעה חמורה במערכות המידע של הארגון.',
+      bulletPoints: [
+        'טעות אנוש קטנה יכולה להפוך לאירוע אבטחה משמעותי',
+        'המטרה היא לזהות את הסיכון לפני שמבצעים פעולה',
+        'שמירה על סודיות ושלמות המידע היא באחריות כולנו'
       ],
-      accent: '#9d4edd'
+      speakerNotes: 'הדגישו כי מודעות העובדים היא קו ההגנה הראשון של הארגון.',
+      visualSuggestion: 'תרשים המציג את קווי ההגנה הארגוניים.'
     },
     {
-      type: 'content',
+      id: 3,
       title: 'סימנים שצריך לזהות',
-      subtitle: 'עוצרים לפני שפועלים',
-      bullets: [
-        sourceBullet(ranked, 3, facts[1]),
-        sourceBullet(ranked, 4, 'בקשה חריגה, לחץ זמן או שינוי פתאומי בתהליך הם דגל אדום.'),
-        sourceBullet(ranked, 5, 'בודקים את המקור בערוץ נוסף ואמין לפני שממשיכים.')
+      content: facts[1] || 'בקשות חריגות, לחץ זמן מוגזם או דרישות לשינוי תהליכים שגרתיים הם סימני אזהרה קלאסיים.',
+      bulletPoints: [
+        'בקשה חריגה או שינוי פתאומי בתהליך העבודה',
+        'לחץ זמן מוגזם מצד השולח לקבלת מענה מהיר',
+        'אי התאמה בכתובת המייל או בפרטי הקשר'
       ],
-      accent: '#ffb703'
+      speakerNotes: 'עברו על הדוגמאות והסבירו כיצד תוקפים משתמשים במניפולציות פסיכולוגיות.',
+      visualSuggestion: 'צילום מסך של הודעה חשודה עם סימוני אזהרה בטורקיז.'
     },
     {
-      type: 'steps',
-      title: 'מודל פעולה: עצור, בדוק, דווח',
-      subtitle: 'שלושה צעדים פשוטים',
-      bullets: [
-        { text: 'עצור — אל תלחץ, אל תפתח ואל תמסור מידע.', citation: null },
-        { text: 'בדוק — אמת את השולח, הכתובת, ההקשר והבקשה.', citation: null },
-        { text: 'דווח — העבר לצוות האבטחה ושמור את הראיות.', citation: null }
+      id: 4,
+      title: 'מודל פעולה מומלץ',
+      content: 'כאשר נתקלים במצב חשוד, יש לפעול לפי מודל שלושת השלבים של ShieldX: עצור, בדוק, דווח.',
+      bulletPoints: [
+        'עצור — אל תלחץ, אל תפתח קבצים ואל תמסור מידע',
+        'בדוק — אמת את פרטי השולח והבקשה בערוץ תקשורת נפרד',
+        'דווח — העבר דיווח מפורט לצוות האבטחה והמתן להנחיות'
       ],
-      accent: '#10b981'
+      speakerNotes: 'פרטו על כל אחד מהשלבים ותנו דוגמה מעשית.',
+      visualSuggestion: 'אנימציה של שלושה שלבים מונפשים בסגנון סייבר.'
     },
     {
-      type: 'scenario',
+      id: 5,
       title: 'תרחיש מהשטח',
-      subtitle: 'מה היית עושה?',
-      bullets: [
-        sourceBullet(ranked, 6, `קיבלת הודעה דחופה הקשורה ל־${subject} ובה בקשה לבצע פעולה לא שגרתית.`),
-        { text: 'סמנו אילו פרטים דורשים אימות לפני פעולה.', citation: null },
-        { text: 'בחרו למי מדווחים ומה שומרים כתיעוד.', citation: null }
+      content: `נניח שקיבלתם הודעה דחופה הקשורה ל־${subject} ובה בקשה לביצוע פעולה שאינה בשגרה.`,
+      bulletPoints: [
+        'האם אתם מזהים בוודאות את המקור?',
+        'האם הבקשה תואמת את הנהלים הרגילים?',
+        'האם יש צורך לאמת בערוץ תקשורת נפרד?'
       ],
-      accent: '#f43f5e'
+      speakerNotes: 'שאלו את המשתתפים כיצד היו פועלים במצב זה.',
+      visualSuggestion: 'איור של עובד מול מחשב עם תיבת התראה מהבהבת.'
     },
     {
-      type: 'checklist',
-      title: 'צ׳קליסט לעובד',
-      subtitle: 'לפני שממשיכים',
-      bullets: [
-        { text: 'האם אני מזהה בוודאות את המקור?', citation: null },
-        { text: 'האם הבקשה תואמת לתהליך העבודה הרגיל?', citation: null },
-        { text: 'האם אימתתי את הבקשה בערוץ נפרד?', citation: null },
-        sourceBullet(ranked, 7, facts[2])
+      id: 6,
+      title: 'צ׳קליסט בטיחות יומי',
+      content: facts[2] || 'יישום בקרות בסיסיות בשגרת העבודה שלכם יצמצם משמעותית את סיכוני האבטחה.',
+      bulletPoints: [
+        'בדיקת שולח וכתובת מייל לפני פתיחת קישורים',
+        'אימות בקשות כספיות או הרשאות בערוץ נפרד',
+        'נעילת מסך המחשב בכל יציאה מהעמדה'
       ],
-      accent: '#4cc9f0'
+      speakerNotes: 'עודדו את העובדים להדפיס או לשמור את הצ׳קליסט.',
+      visualSuggestion: 'צ׳קליסט מעוצב עם תיבות סימון ירוקות.'
     },
     {
-      type: 'quiz',
-      title: 'בדיקת הבנה',
-      subtitle: 'שאלת סיכום',
-      bullets: [
-        { text: `מהי הפעולה הראשונה הנכונה כאשר מזהים סימן חשוד בנושא ${subject}?`, citation: null },
-        { text: 'א. לבצע מיד כדי לא לעכב את העבודה', citation: null },
-        { text: 'ב. לעצור, לאמת ולדווח', citation: null },
-        { text: 'ג. להעביר לעובד אחר', citation: null }
+      id: 7,
+      title: 'סיכום ומסקנות',
+      content: 'הגנה על הארגון היא מאמץ משותף. כל עובד ועובדת מהווים חוליה קריטית בשרשרת האבטחה.',
+      bulletPoints: [
+        'עצירה ובדיקה מונעות את רוב תקיפות הסייבר',
+        'דיווח מהיר מאפשר לצוות האבטחה להגן על כלל החברה',
+        'המשך מודעות ולמידה שוטפת הם המפתח להצלחה'
       ],
-      accent: '#a855f7'
-    },
-    {
-      type: 'summary',
-      title: 'שלושה דברים לזכור',
-      subtitle: 'סיכום',
-      bullets: facts.map((text) => ({ text, citation: null })),
-      accent: '#00e6ff'
+      speakerNotes: 'הודו למשתתפים על ההקשבה ופתחו את הבמה לשאלות.',
+      visualSuggestion: 'סמל ShieldX זוהר בטורקיז עם הכיתוב תודה רבה.'
     }
   ];
 
   const selected = slides.slice(0, requestedCount - 1);
   selected.push(slides[slides.length - 1]);
 
-  const result = {
+  const finalExam = [
+    {
+      question: `מהי המטרה העיקרית של הדרכה בנושא ${subject}?`,
+      answers: [
+        'להגביר את המודעות ולצמצם סיכוני אבטחה בארגון',
+        'להפוך את כל העובדים למתכנתי מחשבים',
+        'לשנות את הגדרות הרשת בכל המחשבים',
+        'להתקין תוכנות חדשות ללא אישור'
+      ],
+      correctAnswerIndex: 0,
+      explanation: 'הדרכת מודעות מיועדת לצמצם סיכונים על ידי הגברת ערנות העובדים.'
+    },
+    {
+      question: 'נתקלתם בהודעה חשודה המבקשת פעולה דחופה. מהי הפעולה הראשונה הנכונה?',
+      answers: [
+        'לעצור, לאמת בערוץ נפרד ולדווח לצוות האבטחה',
+        'לבצע מיד כדי לא לעכב את העבודה',
+        'להשיב להודעה ולשאול אם זה בטוח',
+        'להעביר את ההודעה לעובדים אחרים במחלקה'
+      ],
+      correctAnswerIndex: 0,
+      explanation: 'אימות בערוץ נפרד ודיווח לצוות האבטחה מונעים פגיעה במערכות.'
+    },
+    {
+      question: 'מה פירוש השלב "עצור" במותג הפעולה הארגוני?',
+      answers: [
+        'לא ללחוץ על קישורים, לא לפתוח קבצים ולא למסור מידע לפני אימות',
+        'לכבות את המחשב וללכת הביתה',
+        'להמתין לסוף יום העבודה לפני שמדווחים',
+        'למחוק את ההודעה ללא בדיקה'
+      ],
+      correctAnswerIndex: 0,
+      explanation: 'עצירה מונעת הפעלה מיידית של קוד זדוני או חשיפת מידע.'
+    }
+  ];
+
+  return {
     id: `deck-${Date.now()}`,
     title: subject,
-    audience,
-    createdAt: new Date().toISOString(),
-    mode: 'local',
-    sources: sourceParts.map((text, index) => ({ id: index + 1, text })),
-    slides: selected
+    description: `קורס הדרכה מקיף בנושא ${subject} המיועד עבור ${audience}.`,
+    learningObjectives: [
+      `הבנת סיכוני האבטחה הקשורים ל-${subject}`,
+      'זיהוי סימני אזהרה ודגלים אדומים בשגרת העבודה',
+      'פעולה נכונה על פי נהלי ShieldX למניעת אירועי סייבר'
+    ],
+    slides: selected.map((s, idx) => ({ ...s, id: idx + 1 })),
+    finalExam,
+    mode: 'local'
   };
-  return { ...result, coursePackage: buildCoursePackage({ subject, audience, difficulty, duration, language, slides: selected }) };
 }
 
 export async function generatePresentation(input) {
