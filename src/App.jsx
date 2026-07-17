@@ -29,6 +29,7 @@ import SubjectView from './pages/SubjectView';
 import Login from './pages/Login';
 import ManagerDashboard from './pages/ManagerDashboard';
 import UserSettings from './pages/UserSettings';
+import UserProfile from './pages/UserProfile';
 import AdminApprovals from './pages/AdminApprovals';
 import AIPresentationStudio from './pages/AIPresentationStudio';
 import FinalExam from './pages/FinalExam';
@@ -225,7 +226,7 @@ function AppInner() {
               <LogOut size={17} className="transition-transform group-hover:-translate-x-0.5" />
               <span className="hidden text-xs font-bold lg:inline">התנתקות</span>
             </button>
-            <Link to="/settings" className="hidden sm:flex items-center gap-2 rounded-xl border border-gray-800 bg-gray-900/45 px-3 py-2 transition-colors hover:border-[#00e6ff]/35 hover:bg-gray-900" aria-label="פתיחת הגדרות המשתמש">
+            <Link to="/profile" className="hidden sm:flex items-center gap-2 rounded-xl border border-gray-800 bg-gray-900/45 px-3 py-2 transition-colors hover:border-[#00e6ff]/35 hover:bg-gray-900" aria-label="פתיחת פרופיל המשתמש">
               <span className="profile-avatar profile-avatar--small">
                 {currentUser.avatar ? <img src={currentUser.avatar} alt="" /> : <span>👤</span>}
               </span>
@@ -448,6 +449,7 @@ function AppInner() {
           <Route path="/final-exam" element={<FinalExam />} />
           <Route path="/knowledge" element={<KnowledgeLibrary />} />
           <Route path="/settings" element={<UserSettings />} />
+          <Route path="/profile" element={<UserProfile />} />
         </Routes>
       </main>
       <footer className="border-t border-gray-900/80 px-4 py-5 text-center" dir="ltr">

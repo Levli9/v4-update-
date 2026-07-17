@@ -1,52 +1,11 @@
-import React, { useState } from 'react';
-import { Award, Download, Camera, Trash2, Save } from 'lucide-react';
+import React from 'react';
+import { Award, Download } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { prepareProfileImage } from '../services/imageService';
 import BackButton from '../components/BackButton';
 import LearningTimeline from '../components/LearningTimeline';
 
 export default function UserSettings() {
-  const { currentUser, updateCurrentProfile, setActiveViewRole } = useApp();
-  const [username, setUsername] = useState(currentUser.username);
-  const [avatar, setAvatar] = useState(currentUser.avatar || '');
-  const [profileMessage, setProfileMessage] = useState(null);
-  const [imageError, setImageError] = useState('');
-
-  const handleImageChange = async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    setImageError('');
-    setProfileMessage(null);
-    try {
-      // Compress to 128px for total browser database storage safety
-      const preparedAvatar = await prepareProfileImage(file, 128);
-      const result = updateCurrentProfile({ username: currentUser.username, avatar: preparedAvatar });
-      if (!result.success) throw new Error(result.message);
-      setAvatar(preparedAvatar);
-      setProfileMessage({ type: 'success', text: 'תמונת הפרופיל נשמרה בהצלחה.' });
-    } catch (error) {
-      setImageError(error.message);
-    }
-    event.target.value = '';
-  };
-
-  const handleImageRemove = () => {
-    const result = updateCurrentProfile({ username: currentUser.username, avatar: '' });
-    if (result.success) {
-      setAvatar('');
-      setProfileMessage({ type: 'success', text: 'תמונת הפרופיל הוסרה בהצלחה.' });
-      setImageError('');
-    } else {
-      setProfileMessage({ type: 'error', text: result.message });
-    }
-  };
-
-  const handleProfileSubmit = (event) => {
-    event.preventDefault();
-    const result = updateCurrentProfile({ username, avatar });
-    setProfileMessage({ type: result.success ? 'success' : 'error', text: result.message });
-  };
+  const { currentUser, setActiveViewRole } = useApp();
 
   const downloadCertificate = () => {
     const canvas = document.createElement('canvas');
@@ -186,6 +145,7 @@ export default function UserSettings() {
     link.click();
   };
 
+
   return (
     <div className="mx-auto max-w-3xl space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -194,83 +154,6 @@ export default function UserSettings() {
           <p className="mt-1 text-xs font-semibold text-gray-500">צפייה בסטטוס ההסמכה, תעודות רשמיות וציר הזמן הלימודי שלך</p>
         </div>
         <BackButton onClick={() => setActiveViewRole('employee')} />
-      </div>
-
-      {/* Profile Edit Card */}
-      <div className="overflow-hidden rounded-3xl border border-gray-800 bg-gray-900/45 shadow-2xl p-6 space-y-5">
-        <h3 className="text-sm font-black text-white flex items-center gap-2">
-          <span>👤 עריכת פרופיל אישי</span>
-        </h3>
-        
-        <form onSubmit={handleProfileSubmit} className="space-y-4">
-          <div className="flex flex-col sm:flex-row items-center gap-5">
-            {/* Avatar Selector/Upload */}
-            <div className="relative group shrink-0">
-              <div className="h-20 w-20 overflow-hidden rounded-2xl border-2 border-gray-800 bg-gray-950 flex items-center justify-center">
-                {avatar ? (
-                  <img src={avatar} alt="פרופיל" className="h-full w-full object-cover" />
-                ) : (
-                  <span className="text-3xl text-gray-600">👤</span>
-                )}
-              </div>
-              
-              <label className="absolute -bottom-1 -right-1 grid h-7 w-7 cursor-pointer place-items-center rounded-lg bg-[#00e6ff] text-black shadow-md hover:scale-105 transition-transform">
-                <Camera size={14} />
-                <input 
-                  type="file" 
-                  accept="image/*" 
-                  onChange={handleImageChange} 
-                  className="hidden" 
-                />
-              </label>
-              
-              {avatar && (
-                <button
-                  type="button"
-                  onClick={handleImageRemove}
-                  className="absolute -top-1 -right-1 grid h-7 w-7 place-items-center rounded-lg bg-rose-500/90 text-white shadow-md hover:scale-105 transition-transform"
-                  title="הסר תמונה"
-                >
-                  <Trash2 size={14} />
-                </button>
-              )}
-            </div>
-
-            {/* Username Edit */}
-            <div className="flex-1 w-full space-y-3">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">שם משתמש</label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={username}
-                    onChange={(e) => setUsername(e.target.value)}
-                    className="flex-1 rounded-xl border border-gray-800 bg-gray-950 px-4 py-2 text-xs text-white focus:border-[#00e6ff] focus:outline-none"
-                    placeholder="שם משתמש"
-                    minLength={3}
-                    required
-                  />
-                  <button
-                    type="submit"
-                    className="flex items-center gap-1.5 rounded-xl bg-[#00e6ff] px-4 py-2 text-xs font-black text-black hover:brightness-110 transition"
-                  >
-                    <Save size={13} />
-                    שמור שם
-                  </button>
-                </div>
-              </div>
-
-              {imageError && (
-                <p className="text-[11px] font-bold text-rose-400">{imageError}</p>
-              )}
-              {profileMessage && (
-                <p className={`text-[11px] font-bold ${profileMessage.type === 'success' ? 'text-emerald-400' : 'text-rose-400'}`}>
-                  {profileMessage.text}
-                </p>
-              )}
-            </div>
-          </div>
-        </form>
       </div>
 
       <div className="overflow-hidden rounded-3xl border border-gray-800 bg-gray-900/45 shadow-2xl p-6 sm:p-8 space-y-7">
