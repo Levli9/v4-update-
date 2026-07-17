@@ -25,7 +25,7 @@ export default function Dashboard() {
             ברוך הבא למרכז למידת אבטחת המידע
           </h1>
           <p className="text-gray-400 text-md leading-relaxed mb-6">
-            עקוב אחר התקדמותך בנושאי הסייבר השונים, בצע סימולציות ומעבדות קוד, ועבור את מבדקי הידע כדי להתקדם לנושאים הבאים.
+            כל ההדרכות פתוחות עבורך. אפשר ללמוד בכל סדר, לבצע סימולציות ומעבדות קוד ולעקוב אחר ההתקדמות עד לפתיחת המבחן המסכם.
           </p>
 
           {/* Progress Tracker Card */}
@@ -73,17 +73,14 @@ export default function Dashboard() {
       <section className="space-y-4">
         <h2 className="text-xl font-bold text-gray-200">נושאי הלימוד</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subjectsData.map((subject, idx) => {
+          {subjectsData.map((subject) => {
             const isCompleted = userProgress.completedSubjects.includes(subject.id);
             const score = userProgress.scores[subject.id] || 0;
-            // Topic 0 is always unlocked. The subsequent ones are unlocked if the previous one is completed.
-            const isUnlocked = subject.id === 0 || userProgress.completedSubjects.includes(subject.id - 1);
 
             return (
               <SubjectCard 
                 key={subject.id}
                 subject={subject}
-                isUnlocked={isUnlocked}
                 isCompleted={isCompleted}
                 score={score}
               />
