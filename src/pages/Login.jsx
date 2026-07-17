@@ -180,8 +180,9 @@ export default function Login() {
           <div className="flex justify-center">
             <ShieldXLogo />
           </div>
-          <h2 className="mt-5 text-2xl font-extrabold text-white">
-            ברוכים הבאים ל־<ShieldXWordmark className="inline-flex text-[1.08em]" />
+          <h2 className="mt-5 flex flex-wrap items-center justify-center gap-x-2 gap-y-2 text-2xl font-extrabold text-white">
+            <span>ברוכים הבאים למערכת</span>
+            <ShieldXWordmark className="text-[1.08em]" />
           </h2>
           <p className="mt-2 text-sm text-gray-400 font-semibold">מערכת הדרכת עובדים בתחום הסייבר</p>
         </div>
