@@ -72,19 +72,12 @@ export default function Dashboard() {
       <section className="space-y-4">
         <h2 className="text-xl font-bold text-gray-200">נושאי הלימוד</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subjects.map((subject) => {
-            const isCompleted = userProgress.completedSubjects.includes(subject.id);
-            const score = userProgress.scores[subject.id] || 0;
-
-            return (
-              <SubjectCard 
-                key={subject.id}
-                subject={subject}
-                isCompleted={isCompleted}
-                score={score}
-              />
-            );
-          })}
+          {subjects.map((subject) => (
+            <SubjectCard 
+              key={subject.id}
+              subject={subject}
+            />
+          ))}
         </div>
       </section>
     </div>
