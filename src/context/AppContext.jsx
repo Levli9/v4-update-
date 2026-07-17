@@ -57,9 +57,9 @@ const seedCertificationDemoData = () => {
 };
 
 const buildDemoAnalytics = (user) => {
-  if (user.role !== 'employee') return { videos: {}, quizzes: {}, courses: {} };
+  const completed = user.progress?.completedSubjects || [];
+  if (completed.length === 0 && user.role !== 'employee') return { videos: {}, quizzes: {}, courses: {} };
   const seed = [...user.username].reduce((total, character) => total + character.charCodeAt(0), 0);
-  const completed = user.progress.completedSubjects;
   const videos = {};
   const quizzes = {};
   const courses = {};

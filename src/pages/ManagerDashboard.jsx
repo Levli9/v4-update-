@@ -332,10 +332,6 @@ export default function ManagerDashboard() {
       {/* STATS VIEW */}
       {activeTab === 'stats' && (
         <div className="space-y-8">
-          <section className="rounded-3xl border border-gray-800 bg-gray-900/45 p-4"><div className="mb-3 flex items-center justify-between gap-3 px-1"><span className="text-[9px] font-bold text-gray-600">נתוני עובדים בלבד · מתעדכן בזמן אמת</span><h2 className="text-sm font-black text-white">👥 מעקב עובדים בזמן אמת</h2></div><div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-            {[[`🟢 ${learningNow}`, 'עובדים לומדים עכשיו'], [`🟡 ${testingNow}`, 'עובדים במבחן כרגע'], [`🔴 ${inactiveThisWeek}`, 'עובדים שלא התחברו השבוע'], [`🔵 ${completedRecently}`, 'עובדים שסיימו קורס היום'], [`🟣 ${certifiedRecently}`, 'עובדים שהוסמכו היום']].map(([value, label]) => <div key={label} className="rounded-2xl border border-gray-800 bg-gray-950/45 p-3 text-center"><strong className="block text-lg text-white">{value}</strong><span className="mt-1 block text-[9px] font-bold text-gray-600">{label}</span></div>)}
-          </div>
-          </section>
           <section className="relative overflow-hidden rounded-[2rem] border border-[#00e6ff]/20 bg-gradient-to-l from-[#071b2a] via-[#0b1120] to-[#151126] p-6 shadow-[0_25px_80px_rgba(0,0,0,0.35)] sm:p-8">
             <div className="absolute -left-16 -top-20 h-64 w-64 rounded-full bg-purple-500/10 blur-3xl" />
             <div className="absolute -bottom-24 right-12 h-64 w-64 rounded-full bg-cyan-500/10 blur-3xl" />
@@ -779,7 +775,23 @@ export default function ManagerDashboard() {
 
       {/* EMPLOYEES TABLE VIEW */}
       {activeTab === 'employees' && (
-        <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-6">
+        <div className="space-y-6">
+          <section className="rounded-3xl border border-gray-800 bg-gray-900/45 p-4">
+            <div className="mb-3 flex items-center justify-between gap-3 px-1">
+              <span className="text-[9px] font-bold text-gray-600">נתוני עובדים בלבד · מתעדכן בזמן אמת</span>
+              <h2 className="text-sm font-black text-white">👥 מעקב עובדים בזמן אמת</h2>
+            </div>
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
+              {[[`🟢 ${learningNow}`, 'עובדים לומדים עכשיו'], [`🟡 ${testingNow}`, 'עובדים במבחן כרגע'], [`🔴 ${inactiveThisWeek}`, 'עובדים שלא התחברו השבוע'], [`🔵 ${completedRecently}`, 'עובדים שסיימו קורס היום'], [`🟣 ${certifiedRecently}`, 'עובדים שהוסמכו היום']].map(([value, label]) => (
+                <div key={label} className="rounded-2xl border border-gray-800 bg-[#070b13] p-3 text-center">
+                  <strong className="block text-lg text-white">{value}</strong>
+                  <span className="mt-1 block text-[9px] font-bold text-gray-600">{label}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h3 className="text-md font-bold text-gray-200">רשימת עובדים ומעקב למידה</h3>
             
@@ -862,6 +874,7 @@ export default function ManagerDashboard() {
             </table>
           </div>
         </div>
+      </div>
       )}
 
       {/* Employee Details Modal */}
