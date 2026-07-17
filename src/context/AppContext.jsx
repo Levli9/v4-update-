@@ -7,6 +7,15 @@ const AppContext = createContext();
 
 const usersCollection = nosqlDb.collection('users');
 
+const normalizeProgress = (savedProgress = {}) => ({
+  completedSubjects: [],
+  completedLabs: [],
+  scores: {},
+  badges: [],
+  xp: 0,
+  ...savedProgress
+});
+
 const ago = (days, hours = 0) => new Date(Date.now() - ((days * 24 + hours) * 60 * 60 * 1000)).toISOString();
 const progress = (completedSubjects, scores, xp) => ({
   completedSubjects,
@@ -173,8 +182,18 @@ export const AppProvider = ({ children }) => {
 
   // ── Session State ──
   const [currentUser, setCurrentUser] = useState(() => {
-    const saved = localStorage.getItem('cyber_current_user');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('cyber_current_user');
+      if (!saved) return null;
+      const parsed = JSON.parse(saved);
+      if (!parsed?.username) return null;
+      const freshRecord = usersCollection.findOne({ username: parsed.username });
+      const restored = freshRecord || parsed;
+      return { ...restored, progress: normalizeProgress(restored.progress) };
+    } catch {
+      localStorage.removeItem('cyber_current_user');
+      return null;
+    }
   });
 
   // The learning portal is always the default landing view, for managers and employees alike.
@@ -575,7 +594,7 @@ export const AppProvider = ({ children }) => {
   };
 
   // Helper shortcut for employee progress of current session
-  const userProgress = currentUser?.progress || { completedSubjects: [], scores: {}, badges: [], xp: 0 };
+  const userProgress = normalizeProgress(currentUser?.progress);
 
   return (
     <AppContext.Provider value={{

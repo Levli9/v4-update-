@@ -9,8 +9,14 @@ class NoSQLCollection {
   }
 
   _getDocs() {
-    const data = localStorage.getItem(this.key);
-    return data ? JSON.parse(data) : [];
+    try {
+      const data = localStorage.getItem(this.key);
+      const parsed = data ? JSON.parse(data) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch (error) {
+      console.warn(`ShieldX recovered from invalid local data in ${this.key}.`, error);
+      return [];
+    }
   }
 
   _saveDocs(docs) {
