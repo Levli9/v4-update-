@@ -11,7 +11,7 @@ import ScenarioLab from '../components/ScenarioLab';
 
 export default function SubjectView() {
   const { id } = useParams();
-  const { subjects = [], completeSubject, completeLab, recordQuizAnswer, trackVideoProgress, rateCourse, updatePresence, currentUser, setActiveViewRole } = useApp();
+  const { subjects = [], completeSubject, completeLab, recordQuizAnswer, trackVideoProgress, rateCourse, updatePresence, currentUser, userProgress, setActiveViewRole } = useApp();
   const subject = subjects.find(s => String(s.id) === String(id));
   const subjectId = subject?.id;
 
@@ -21,6 +21,19 @@ export default function SubjectView() {
   const [revealedBullets, setRevealedBullets] = useState([]);
   const [lessonChoice, setLessonChoice] = useState(null);
   const [showFeedback, setShowFeedback] = useState(false);
+
+  // Status checks for each tab completion
+  const isVideoCompleted = Boolean(currentUser?.analytics?.videos?.[subjectId]?.completed);
+  const isLearnCompleted = Boolean(userProgress?.completedSubjects?.includes(subjectId));
+  const isLabCompleted = Boolean(userProgress?.completedLabs?.includes(subjectId)) || labDone;
+  const isQuizCompleted = Boolean(Number(userProgress?.scores?.[subjectId]) >= 80);
+
+  // Automatically mark theory lesson as completed when the user reads to the last slide
+  useEffect(() => {
+    if (subject?.slides && subject.slides.length > 0 && slideIdx === subject.slides.length - 1) {
+      completeSubject(subjectId, 100);
+    }
+  }, [slideIdx, subject, subjectId]);
 
   useEffect(() => {
     updatePresence('learning', { subjectId });
@@ -38,6 +51,7 @@ export default function SubjectView() {
 
   const handleQuizComplete = (score) => {
     if (score >= 80) {
+      // Just record quiz score in scores database
       completeSubject(subjectId, score);
       setShowFeedback(true);
     }
@@ -79,7 +93,7 @@ export default function SubjectView() {
               activeTab === 'video' ? 'border-[#00e6ff] text-[#00e6ff]' : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
           >
-            🎬 סרטון הסבר
+            🎬 סרטון הסבר {isVideoCompleted && <span className="text-emerald-400 font-bold mr-1">✓</span>}
           </button>
         )}
         <button
@@ -88,7 +102,7 @@ export default function SubjectView() {
             activeTab === 'learn' ? 'border-[#00e6ff] text-[#00e6ff]' : 'border-transparent text-gray-400 hover:text-gray-200'
           }`}
         >
-          📖 שיעור עיוני
+          📖 שיעור עיוני {isLearnCompleted && <span className="text-emerald-400 font-bold mr-1">✓</span>}
         </button>
         {subject.simulations && subject.simulations.length > 0 && (
           <button
@@ -97,7 +111,7 @@ export default function SubjectView() {
               activeTab === 'lab' ? 'border-[#ffb703] text-[#ffb703]' : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
           >
-            🎮 מעבדה וסימולציה
+            🎮 מעבדה וסימולציה {isLabCompleted && <span className="text-emerald-400 font-bold mr-1">✓</span>}
           </button>
         )}
         <button
@@ -106,7 +120,7 @@ export default function SubjectView() {
             activeTab === 'quiz' ? 'border-[#9d4edd] text-[#9d4edd]' : 'border-transparent text-gray-400 hover:text-gray-200'
           }`}
         >
-          📝 מבדק ידע
+          📝 מבדק ידע {isQuizCompleted && <span className="text-emerald-400 font-bold mr-1">✓</span>}
         </button>
       </div>
 
