@@ -499,18 +499,20 @@ export default function ManagerDashboard() {
                 <h3 className="text-sm font-extrabold text-white">השוואת מחלקות</h3>
               </div>
               {deptChartData.length ? (
-                <div className="grid h-[280px] grid-cols-2 items-end gap-x-3 gap-y-5 border-b border-gray-800 px-2 pb-3 sm:grid-cols-3 lg:grid-cols-5">
-                  {deptChartData.map(dept => (
-                    <div key={dept.name} className="flex h-full min-w-0 flex-col items-center justify-end">
-                      <div className="flex h-[205px] items-end gap-2">
-                        <div className="w-6 rounded-t-lg bg-gradient-to-t from-cyan-700 to-cyan-400 transition-all sm:w-7" style={{ height: `${Math.max(4, dept.completionRate)}%` }} title={`${dept.completionRate}% השלמה`} />
-                        <div className="w-6 rounded-t-lg bg-gradient-to-t from-amber-700 to-amber-400 transition-all sm:w-7" style={{ height: `${Math.max(4, dept.avgScore)}%` }} title={`${dept.avgScore}% חוסן`} />
+                <div className="overflow-x-auto pb-2">
+                  <div className="grid h-[300px] min-w-[560px] items-end gap-3 border-b border-gray-800 px-2 pb-3" style={{ gridTemplateColumns: `repeat(${deptChartData.length}, minmax(88px, 1fr))` }}>
+                    {deptChartData.map(dept => (
+                      <div key={dept.name} className="flex h-[270px] min-w-0 flex-col items-center justify-end">
+                        <div className="flex h-[210px] items-end gap-2">
+                          <div className="w-7 rounded-t-lg bg-gradient-to-t from-cyan-700 to-cyan-400 transition-all" style={{ height: `${Math.max(4, dept.completionRate)}%` }} title={`${dept.completionRate}% השלמה`} />
+                          <div className="w-7 rounded-t-lg bg-gradient-to-t from-amber-700 to-amber-400 transition-all" style={{ height: `${Math.max(4, dept.avgScore)}%` }} title={`${dept.avgScore}% חוסן`} />
+                        </div>
+                        <span className="mt-3 flex min-h-10 w-full items-start justify-center px-1 text-center text-[10px] font-bold leading-4 text-gray-400" title={dept.name}>
+                          {getShortDeptName(dept.name)}
+                        </span>
                       </div>
-                      <span className="mt-3 flex min-h-8 w-full items-start justify-center px-1 text-center text-[10px] font-bold leading-4 text-gray-400" title={dept.name}>
-                        {getShortDeptName(dept.name)}
-                      </span>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               ) : <p className="py-20 text-center text-xs text-gray-500">אין נתוני מחלקות להצגה.</p>}
               <div className="mt-4 flex justify-center gap-5 text-[10px] font-bold text-gray-500">
