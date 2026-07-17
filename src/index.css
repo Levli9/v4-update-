@@ -341,16 +341,16 @@ img[data-a11y-description] {
 
 /* Full light color scheme — night mode remains the default */
 html.theme-day body {
-  background-color: #eef4f8;
+  background-color: #dbebf8;
   color: #172033;
 }
 
 html.theme-day .cyber-grid-bg {
-  background-color: #f4f8fb !important;
+  background-color: #dbebf8 !important;
   color: #172033 !important;
   background-image:
-    linear-gradient(to right, rgba(30, 64, 175, 0.055) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(30, 64, 175, 0.055) 1px, transparent 1px);
+    linear-gradient(to right, rgba(0, 110, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(0, 110, 255, 0.08) 1px, transparent 1px) !important;
 }
 
 html.theme-day header {
@@ -366,7 +366,7 @@ html.theme-day [class*="bg-[#0a0a14]"],
 html.theme-day [class*="bg-[#0a0d17]"],
 html.theme-day [class*="bg-[#0b0b14]"],
 html.theme-day [class*="bg-[#0d0d1f]"] {
-  background-color: rgba(255, 255, 255, 0.9) !important;
+  background-color: rgba(255, 255, 255, 0.95) !important;
 }
 
 html.theme-day [class*="bg-gray-800"] {
@@ -377,9 +377,11 @@ html.theme-day [class*="bg-gray-850"] {
   background-color: #d4e0ec !important;
 }
 
-html.theme-day [class*="from-gray-900"] {
+html.theme-day [class*="from-gray-900"],
+html.theme-day [class*="from-[#071b2a]"],
+html.theme-day [class*="from-[#0d0d1f]"] {
   background-color: #ffffff !important;
-  background-image: linear-gradient(to left, #ffffff, #f7fbfe, #edf8fc) !important;
+  background-image: linear-gradient(to left, #ffffff, #f3f8fc, #eaf4fb) !important;
 }
 
 html.theme-day [class*="border-gray-9"],
@@ -391,17 +393,23 @@ html.theme-day [class*="border-gray-7"] {
 html.theme-day [class*="text-white"],
 html.theme-day [class*="text-gray-100"],
 html.theme-day [class*="text-gray-200"],
-html.theme-day [class*="text-gray-300"] {
+html.theme-day [class*="text-gray-300"],
+html.theme-day h2.text-white,
+html.theme-day h3.text-white,
+html.theme-day .text-white {
   color: #172033 !important;
 }
 
-html.theme-day [class*="text-gray-400"] {
-  color: #46566b !important;
+html.theme-day [class*="text-gray-400"],
+html.theme-day p.text-gray-400,
+html.theme-day span.text-gray-400 {
+  color: #3b4b60 !important;
 }
 
 html.theme-day [class*="text-gray-500"],
-html.theme-day [class*="text-gray-600"] {
-  color: #64748b !important;
+html.theme-day [class*="text-gray-600"],
+html.theme-day small.text-gray-500 {
+  color: #55667e !important;
 }
 
 html.theme-day input,
@@ -410,6 +418,55 @@ html.theme-day textarea {
   color: #172033 !important;
   background: #ffffff !important;
   border-color: #b9c9da !important;
+}
+
+html.theme-day select.bg-gray-950\/80 {
+  background-color: #ffffff !important;
+  color: #172033 !important;
+  border-color: #cbd5e1 !important;
+}
+
+html.theme-day button.border-cyan-400\/25 {
+  border-color: #0284c7 !important;
+  background-color: rgba(2, 132, 199, 0.1) !important;
+  color: #0369a1 !important;
+}
+
+html.theme-day span.bg-black\/20 {
+  background-color: rgba(0, 110, 255, 0.08) !important;
+  color: #172033 !important;
+  border-color: rgba(0, 110, 255, 0.15) !important;
+}
+
+html.theme-day .bg-purple-500\/10 {
+  background-color: rgba(168, 85, 247, 0.08) !important;
+}
+
+html.theme-day .bg-cyan-500\/10 {
+  background-color: rgba(6, 182, 212, 0.08) !important;
+}
+
+html.theme-day div.border-white\/10 {
+  border-color: rgba(0, 110, 255, 0.15) !important;
+}
+
+html.theme-day div.bg-\[\#09101d\] {
+  background-color: #ffffff !important;
+}
+
+html.theme-day span.bg-emerald-500\/10 {
+  background-color: rgba(16, 185, 129, 0.15) !important;
+  color: #047857 !important;
+}
+
+html.theme-day span.bg-amber-500\/10 {
+  background-color: rgba(245, 158, 11, 0.15) !important;
+  color: #b45309 !important;
+}
+
+html.theme-day span.bg-rose-500\/10 {
+  background-color: rgba(244, 63, 94, 0.15) !important;
+  color: #be123c !important;
 }
 
 html.theme-day input::placeholder,
