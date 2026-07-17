@@ -1,15 +1,14 @@
 // src/pages/Dashboard.jsx
 import React from 'react';
 import { useApp } from '../context/AppContext';
-import { subjectsData } from '../data/subjectsData';
 import SubjectCard from '../components/SubjectCard';
 import { Link } from 'react-router-dom';
 import { Award, LockKeyhole } from 'lucide-react';
 import { getCertificationReadiness } from '../data/finalExamData';
 
 export default function Dashboard() {
-  const { userProgress, currentUser } = useApp();
-  const totalSubjects = subjectsData.length;
+  const { userProgress, currentUser, subjects = [] } = useApp();
+  const totalSubjects = subjects.length;
   const completedCount = userProgress.completedSubjects.length;
   const progressPct = Math.round((completedCount / totalSubjects) * 100);
   const readiness = getCertificationReadiness(userProgress, currentUser?.analytics, totalSubjects);
@@ -73,7 +72,7 @@ export default function Dashboard() {
       <section className="space-y-4">
         <h2 className="text-xl font-bold text-gray-200">נושאי הלימוד</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subjectsData.map((subject) => {
+          {subjects.map((subject) => {
             const isCompleted = userProgress.completedSubjects.includes(subject.id);
             const score = userProgress.scores[subject.id] || 0;
 

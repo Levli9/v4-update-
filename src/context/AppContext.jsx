@@ -1,7 +1,8 @@
 // src/context/AppContext.jsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { nosqlDb } from '../services/nosqlStorage';
 import { hashPassword, verifyPassword } from '../services/hashService';
+import { subjectsData } from '../data/subjectsData';
 
 const AppContext = createContext();
 
@@ -198,6 +199,77 @@ export const AppProvider = ({ children }) => {
 
   // The learning portal is always the default landing view, for managers and employees alike.
   const [activeViewRole, setActiveViewRole] = useState('employee');
+
+  // Custom courses logic
+  const [customSubjects, setCustomSubjects] = useState(() => {
+    try {
+      const coursesCollection = nosqlDb.collection('courses');
+      return coursesCollection.find({ status: 'published' });
+    } catch (e) {
+      console.error("Failed to load custom courses from DB:", e);
+      return [];
+    }
+  });
+
+  const subjects = useMemo(() => {
+    // Map custom courses to the subjectData structure
+    const mappedCustom = customSubjects.map(c => {
+      const durationNum = Number(c.duration) || 30;
+      return {
+        id: c.id,
+        title: c.title,
+        description: c.description || '',
+        difficulty: c.difficulty || 'בינוני',
+        estimatedTime: `${durationNum} דק׳`,
+        emoji: c.emoji || '🎓',
+        color: c.color || '#00e6ff',
+        slides: c.slides || [],
+        videoScript: c.videoScript || [],
+        quizzes: (c.finalExam || []).map((q, idx) => ({
+          id: `custom_q_${c.id}_${idx}`,
+          question: q.question,
+          options: q.answers || q.options || [],
+          answer: q.correctAnswerIndex !== undefined ? q.correctAnswerIndex : 0,
+          explanation: q.explanation || "זוהי התשובה הנכונה."
+        })),
+        simulations: [],
+        videoUrl: ''
+      };
+    });
+    return [...subjectsData, ...mappedCustom];
+  }, [customSubjects]);
+
+  const publishCourse = (course) => {
+    const coursesCollection = nosqlDb.collection('courses');
+    const existing = coursesCollection.findOne({ id: course.id });
+    if (existing) {
+      coursesCollection.updateOne({ id: course.id }, { ...course, status: 'published' });
+    } else {
+      coursesCollection.insertOne({ ...course, status: 'published' });
+    }
+    setCustomSubjects(coursesCollection.find({ status: 'published' }));
+  };
+
+  const saveCourseDraft = (course) => {
+    const coursesCollection = nosqlDb.collection('courses');
+    const existing = coursesCollection.findOne({ id: course.id });
+    if (existing) {
+      coursesCollection.updateOne({ id: course.id }, { ...course, status: 'draft' });
+    } else {
+      coursesCollection.insertOne({ ...course, status: 'draft' });
+    }
+    setCustomSubjects(coursesCollection.find({ status: 'published' }));
+  };
+
+  const deleteCourse = (courseId) => {
+    const coursesCollection = nosqlDb.collection('courses');
+    // nosqlStorage currently does not have a deleteOne method, so we will use updateOne to mark as archived, 
+    // or we can implement database deletion by updating all docs. Let's filter out the document and write it back:
+    const docs = coursesCollection._getDocs();
+    const filteredDocs = docs.filter(doc => String(doc.id) !== String(courseId));
+    coursesCollection._saveDocs(filteredDocs);
+    setCustomSubjects(coursesCollection.find({ status: 'published' }));
+  };
 
   // Keep manager dashboards synchronized when another employee tab updates its progress.
   useEffect(() => {
@@ -602,6 +674,10 @@ export const AppProvider = ({ children }) => {
       currentUser,
       activeViewRole,
       userProgress,
+      subjects,
+      publishCourse,
+      saveCourseDraft,
+      deleteCourse,
       login,
       register,
       reviewRegistration,

@@ -3,7 +3,6 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle2, Lightbulb, Sparkles } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { subjectsData } from '../data/subjectsData';
 import PhishingSimulation from '../components/PhishingSimulation';
 import Quiz from '../components/Quiz';
 import VideoPlayer from '../components/VideoPlayer';
@@ -12,11 +11,11 @@ import ScenarioLab from '../components/ScenarioLab';
 
 export default function SubjectView() {
   const { id } = useParams();
-  const subjectId = parseInt(id, 10);
-  const subject = subjectsData.find(s => s.id === subjectId);
-  const { completeSubject, completeLab, recordQuizAnswer, trackVideoProgress, rateCourse, updatePresence, currentUser, setActiveViewRole } = useApp();
+  const { subjects = [], completeSubject, completeLab, recordQuizAnswer, trackVideoProgress, rateCourse, updatePresence, currentUser, setActiveViewRole } = useApp();
+  const subject = subjects.find(s => String(s.id) === String(id));
+  const subjectId = subject?.id;
 
-  const [activeTab, setActiveTab] = useState('video'); // video, learn, lab, quiz
+  const [activeTab, setActiveTab] = useState(subject?.videoUrl ? 'video' : 'learn'); // video, learn, lab, quiz
   const [slideIdx, setSlideIdx] = useState(0);
   const [labDone, setLabDone] = useState(false);
   const [revealedBullets, setRevealedBullets] = useState([]);
@@ -73,14 +72,16 @@ export default function SubjectView() {
 
       {/* Tabs Menu */}
       <div className="grid grid-cols-2 border-b border-gray-800 sm:flex" role="tablist" aria-label="חלקי הקורס">
-        <button
-          onClick={() => setActiveTab('video')}
-          className={`min-h-12 px-3 py-3 text-xs font-bold border-b-2 transition-all sm:flex-1 sm:px-5 sm:text-sm ${
-            activeTab === 'video' ? 'border-[#00e6ff] text-[#00e6ff]' : 'border-transparent text-gray-400 hover:text-gray-200'
-          }`}
-        >
-          🎬 סרטון הסבר
-        </button>
+        {subject.videoUrl && (
+          <button
+            onClick={() => setActiveTab('video')}
+            className={`min-h-12 px-3 py-3 text-xs font-bold border-b-2 transition-all sm:flex-1 sm:px-5 sm:text-sm ${
+              activeTab === 'video' ? 'border-[#00e6ff] text-[#00e6ff]' : 'border-transparent text-gray-400 hover:text-gray-200'
+            }`}
+          >
+            🎬 סרטון הסבר
+          </button>
+        )}
         <button
           onClick={() => setActiveTab('learn')}
           className={`min-h-12 px-3 py-3 text-xs font-bold border-b-2 transition-all sm:flex-1 sm:px-5 sm:text-sm ${

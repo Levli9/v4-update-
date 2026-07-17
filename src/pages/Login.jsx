@@ -352,7 +352,23 @@ export default function Login() {
             </button>
             {(regError || regSuccess) && <div aria-live="polite" aria-atomic="true">
               {regError && <div className="rounded-xl border border-red-500/20 bg-red-950/20 p-3 text-center text-xs font-bold text-red-400">{regError}</div>}
-              {regSuccess && <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 text-center text-xs font-bold leading-6 text-emerald-400"><span className="mb-1 block text-lg">✓</span>{regSuccess}</div>}
+              {regSuccess && (
+                <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 text-center text-xs font-bold leading-6 text-emerald-400">
+                  <span className="mb-1 block text-lg">✓</span>
+                  <div>{regSuccess}</div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveTab('login');
+                      setRegSuccess('');
+                      setRegError('');
+                    }}
+                    className="mt-3 block w-full py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-black font-black text-xs transition-colors"
+                  >
+                    חזור למסך ההתחברות
+                  </button>
+                </div>
+              )}
             </div>}
           </form>
         )}

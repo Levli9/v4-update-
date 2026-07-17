@@ -198,17 +198,44 @@ export function generateLocalPresentation({ prompt, sourceText, audience = 'עו
 }
 
 export async function generatePresentation(input) {
-  const endpoint = import.meta.env.VITE_AI_PRESENTATION_ENDPOINT;
-  if (endpoint) {
-    const response = await fetch(endpoint, {
+  try {
+    const response = await fetch('/api/generate-course', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input)
     });
-    if (!response.ok) throw new Error('שירות ה-AI לא זמין כרגע. נסו שוב בעוד רגע.');
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || 'שירות ה-AI לא זמין כרגע. נסו שוב בעוד רגע.');
+    }
+
     const data = await response.json();
     return { ...data, mode: 'ai' };
+  } catch (error) {
+    console.warn('API call failed, falling back to local simulation:', error.message);
+    // If the backend failed due to lack of API key, bubble up that error instead of silent fallback
+    if (error.message.includes('ספק AI אינו מוגדר') || error.message.includes('API key')) {
+      throw error;
+    }
+    
+    // Otherwise fallback to local generator
+    await new Promise((resolve) => window.setTimeout(resolve, 1500));
+    return generateLocalPresentation(input);
   }
-  await new Promise((resolve) => window.setTimeout(resolve, 850));
-  return generateLocalPresentation(input);
+}
+
+export async function refineSlide(action, slide, topic) {
+  const response = await fetch('/api/refine-slide', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action, slide, topic })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.error || 'תקלה בעריכת השקופית באמצעות AI.');
+  }
+
+  return await response.json();
 }
