@@ -346,11 +346,16 @@ export const AppProvider = ({ children }) => {
 
   const reviewRegistration = (username, decision) => {
     if (currentUser?.role !== 'admin') return { success: false, message: 'אין הרשאה לביצוע הפעולה.' };
-    const status = decision === 'approve' ? 'approved' : 'rejected';
+    
+    let status;
+    if (decision === 'approve') status = 'approved';
+    else if (decision === 'pending') status = 'pending';
+    else status = 'rejected';
+
     const updated = usersCollection.updateOne({ username }, {
       status,
-      reviewedAt: new Date().toISOString(),
-      reviewedBy: currentUser.username
+      reviewedAt: status === 'pending' ? null : new Date().toISOString(),
+      reviewedBy: status === 'pending' ? null : currentUser.username
     });
     setUsers(usersCollection.find());
     return updated ? { success: true } : { success: false, message: 'המשתמש לא נמצא.' };
