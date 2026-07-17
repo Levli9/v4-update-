@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { 
   ChevronLeft, ChevronRight, Clock3, Play, Save, Sparkles, X, 
-  Trash2, Copy, Plus, ArrowUp, ArrowDown, Upload, FileText, CheckCircle2, Loader2, Edit3 
+  Trash2, Copy, Plus, ArrowLeft, ArrowRight, Upload, FileText, CheckCircle2, Loader2, Edit3 
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { generatePresentation, refineSlide } from '../services/presentationGenerator';
@@ -37,7 +37,12 @@ export default function AIPresentationStudio() {
     try {
       const saved = localStorage.getItem('shieldx_ai_presentation_draft');
       if (saved) {
-        setDeck(JSON.parse(saved));
+        const parsed = JSON.parse(saved);
+        if (parsed && Array.isArray(parsed.slides) && parsed.slides.length > 0) {
+          setDeck(parsed);
+        } else {
+          localStorage.removeItem('shieldx_ai_presentation_draft');
+        }
       }
     } catch (e) {
       console.warn("Failed to load saved draft:", e);

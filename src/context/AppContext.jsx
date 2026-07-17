@@ -668,10 +668,22 @@ export const AppProvider = ({ children }) => {
   };
 
   // ── Brevo API Password Recovery Integration ──
+  const getBrevoConfig = () => {
+    const key = localStorage.getItem('shieldx_brevo_api_key') || import.meta.env.VITE_BREVO_API_KEY || '';
+    const sender = localStorage.getItem('shieldx_brevo_sender_email') || import.meta.env.VITE_BREVO_SENDER_EMAIL || 'security@cyber-academy.com';
+    return { key, sender };
+  };
+
+  const saveBrevoConfig = (key, sender) => {
+    localStorage.setItem('shieldx_brevo_api_key', key.trim());
+    localStorage.setItem('shieldx_brevo_sender_email', sender.trim());
+    return { success: true };
+  };
+
   const sendBrevoRecoveryCode = async (email, code) => {
-    const apiKey = import.meta.env.VITE_BREVO_API_KEY;
-    if (!apiKey) {
-      console.warn("Brevo API Key (VITE_BREVO_API_KEY) is missing. Using simulator backup.");
+    const { key, sender } = getBrevoConfig();
+    if (!key) {
+      console.warn("Brevo API Key is missing. Using simulator backup.");
       return false;
     }
 
@@ -680,11 +692,11 @@ export const AppProvider = ({ children }) => {
         method: "POST",
         headers: {
           "accept": "application/json",
-          "api-key": apiKey,
+          "api-key": key,
           "content-type": "application/json"
         },
         body: JSON.stringify({
-          sender: { name: "אקדמיית סייבר", email: "security@cyber-academy.com" },
+          sender: { name: "אקדמיית סייבר", email: sender },
           to: [{ email: email }],
           subject: "קוד שחזור סיסמה - אקדמיית סייבר",
           htmlContent: `
@@ -738,6 +750,8 @@ export const AppProvider = ({ children }) => {
       trackVideoProgress,
       recordQuizAnswer,
       sendBrevoRecoveryCode,
+      getBrevoConfig,
+      saveBrevoConfig,
       setActiveViewRole
     }}>
       {children}

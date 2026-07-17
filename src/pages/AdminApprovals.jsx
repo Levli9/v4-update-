@@ -3,8 +3,13 @@ import { Check, Clock3, ShieldCheck, UserCheck, UserX, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 export default function AdminApprovals() {
-  const { users, reviewRegistration } = useApp();
+  const { users, reviewRegistration, getBrevoConfig, saveBrevoConfig } = useApp();
   const [message, setMessage] = useState('');
+  
+  const config = getBrevoConfig ? getBrevoConfig() : { key: '', sender: 'security@cyber-academy.com' };
+  const [brevoKey, setBrevoKey] = useState(config.key);
+  const [brevoSender, setBrevoSender] = useState(config.sender);
+  const [brevoSuccess, setBrevoSuccess] = useState('');
   const [activeFilter, setActiveFilter] = useState('pending'); // 'pending', 'approved', 'rejected'
 
   const pendingCount = users.filter((user) => user.status === 'pending').length;
@@ -193,6 +198,57 @@ export default function AdminApprovals() {
             ))}
           </div>
         )}
+      </section>
+
+      {/* Brevo SMTP Settings Panel */}
+      <section className="overflow-hidden rounded-3xl border border-gray-800 bg-gray-900/40 p-6 sm:p-8 space-y-4">
+        <h3 className="text-md font-black text-white flex items-center gap-2">
+          <span>📧 הגדרות שרת דואר Brevo API</span>
+        </h3>
+        <p className="text-xs text-gray-400">
+          הגדירו את המפתח המזהה ואת כתובת השולח המאושרת של Brevo כדי לשלוח קודי שחזור סיסמה אמיתיים לעובדים במערכת.
+        </p>
+        
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 mb-2">Brevo API Key (api-key)</label>
+            <input 
+              type="password" 
+              value={brevoKey}
+              onChange={(e) => setBrevoKey(e.target.value)}
+              className="w-full rounded-xl border border-gray-850 bg-gray-950 px-4 py-2.5 text-xs text-white focus:border-[#00e6ff] focus:outline-none"
+              placeholder="xkeysib-..."
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-semibold text-gray-400 mb-2">Verified Sender Email (אימייל שולח מאומת)</label>
+            <input 
+              type="email" 
+              value={brevoSender}
+              onChange={(e) => setBrevoSender(e.target.value)}
+              className="w-full rounded-xl border border-gray-850 bg-gray-950 px-4 py-2.5 text-xs text-white focus:border-[#00e6ff] focus:outline-none"
+              placeholder="your-email@verified.com"
+            />
+          </div>
+        </div>
+
+        {brevoSuccess && (
+          <p className="text-[11px] font-bold text-emerald-400">{brevoSuccess}</p>
+        )}
+
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              saveBrevoConfig(brevoKey, brevoSender);
+              setBrevoSuccess('הגדרות Brevo נשמרו בהצלחה בדפדפן!');
+              setTimeout(() => setBrevoSuccess(''), 3000);
+            }}
+            className="rounded-xl bg-purple-600 hover:bg-purple-500 px-5 py-2.5 text-xs font-black text-white transition-colors"
+          >
+            שמור הגדרות דואר
+          </button>
+        </div>
       </section>
 
       <div className="flex items-center gap-2 rounded-2xl border border-gray-800 bg-gray-950/35 p-4 text-[11px] font-semibold text-gray-500"><UserX size={17} className="text-rose-400" /> מנהל מערכת יכול לשנות את הסטטוס של כל משתמש בכל שלב - לאשר מחדש, לחסום, או להחזיר לבדיקה.</div>
