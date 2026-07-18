@@ -125,14 +125,20 @@ export default function Login() {
     setRecoveryUserObj(match);
 
     // Try sending email via Brevo SMTP API
-    const isSent = await sendBrevoRecoveryCode(match.email, code);
+    const result = await sendBrevoRecoveryCode(match.email, code);
     
-    if (isSent) {
+    if (result.success) {
       setBrevoStatus('sent');
       setRecoveryStatusMsg(`קוד אימות נשלח בהצלחה לכתובת ${match.email} באמצעות Brevo API.`);
     } else {
       setBrevoStatus('fallback');
-      setRecoveryStatusMsg(`לא הוגדר מפתח Brevo API תקין. הקוד שלך להדמיה הוא: ${code}`);
+      if (result.errorType === 'missing_key') {
+        setRecoveryStatusMsg(`לא הוגדר מפתח Brevo API תקין במערכת. הקוד שלך להדמיה הוא: ${code}`);
+      } else if (result.errorType === 'api_error') {
+        setRecoveryStatusMsg(`שגיאה בחיבור ל-Brevo: ${result.message}. הקוד שלך להדמיה הוא: ${code}`);
+      } else {
+        setRecoveryStatusMsg(`שגיאת תקשורת: ${result.message || 'לא ניתן להתחבר לשרת'}. הקוד שלך להדמיה הוא: ${code}`);
+      }
     }
 
     setRecoveryStep(2);

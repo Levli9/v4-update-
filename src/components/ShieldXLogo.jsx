@@ -8,7 +8,7 @@ export default function ShieldXLogo({ className = '', compact = false }) {
     >
       <span className="shieldx-logo__ring shieldx-logo__ring--outer" />
       <span className="shieldx-logo__ring shieldx-logo__ring--inner" />
-      <svg viewBox="0 0 72 82" className="shieldx-logo__shield" role="img">
+      <svg viewBox="0 0 72 82" className="shieldx-logo__lock" role="img">
         <defs>
           <linearGradient id="shieldx-fill" x1="15%" y1="5%" x2="85%" y2="95%">
             <stop offset="0%" stopColor="#4df4ff" />
@@ -21,29 +21,50 @@ export default function ShieldXLogo({ className = '', compact = false }) {
           </linearGradient>
         </defs>
 
+        {/* Lock Shackle */}
         <path
-          d="M36 3 65 13v23c0 20.2-11.5 34.9-29 43C18.5 70.9 7 56.2 7 36V13L36 3Z"
+          d="M 22,34 V 20 A 14,14 0 0,1 50,20 V 34"
+          fill="none"
+          stroke="url(#shieldx-edge)"
+          strokeWidth="4"
+          strokeLinecap="round"
+        />
+        <path
+          d="M 26,34 V 21 A 10,10 0 0,1 46,21 V 34"
+          fill="none"
+          stroke="#00e6ff"
+          strokeWidth="1.5"
+          strokeLinecap="round"
+          opacity="0.8"
+        />
+
+        {/* Lock Body */}
+        <path
+          d="M 12,32 H 60 A 4,4 0 0,1 64,36 V 62 A 12,12 0 0,1 52,74 H 20 A 12,12 0 0,1 8,62 V 36 A 4,4 0 0,1 12,32 Z"
           fill="url(#shieldx-fill)"
           stroke="url(#shieldx-edge)"
           strokeWidth="2.5"
         />
         <path
-          d="M36 10.5 58.5 18v18.2c0 15.3-8.4 26.8-22.5 34.2-14.1-7.4-22.5-18.9-22.5-34.2V18L36 10.5Z"
+          d="M 16,36 H 56 A 2,2 0 0,1 58,38 V 58 A 8,8 0 0,1 50,66 H 22 A 8,8 0 0,1 14,58 V 38 A 2,2 0 0,1 16,36 Z"
           fill="#070715"
-          fillOpacity="0.72"
+          fillOpacity="0.8"
           stroke="#b8fbff"
-          strokeOpacity="0.45"
+          strokeOpacity="0.4"
+          strokeWidth="1.5"
         />
-        <path
-          d="m23 28 13 13 13-13M23 54l13-13 13 13"
-          fill="none"
-          stroke="#eaffff"
-          strokeWidth="5.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
-        <path d="M36 14v12M36 57v9" stroke="#00e6ff" strokeWidth="2" strokeLinecap="round" />
-        <circle cx="36" cy="41" r="3.2" fill="#ffffff" />
+
+        {/* Cyberpunk circuit lines */}
+        <g className="shieldx-logo__circuit">
+          <path d="M 22,46 H 29 M 43,46 H 50" stroke="#00e6ff" strokeWidth="1.5" strokeLinecap="round" />
+          <path d="M 25,54 H 29 M 43,54 H 47" stroke="#00e6ff" strokeWidth="1.5" strokeLinecap="round" />
+        </g>
+
+        {/* Glowing Keyhole */}
+        <g className="shieldx-logo__keyhole">
+          <circle cx="36" cy="48" r="4.5" fill="#ffffff" />
+          <path d="M 34.5,51 L 33,60 H 39 L 37.5,51 Z" fill="#ffffff" />
+        </g>
       </svg>
       <span className="shieldx-logo__spark shieldx-logo__spark--one" />
       <span className="shieldx-logo__spark shieldx-logo__spark--two" />

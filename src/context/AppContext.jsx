@@ -702,7 +702,7 @@ export const AppProvider = ({ children }) => {
     const { key, sender } = getBrevoConfig();
     if (!key) {
       console.warn("Brevo API Key is missing. Using simulator backup.");
-      return false;
+      return { success: false, errorType: 'missing_key', message: 'מפתח Brevo API לא מוגדר במערכת.' };
     }
 
     try {
@@ -732,10 +732,18 @@ export const AppProvider = ({ children }) => {
           `
         })
       });
-      return response.ok;
+
+      if (response.ok) {
+        return { success: true };
+      } else {
+        const err = await response.json().catch(() => ({}));
+        const errMsg = err.message || `קוד שגיאה: ${response.status}`;
+        console.error("Brevo API error response:", err);
+        return { success: false, errorType: 'api_error', message: errMsg };
+      }
     } catch (e) {
       console.error("Failed to fetch Brevo API:", e);
-      return false;
+      return { success: false, errorType: 'network_error', message: e.message };
     }
   };
 

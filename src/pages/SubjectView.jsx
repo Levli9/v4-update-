@@ -17,6 +17,25 @@ export default function SubjectView() {
 
   const [activeTab, setActiveTab] = useState(subject?.videoUrl ? 'video' : 'learn'); // video, learn, lab, quiz
   const [slideIdx, setSlideIdx] = useState(0);
+
+  const availableTabs = [];
+  if (subject?.videoUrl) availableTabs.push('video');
+  availableTabs.push('learn');
+  if (subject?.simulations && subject.simulations.length > 0) availableTabs.push('lab');
+  availableTabs.push('quiz');
+
+  const currentTabIdx = availableTabs.indexOf(activeTab);
+  const nextTab = currentTabIdx !== -1 && currentTabIdx < availableTabs.length - 1 ? availableTabs[currentTabIdx + 1] : null;
+
+  const getTabLabel = (tab) => {
+    switch (tab) {
+      case 'video': return 'סרטון הסבר';
+      case 'learn': return 'שיעור עיוני';
+      case 'lab': return 'מעבדה וסימולציה';
+      case 'quiz': return 'מבדק ידע';
+      default: return '';
+    }
+  };
   const [labDone, setLabDone] = useState(false);
   const [revealedBullets, setRevealedBullets] = useState([]);
   const [lessonChoice, setLessonChoice] = useState(null);
@@ -74,6 +93,36 @@ export default function SubjectView() {
       : [...current, index]);
   };
 
+  const isSwapped = ((subjectId || 0) + slideIdx) % 2 === 0;
+
+  const safeButton = (
+    <button
+      type="button"
+      onClick={() => setLessonChoice('safe')}
+      className={`rounded-xl border p-3 text-right text-xs font-bold transition-all cursor-pointer ${
+        lessonChoice === 'safe'
+          ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300'
+          : 'border-gray-800 bg-gray-950/40 text-gray-300 hover:border-amber-400/30 hover:bg-amber-400/5'
+      }`}
+    >
+      עוצר, בודק בערוץ נפרד ומדווח לגורם המתאים
+    </button>
+  );
+
+  const riskyButton = (
+    <button
+      type="button"
+      onClick={() => setLessonChoice('risky')}
+      className={`rounded-xl border p-3 text-right text-xs font-bold transition-all cursor-pointer ${
+        lessonChoice === 'risky'
+          ? 'border-rose-500/40 bg-rose-500/10 text-rose-300'
+          : 'border-gray-800 bg-gray-950/40 text-gray-300 hover:border-amber-400/30 hover:bg-amber-400/5'
+      }`}
+    >
+      ממשיך מיד כדי לא לעכב את העבודה
+    </button>
+  );
+
   return (
     <div className="space-y-6">
       {/* Header and Back navigation */}
@@ -127,14 +176,27 @@ export default function SubjectView() {
       {/* Tab Contents */}
       <div className="py-4">
         {activeTab === 'video' && (
-          <VideoPlayer 
-            videoUrl={subject.videoUrl} 
-            videoScript={subject.videoScript} 
-            emoji={subject.emoji} 
-            color={subject.color} 
-            initialTime={currentUser?.analytics?.videos?.[subjectId]?.lastPosition || 0}
-            onAnalytics={(telemetry) => trackVideoProgress(subjectId, telemetry)}
-          />
+          <div className="space-y-6">
+            <VideoPlayer 
+              videoUrl={subject.videoUrl} 
+              videoScript={subject.videoScript} 
+              emoji={subject.emoji} 
+              color={subject.color} 
+              initialTime={currentUser?.analytics?.videos?.[subjectId]?.lastPosition || 0}
+              onAnalytics={(telemetry) => trackVideoProgress(subjectId, telemetry)}
+            />
+            {nextTab && (
+              <div className="flex justify-end max-w-5xl mx-auto">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(nextTab)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#00e6ff] to-[#00b8d4] text-black font-black text-sm shadow-[0_0_15px_rgba(0,230,255,0.3)] hover:scale-102 hover:shadow-[0_0_22px_rgba(0,230,255,0.45)] transition-all cursor-pointer"
+                >
+                  המשך ל{getTabLabel(nextTab)} ←
+                </button>
+              </div>
+            )}
+          </div>
         )}
 
         {activeTab === 'learn' && (
@@ -191,8 +253,17 @@ export default function SubjectView() {
                     <div className="flex items-center gap-2 text-xs font-black text-amber-300"><span>⚡</span> עצירת חשיבה — מה היית עושה?</div>
                     <p className="mt-2 text-sm font-bold text-gray-200">קיבלת בעבודה הודעה או בקשה שקשורה לנושא הזה, אבל משהו בה מרגיש לא תקין. מה הצעד הראשון?</p>
                     <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                      <button type="button" onClick={() => setLessonChoice('safe')} className={`rounded-xl border p-3 text-right text-xs font-bold transition-all ${lessonChoice === 'safe' ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-300' : 'border-gray-800 bg-gray-950/40 text-gray-300 hover:border-emerald-500/25'}`}>עוצר, בודק בערוץ נפרד ומדווח לגורם המתאים</button>
-                      <button type="button" onClick={() => setLessonChoice('risky')} className={`rounded-xl border p-3 text-right text-xs font-bold transition-all ${lessonChoice === 'risky' ? 'border-rose-500/40 bg-rose-500/10 text-rose-300' : 'border-gray-800 bg-gray-950/40 text-gray-300 hover:border-rose-500/25'}`}>ממשיך מיד כדי לא לעכב את העבודה</button>
+                      {isSwapped ? (
+                        <>
+                          {riskyButton}
+                          {safeButton}
+                        </>
+                      ) : (
+                        <>
+                          {safeButton}
+                          {riskyButton}
+                        </>
+                      )}
                     </div>
                     {lessonChoice && <p className={`mt-3 rounded-lg px-3 py-2 text-xs font-bold ${lessonChoice === 'safe' ? 'bg-emerald-500/10 text-emerald-300' : 'bg-rose-500/10 text-rose-300'}`}>{lessonChoice === 'safe' ? '✓ נכון. עצירה, אימות ודיווח מונעים מרוב האירועים להפוך לנזק ממשי.' : 'כמעט. לחץ ודחיפות הם בדיוק מה שתוקפים מנצלים—כדאי לעצור ולאמת לפני שפועלים.'}</p>}
                   </div>
@@ -209,13 +280,22 @@ export default function SubjectView() {
                   <span className="text-xs text-gray-500 font-bold">
                     שקף {slideIdx + 1} מתוך {subject.slides.length}
                   </span>
-                  <button
-                    onClick={() => changeSlide(Math.min(subject.slides.length - 1, slideIdx + 1))}
-                    disabled={slideIdx === subject.slides.length - 1}
-                    className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-750 text-xs font-bold border border-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
-                  >
-                    הבא
-                  </button>
+                  {slideIdx === subject.slides.length - 1 && nextTab ? (
+                    <button
+                      onClick={() => setActiveTab(nextTab)}
+                      className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-[#00e6ff] to-[#00b8d4] text-black font-black text-xs shadow-[0_0_10px_rgba(0,230,255,0.2)] hover:scale-102 transition-all cursor-pointer"
+                    >
+                      מעבר ל{getTabLabel(nextTab)} ←
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => changeSlide(Math.min(subject.slides.length - 1, slideIdx + 1))}
+                      disabled={slideIdx === subject.slides.length - 1}
+                      className="px-4 py-2 rounded-lg bg-gray-800 hover:bg-gray-750 text-xs font-bold border border-gray-700 disabled:opacity-40 disabled:cursor-not-allowed"
+                    >
+                      הבא
+                    </button>
+                  )}
                 </div>
               </>
             ) : (
@@ -248,6 +328,17 @@ export default function SubjectView() {
             {labDone && subject.simulations[0].type !== 'terminal' && (
               <div className="text-center mt-6 text-xs text-emerald-400 font-bold">
                 🎉 המעבדה הושלמה! כעת תוכל לעבור למבדק הידע.
+              </div>
+            )}
+            {isLabCompleted && nextTab && (
+              <div className="flex justify-center mt-6">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab(nextTab)}
+                  className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-[#00e6ff] to-[#00b8d4] text-black font-black text-sm shadow-[0_0_15px_rgba(0,230,255,0.3)] hover:scale-102 hover:shadow-[0_0_22px_rgba(0,230,255,0.45)] transition-all cursor-pointer"
+                >
+                  המשך ל{getTabLabel(nextTab)} ←
+                </button>
               </div>
             )}
           </div>

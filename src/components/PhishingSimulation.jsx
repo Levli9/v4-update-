@@ -14,10 +14,10 @@ const Hotspot = ({ id, selected, onToggle, children, className = '' }) => (
     type="button"
     onClick={() => onToggle(id)}
     aria-pressed={selected}
-    className={`group relative rounded-lg border px-2 py-1 text-right transition-all ${
+    className={`group relative rounded-lg border px-2 py-1 text-right transition-all cursor-default ${
       selected
         ? 'border-amber-400/65 bg-amber-400/15 text-amber-200 shadow-[0_0_0_2px_rgba(251,191,36,0.08)]'
-        : 'border-transparent hover:border-amber-400/35 hover:bg-amber-400/5'
+        : 'border-transparent'
     } ${className}`}
   >
     {children}

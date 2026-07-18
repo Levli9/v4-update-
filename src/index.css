@@ -159,12 +159,31 @@ body {
   height: 62px;
 }
 
-.shieldx-logo__shield {
+.shieldx-logo__lock {
   width: 67%;
   height: 76%;
   z-index: 2;
   animation: shieldx-float 3.2s ease-in-out infinite;
 }
+
+.shieldx-logo__keyhole {
+  animation: lock-keyhole-pulse 2s ease-in-out infinite;
+}
+
+.shieldx-logo__circuit {
+  animation: lock-circuits-fade 3s ease-in-out infinite;
+}
+
+@keyframes lock-keyhole-pulse {
+  0%, 100% { filter: drop-shadow(0 0 2px #00e6ff); opacity: 0.8; }
+  50% { filter: drop-shadow(0 0 8px #00e6ff); opacity: 1; }
+}
+
+@keyframes lock-circuits-fade {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 0.9; }
+}
+
 
 .shieldx-logo__ring {
   position: absolute;
@@ -231,7 +250,9 @@ body {
     animation: none;
   }
 
-  .shieldx-logo__shield,
+  .shieldx-logo__lock,
+  .shieldx-logo__keyhole,
+  .shieldx-logo__circuit,
   .shieldx-logo__ring,
   .shieldx-logo__spark {
     animation: none;

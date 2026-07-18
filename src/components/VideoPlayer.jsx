@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Maximize2, Minimize2, Volume2, VolumeX } from 'lucide-react';
 
 export default function VideoPlayer({ videoUrl, videoScript, emoji, color, initialTime = 0, onAnalytics }) {
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(!videoUrl);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [currentLineIdx, setCurrentLineIdx] = useState(-1);
@@ -191,6 +191,28 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color, initi
       }
       restoredPositionRef.current = true;
       onAnalytics?.({ currentTime: videoElementRef.current.currentTime, duration: videoElementRef.current.duration, watchedDelta: 0 });
+
+      // Auto-start playing
+      videoElementRef.current.play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch((err) => {
+          console.log("Autoplay unmuted blocked:", err);
+          // Fallback: try playing muted
+          if (videoElementRef.current) {
+            videoElementRef.current.muted = true;
+            setTtsEnabled(false);
+            videoElementRef.current.play()
+              .then(() => {
+                setIsPlaying(true);
+              })
+              .catch((mutedErr) => {
+                console.log("Muted autoplay also blocked:", mutedErr);
+                setIsPlaying(false);
+              });
+          }
+        });
     }
   };
 
@@ -268,6 +290,7 @@ export default function VideoPlayer({ videoUrl, videoScript, emoji, color, initi
             src={videoUrl}
             preload="metadata"
             playsInline
+            muted={!ttsEnabled}
             onTimeUpdate={onTimeUpdate}
             onLoadedMetadata={onLoadedMetadata}
             onEnded={onVideoEnded}
