@@ -20,14 +20,20 @@ class NoSQLCollection {
   }
 
   _saveDocs(docs) {
-    localStorage.setItem(this.key, JSON.stringify(docs));
+    try {
+      localStorage.setItem(this.key, JSON.stringify(docs));
+      return true;
+    } catch (error) {
+      console.error(`ShieldX failed saving local data in ${this.key}.`, error);
+      return false;
+    }
   }
 
   // Find documents matching a query object (NoSQL filter)
   find(query = {}) {
     const docs = this._getDocs();
-    return docs.filter(doc => {
-      for (let key in query) {
+    return docs.filter((doc) => {
+      for (const key in query) {
         if (doc[key] !== query[key]) return false;
       }
       return true;
@@ -49,34 +55,34 @@ class NoSQLCollection {
       ...doc
     };
     docs.push(newDoc);
-    this._saveDocs(docs);
-    return newDoc;
+    const saved = this._saveDocs(docs);
+    return saved ? newDoc : null;
   }
 
   // Update a document matching query fields
   updateOne(query, updateFields) {
     const docs = this._getDocs();
     let updatedDoc = null;
-    const updatedDocs = docs.map(doc => {
+    const updatedDocs = docs.map((doc) => {
       let matches = true;
-      for (let key in query) {
+      for (const key in query) {
         if (doc[key] !== query[key]) {
           matches = false;
           break;
         }
       }
       if (matches && !updatedDoc) {
-        updatedDoc = { 
-          ...doc, 
-          ...updateFields, 
-          updatedAt: new Date().toISOString() 
+        updatedDoc = {
+          ...doc,
+          ...updateFields,
+          updatedAt: new Date().toISOString()
         };
         return updatedDoc;
       }
       return doc;
     });
-    this._saveDocs(updatedDocs);
-    return updatedDoc;
+    const saved = this._saveDocs(updatedDocs);
+    return saved ? updatedDoc : null;
   }
 }
 
