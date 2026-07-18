@@ -1439,28 +1439,28 @@ cursor.execute(query, (userInput,))  # בטוח!</pre>
         title: "מסגרות אבטחת מידע ותקנות",
         content: "ארגונים מחויבים לפעול לפי מסגרות ותקנות אבטחה מוגדרות, בין אם מחוק ובין אם כ-Best Practice.",
         bullets: ["📜 ISO 27001 – תקן בינלאומי לניהול אבטחת מידע", "🇪🇺 GDPR – תקנת הגנת נתונים אירופאית (קנס עד 4% מהמחזור)", "💳 PCI-DSS – חובה לכל ארגון שמעבד תשלומי כרטיס", "🏛️ SOC 2 – תקן אמינות לשירותי SaaS"],
-        visual: `<svg viewBox="0 0 300 250" width="100%" height="100%">
-          <text x="150" y="18" text-anchor="middle" fill="#aaa" font-size="10">מסגרות אבטחה ורמת קנסות</text>
+        visual: `<svg viewBox="0 0 300 250" width="100%" height="100%" style="font-family:Arial,sans-serif">
+          <text x="150" y="18" text-anchor="middle" direction="rtl" fill="#aaa" font-size="10">מסגרות אבטחה ורמת קנסות</text>
           <rect x="15" y="30" width="270" height="45" rx="8" fill="rgba(144,190,109,0.1)" stroke="#90be6d" stroke-width="1.5"/>
-          <text x="35" y="50" fill="#90be6d" font-size="14">📜</text>
-          <text x="55" y="50" fill="#fff" font-size="10" font-weight="700">ISO 27001</text>
-          <text x="55" y="65" fill="#aaa" font-size="8">תקן בינלאומי – ניהול אבטחת מידע</text>
-          <text x="260" y="50" fill="#90be6d" font-size="9">Best Practice</text>
+          <text x="30" y="51" fill="#90be6d" font-size="13">📜</text>
+          <text x="52" y="51" fill="#fff" font-size="10" font-weight="700">ISO 27001</text>
+          <text x="270" y="67" text-anchor="end" direction="rtl" fill="#aaa" font-size="7.5">תקן בינלאומי – ניהול אבטחת מידע</text>
+          <text x="270" y="51" text-anchor="end" fill="#90be6d" font-size="8.5">Best Practice</text>
           <rect x="15" y="85" width="270" height="45" rx="8" fill="rgba(0,119,181,0.1)" stroke="#0077b5" stroke-width="1.5"/>
-          <text x="35" y="105" fill="#0077b5" font-size="14">🇪🇺</text>
-          <text x="55" y="105" fill="#fff" font-size="10" font-weight="700">GDPR</text>
-          <text x="55" y="120" fill="#aaa" font-size="8">הגנת נתונים אירופאית – קנס עד 20M€</text>
-          <text x="260" y="105" fill="#f94144" font-size="9">חובה חוקית</text>
+          <text x="30" y="106" fill="#0077b5" font-size="13">🇪🇺</text>
+          <text x="52" y="106" fill="#fff" font-size="10" font-weight="700">GDPR</text>
+          <text x="270" y="122" text-anchor="end" direction="rtl" fill="#aaa" font-size="7.5">הגנת נתונים אירופאית – קנס עד 20M€</text>
+          <text x="270" y="106" text-anchor="end" direction="rtl" fill="#f94144" font-size="8.5">חובה חוקית</text>
           <rect x="15" y="140" width="270" height="45" rx="8" fill="rgba(76,201,240,0.1)" stroke="#4cc9f0" stroke-width="1.5"/>
-          <text x="35" y="160" fill="#4cc9f0" font-size="14">💳</text>
-          <text x="55" y="160" fill="#fff" font-size="10" font-weight="700">PCI-DSS</text>
-          <text x="55" y="175" fill="#aaa" font-size="8">תשלומי כרטיס – חובה לכל חנות מקוונת</text>
-          <text x="260" y="160" fill="#f94144" font-size="9">חובה חוקית</text>
+          <text x="30" y="161" fill="#4cc9f0" font-size="13">💳</text>
+          <text x="52" y="161" fill="#fff" font-size="10" font-weight="700">PCI-DSS</text>
+          <text x="270" y="177" text-anchor="end" direction="rtl" fill="#aaa" font-size="7.5">תשלומי כרטיס – חובה לכל חנות מקוונת</text>
+          <text x="270" y="161" text-anchor="end" direction="rtl" fill="#f94144" font-size="8.5">חובה חוקית</text>
           <rect x="15" y="195" width="270" height="40" rx="8" fill="rgba(157,78,221,0.1)" stroke="#9d4edd" stroke-width="1.5"/>
-          <text x="35" y="218" fill="#9d4edd" font-size="14">🏛️</text>
-          <text x="55" y="218" fill="#fff" font-size="10" font-weight="700">SOC 2</text>
-          <text x="55" y="230" fill="#aaa" font-size="8">אמינות שירותי ענן ו-SaaS</text>
-          <text x="260" y="218" fill="#9d4edd" font-size="9">תקן אמינות</text>
+          <text x="30" y="216" fill="#9d4edd" font-size="13">🏛️</text>
+          <text x="52" y="216" fill="#fff" font-size="10" font-weight="700">SOC 2</text>
+          <text x="270" y="230" text-anchor="end" direction="rtl" fill="#aaa" font-size="7.5">אמינות שירותי ענן ו-SaaS</text>
+          <text x="270" y="216" text-anchor="end" direction="rtl" fill="#9d4edd" font-size="8.5">תקן אמינות</text>
         </svg>`
       },
       {

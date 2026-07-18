@@ -10,7 +10,7 @@ import { prepareProfileImage } from '../services/imageService';
 import loginBackground from '../assets/login-cybersecurity.jpg';
 
 export default function Login() {
-  const { login, register, users, requestPasswordReset, validateResetToken, submitPasswordReset, changePassword } = useApp();
+  const { login, register, requestPasswordReset, validateResetToken, submitPasswordReset } = useApp();
   const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState('login'); // 'login' or 'register'
@@ -19,10 +19,7 @@ export default function Login() {
   const [loginUser, setLoginUser] = useState('');
   const [loginPass, setLoginPass] = useState('');
   const [loginError, setLoginError] = useState('');
-  const [loginStep, setLoginStep] = useState(1); // 1: credentials, 2: 2FA OTP
-  const [loginOtpCode, setLoginOtpCode] = useState('');
-  const [generatedLoginOtp, setGeneratedLoginOtp] = useState(null);
-  const [loginOtpStatusMsg, setLoginOtpStatusMsg] = useState('');
+  const [isLoginSubmitting, setIsLoginSubmitting] = useState(false);
 
   // Register State
   const [regUser, setRegUser] = useState('');
@@ -34,11 +31,11 @@ export default function Login() {
   const [regImageError, setRegImageError] = useState('');
   const [regSuccess, setRegSuccess] = useState('');
   const [regError, setRegError] = useState('');
+  const [isRegisterSubmitting, setIsRegisterSubmitting] = useState(false);
 
   // Recovery State (Forgot Password modal)
   const [isRecoveryOpen, setIsRecoveryOpen] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState('');
-  const [recoveryStep, setRecoveryStep] = useState(1); // 1 or 2
   const [recoveryStatusMsg, setRecoveryStatusMsg] = useState('');
   const [brevoStatus, setBrevoStatus] = useState(''); // 'sent', 'error', etc.
 
@@ -51,22 +48,29 @@ export default function Login() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [resetSuccess, setResetSuccess] = useState('');
   const [resetError, setResetError] = useState('');
+  const [isResetSubmitting, setIsResetSubmitting] = useState(false);
 
-  const handleLoginSubmit = (e) => {
+  const handleLoginSubmit = async (e) => {
     e.preventDefault();
+    if (isLoginSubmitting) return;
     setLoginError('');
-    const res = login(loginUser, loginPass);
-    if (!res.success) {
-      setLoginError(res.message);
-    } else {
-      const destination = res.user?.role === 'admin' ? '/admin' : '/';
-      window.location.hash = `#${destination}`;
-      navigate(destination, { replace: true });
+    setIsLoginSubmitting(true);
+    try {
+      const res = await login(loginUser, loginPass);
+      if (!res.success) {
+        setLoginError(res.message);
+      } else {
+        const destination = ['admin', 'manager'].includes(res.user?.role) ? '/manager' : '/';
+        navigate(destination, { replace: true });
+      }
+    } finally {
+      setIsLoginSubmitting(false);
     }
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
+    if (isRegisterSubmitting) return;
     setRegError('');
     setRegSuccess('');
 
@@ -92,7 +96,9 @@ export default function Login() {
       return;
     }
 
-    const res = register(regUser, regPass, regEmail, regAvatar, regRole, regDepartment);
+    setIsRegisterSubmitting(true);
+    const res = await register(regUser, regPass, regEmail, regAvatar, regRole, regDepartment);
+    setIsRegisterSubmitting(false);
     if (res.success) {
       setRegSuccess('ההרשמה נשלחה בהצלחה וממתינה לאישור מנהל המערכת. לאחר האישור ניתן יהיה להתחבר.');
       setRegUser('');
@@ -147,6 +153,7 @@ export default function Login() {
 
   const handlePasswordResetSubmit = async (e) => {
     e.preventDefault();
+    if (isResetSubmitting) return;
     setResetError('');
 
     if (newPassword.length < 12) {
@@ -174,7 +181,9 @@ export default function Login() {
       return;
     }
 
-    const res = await submitPasswordReset(resetToken, newPassword);
+    setIsResetSubmitting(true);
+    const res = await submitPasswordReset(resetToken, newPassword, confirmPassword);
+    setIsResetSubmitting(false);
     if (res.success) {
       setResetSuccess("הסיסמה שונתה בהצלחה במערכת! כעת תוכל להתחבר.");
     } else {
@@ -185,31 +194,30 @@ export default function Login() {
   const startRecovery = async () => {
     setBrevoStatus('');
     setRecoveryStatusMsg('');
-    const match = users.find(u => u.email.toLowerCase() === recoveryEmail.trim().toLowerCase());
-    if (!match) {
-      alert("❌ דואר אלקטרוני זה אינו רשום במערכת!");
+    const normalizedEmail = recoveryEmail.trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
+      setBrevoStatus('error');
+      setRecoveryStatusMsg('יש להזין כתובת אימייל תקינה.');
       return;
     }
 
     setBrevoStatus('sending');
     setRecoveryStatusMsg('שולח בקשת שחזור...');
 
-    const result = await requestPasswordReset(match.email);
+    const result = await requestPasswordReset(normalizedEmail);
     
     if (result.success) {
       setBrevoStatus('sent');
-      setRecoveryStatusMsg(`קישור לאיפוס סיסמה נשלח בהצלחה לכתובת ${match.email} באמצעות Brevo API. אנא בדוק את תיבת הדואר הנכנס שלך.`);
-      setRecoveryStep(2);
+      setRecoveryStatusMsg(result.message || 'אם כתובת האימייל קיימת במערכת, נשלח אליה קישור לאיפוס הסיסמה.');
     } else {
       setBrevoStatus('error');
-      setRecoveryStatusMsg(`שגיאה בשליחת המייל: ${result.message}`);
+      setRecoveryStatusMsg(result.message);
     }
   };
 
   const closeRecovery = () => {
     setIsRecoveryOpen(false);
     setRecoveryEmail('');
-    setRecoveryStep(1);
     setRecoveryStatusMsg('');
     setBrevoStatus('');
   };
@@ -236,7 +244,7 @@ export default function Login() {
 
           {isVerifyingToken && (
             <div className="text-center py-8 text-[#00e6ff] font-bold animate-pulse">
-              מבצע אימות מול שרת Brevo...
+              מאמת את קישור האיפוס מול שרת ShieldX...
             </div>
           )}
 
@@ -259,7 +267,7 @@ export default function Login() {
 
           {!isVerifyingToken && !tokenError && (
             <form onSubmit={handlePasswordResetSubmit} className="space-y-6">
-              {resetError && <div className="rounded-xl border border-red-500/20 bg-red-950/20 p-3 text-center text-xs font-bold text-red-450">{resetError}</div>}
+              {resetError && <div className="rounded-xl border border-red-500/20 bg-red-950/20 p-3 text-center text-xs font-bold text-red-400">{resetError}</div>}
               {resetSuccess ? (
                 <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-4 text-center text-xs font-bold leading-6 text-emerald-400">
                   <span className="mb-1 block text-lg">✓</span>
@@ -298,9 +306,10 @@ export default function Login() {
                   </div>
                   <button
                     type="submit"
+                    disabled={isResetSubmitting}
                     className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black font-extrabold text-sm transition-all"
                   >
-                    שמור סיסמה והתחבר
+                    {isResetSubmitting ? 'שומר...' : 'שמור סיסמה'}
                   </button>
                 </>
               )}
@@ -401,9 +410,10 @@ export default function Login() {
 
             <button
               type="submit"
+              disabled={isLoginSubmitting}
               className="w-full py-3 rounded-xl bg-[#00e6ff] hover:bg-[#00e6ff]/90 text-black font-extrabold text-sm transition-all shadow-lg shadow-cyan-950/30"
             >
-              התחבר למערכת
+              {isLoginSubmitting ? 'מתחבר...' : 'התחבר למערכת'}
             </button>
           </form>
         )}
@@ -494,9 +504,10 @@ export default function Login() {
 
             <button
               type="submit"
+              disabled={isRegisterSubmitting}
               className="w-full py-3 rounded-xl bg-[#9d4edd] hover:bg-[#9d4edd]/90 text-white font-extrabold text-sm transition-all shadow-lg shadow-purple-950/30"
             >
-              הרשמה למערכת
+              {isRegisterSubmitting ? 'שולח הרשמה...' : 'הרשמה למערכת'}
             </button>
             {(regError || regSuccess) && <div aria-live="polite" aria-atomic="true">
               {regError && <div className="rounded-xl border border-red-500/20 bg-red-950/20 p-3 text-center text-xs font-bold text-red-400">{regError}</div>}
@@ -539,9 +550,9 @@ export default function Login() {
 
             <h3 className="text-xl font-bold text-white mb-4">שחזור סיסמה ארגוני</h3>
             
-            {recoveryStep === 1 ? (
+            {brevoStatus !== 'sent' ? (
               <div className="space-y-4">
-                <p className="text-xs text-gray-400">הזן את הדואר האלקטרוני הרשום כדי לקבל קישור לאיפוס סיסמה ישירות לתיבת המייל שלך באמצעות Brevo API.</p>
+                <p className="text-xs text-gray-400">הזן את הדואר האלקטרוני הרשום. אם קיים חשבון מתאים, יישלח אליו קישור מאובטח לאיפוס הסיסמה.</p>
                 
                 {recoveryStatusMsg && (
                   <div className={`rounded-xl border p-3 text-center text-xs font-bold ${
@@ -568,22 +579,17 @@ export default function Login() {
                   disabled={brevoStatus === 'sending'}
                   className="w-full py-3 rounded-xl bg-[#00e6ff] hover:bg-[#00b8d4] text-black font-extrabold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {brevoStatus === 'sending' ? 'שולח...' : 'שלח קישור שחזור'}
+                  {brevoStatus === 'sending' ? 'שולח...' : 'שלח קישור איפוס'}
                 </button>
               </div>
             ) : (
-              <div className="space-y-4 text-center">
-                <p className="text-sm text-emerald-400 bg-emerald-950/20 border border-emerald-500/20 p-4 rounded-xl leading-relaxed">
-                  {recoveryStatusMsg}
-                </p>
-                <div className="text-xs text-gray-400 py-2">
-                  לאחר הלחיצה על הקישור במייל, תוכל להגדיר סיסמה חדשה ולהתחבר מחדש.
-                </div>
+              <div className="space-y-4">
+                <p className="text-sm text-emerald-400 bg-emerald-950/20 border border-emerald-500/20 p-4 rounded-xl leading-relaxed text-center">{recoveryStatusMsg}</p>
                 <button
                   onClick={closeRecovery}
-                  className="w-full py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-black font-extrabold text-sm transition-all"
+                  className="w-full py-3 rounded-xl bg-gray-800 hover:bg-gray-700 text-white font-extrabold text-sm transition-all"
                 >
-                  סגור והמתן למייל
+                  סגור
                 </button>
               </div>
             )}

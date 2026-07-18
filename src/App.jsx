@@ -1,5 +1,5 @@
 // src/App.jsx
-import React, { useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useState } from 'react';
 import { HashRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import {
   Accessibility,
@@ -25,18 +25,25 @@ import {
 } from 'lucide-react';
 import { AppProvider, useApp } from './context/AppContext';
 import Dashboard from './pages/Dashboard';
-import SubjectView from './pages/SubjectView';
 import Login from './pages/Login';
-import ManagerDashboard from './pages/ManagerDashboard';
-import UserSettings from './pages/UserSettings';
-import UserProfile from './pages/UserProfile';
-import AdminApprovals from './pages/AdminApprovals';
-import AIPresentationStudio from './pages/AIPresentationStudio';
-import FinalExam from './pages/FinalExam';
-import KnowledgeLibrary from './pages/KnowledgeLibrary';
 import GlobalSearch from './components/GlobalSearch';
 import ShieldXLogo from './components/ShieldXLogo';
 import ShieldXWordmark from './components/ShieldXWordmark';
+
+const SubjectView = lazy(() => import('./pages/SubjectView'));
+const ManagerDashboard = lazy(() => import('./pages/ManagerDashboard'));
+const UserSettings = lazy(() => import('./pages/UserSettings'));
+const UserProfile = lazy(() => import('./pages/UserProfile'));
+const AdminApprovals = lazy(() => import('./pages/AdminApprovals'));
+const AIPresentationStudio = lazy(() => import('./pages/AIPresentationStudio'));
+const FinalExam = lazy(() => import('./pages/FinalExam'));
+const KnowledgeLibrary = lazy(() => import('./pages/KnowledgeLibrary'));
+
+const RouteLoading = () => (
+  <div className="grid min-h-[45vh] place-items-center text-[#00e6ff]" role="status" aria-live="polite">
+    <span className="font-bold animate-pulse">טוען את התוכן...</span>
+  </div>
+);
 
 const DEFAULT_ACCESSIBILITY = {
   monochrome: false,
@@ -64,7 +71,7 @@ const getSavedAccessibility = () => {
 };
 
 function AppInner() {
-  const { currentUser, logout, setActiveViewRole } = useApp();
+  const { currentUser, authReady, logout, setActiveViewRole } = useApp();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isAccessibilityOpen, setIsAccessibilityOpen] = useState(false);
@@ -111,6 +118,14 @@ function AppInner() {
 
   }, [accessibility]);
 
+  if (!authReady) {
+    return (
+      <div className="grid min-h-screen place-items-center bg-[#07070f] text-[#00e6ff]" role="status" aria-live="polite">
+        <span className="font-bold animate-pulse">טוען את המערכת המאובטחת...</span>
+      </div>
+    );
+  }
+
   // If not logged in, force Login page
   if (!currentUser) {
     return <Login />;
@@ -119,7 +134,7 @@ function AppInner() {
   const isAdmin = currentUser.role === 'admin';
   const canAccessManager = currentUser.role === 'manager' || isAdmin;
   const isManagerView = canAccessManager && location.pathname === '/manager';
-  const isAdminView = isAdmin && location.pathname === '/admin';
+  const isAdminView = canAccessManager && location.pathname === '/admin';
   const isAIStudioView = canAccessManager && location.pathname === '/ai-studio';
   const isLearningPortalView = location.pathname === '/';
   const isFinalExamView = location.pathname === '/final-exam';
@@ -138,7 +153,7 @@ function AppInner() {
   };
 
   const openAdminApprovals = () => {
-    if (!isAdmin) return;
+    if (!canAccessManager) return;
     closeMenu();
   };
 
@@ -329,7 +344,7 @@ function AppInner() {
                       </span>
                       <ChevronLeft size={17} className="text-gray-600" />
                     </Link>
-                    {isAdmin && (
+                    {canAccessManager && (
                       <Link
                         to="/admin"
                         onClick={openAdminApprovals}
@@ -338,7 +353,7 @@ function AppInner() {
                         <span className="shieldx-menu-item__icon shieldx-menu-item__icon--purple"><UserCheck size={20} /></span>
                         <span className="flex-1">
                           <span className="block text-sm font-bold">אישור משתמשים</span>
-                          <span className="mt-0.5 block text-[11px] text-gray-500">אישור או דחיית נרשמים חדשים</span>
+                        <span className="mt-0.5 block text-[11px] text-gray-500">אישור או דחיית נרשמים חדשים</span>
                         </span>
                         <ChevronLeft size={17} className="text-gray-600" />
                       </Link>
@@ -440,17 +455,20 @@ function AppInner() {
       )}
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/manager" element={canAccessManager ? <ManagerDashboard /> : <Navigate to="/" replace />} />
-          <Route path="/admin" element={isAdmin ? <AdminApprovals /> : <Navigate to="/" replace />} />
-          <Route path="/ai-studio" element={canAccessManager ? <AIPresentationStudio /> : <Navigate to="/" replace />} />
-          <Route path="/subject/:id" element={<SubjectView />} />
-          <Route path="/final-exam" element={<FinalExam />} />
-          <Route path="/knowledge" element={<KnowledgeLibrary />} />
-          <Route path="/settings" element={<UserSettings />} />
-          <Route path="/profile" element={<UserProfile />} />
-        </Routes>
+        <Suspense fallback={<RouteLoading />}>
+          <Routes>
+            <Route path="/" element={<Dashboard />} />
+            <Route path="/manager" element={canAccessManager ? <ManagerDashboard /> : <Navigate to="/" replace />} />
+            <Route path="/admin" element={canAccessManager ? <AdminApprovals /> : <Navigate to="/" replace />} />
+            <Route path="/ai-studio" element={canAccessManager ? <AIPresentationStudio /> : <Navigate to="/" replace />} />
+            <Route path="/subject/:id" element={<SubjectView />} />
+            <Route path="/final-exam" element={<FinalExam />} />
+            <Route path="/knowledge" element={<KnowledgeLibrary />} />
+            <Route path="/settings" element={<UserSettings />} />
+            <Route path="/profile" element={<UserProfile />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </main>
       <footer className="border-t border-gray-900/80 px-4 py-5 text-center" dir="ltr">
         <span className="text-[10px] font-semibold tracking-[0.16em] text-gray-700">

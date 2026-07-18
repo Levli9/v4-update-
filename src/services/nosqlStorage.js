@@ -44,7 +44,7 @@ class NoSQLCollection {
   insertOne(doc) {
     const docs = this._getDocs();
     const newDoc = {
-      _id: Math.random().toString(36).substring(2, 9),
+      _id: globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`,
       createdAt: new Date().toISOString(),
       ...doc
     };
@@ -77,6 +77,21 @@ class NoSQLCollection {
     });
     this._saveDocs(updatedDocs);
     return updatedDoc;
+  }
+
+  deleteOne(query = {}) {
+    const docs = this._getDocs();
+    const index = docs.findIndex((doc) => Object.entries(query).every(([key, value]) => doc[key] === value));
+    if (index === -1) return false;
+    docs.splice(index, 1);
+    this._saveDocs(docs);
+    return true;
+  }
+
+  replaceAll(docs) {
+    if (!Array.isArray(docs)) throw new TypeError('replaceAll expects an array');
+    this._saveDocs(docs);
+    return docs;
   }
 }
 

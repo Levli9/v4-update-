@@ -7,6 +7,9 @@ export default {
   theme: {
     extend: {
       colors: {
+        gray: {
+          850: "#18202d"
+        },
         cyber: {
           dark: "#07070f",
           card: "#0d0d1f",

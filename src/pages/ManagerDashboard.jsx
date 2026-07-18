@@ -13,19 +13,11 @@ export default function ManagerDashboard() {
   const [selectedDepartment, setSelectedDepartment] = useState('all');
   const [finalStatusFilter, setFinalStatusFilter] = useState('all');
 
-  // Department mapping helper
-  const getMockDept = (userOrUsername) => {
+  const getDepartment = (userOrUsername) => {
     const userRecord = typeof userOrUsername === 'object'
       ? userOrUsername
       : users.find((user) => user.username === userOrUsername);
-    if (userRecord?.department) return userRecord.department;
-    const username = typeof userOrUsername === 'string' ? userOrUsername : userOrUsername?.username;
-    if (!username) return 'כללי';
-    if (username.toLowerCase().includes('yaniv')) return 'פיתוח (R&D)';
-    if (username.toLowerCase().includes('lev')) return 'אבטחת מידע (Security)';
-    if (username.toLowerCase().includes('emp')) return 'תפעול (Operations)';
-    const depts = ['פיתוח (R&D)', 'שיווק ומכירות', 'משאבי אנוש', 'כספים (Finance)'];
-    return depts[username.length % depts.length];
+    return userRecord?.department || 'כללי';
   };
 
   const getShortDeptName = (department = '') => {
@@ -39,21 +31,25 @@ export default function ManagerDashboard() {
     return department.replace(/\s*\([^)]*\)\s*/g, '').trim();
   };
 
-  const managerDept = getMockDept(currentUser?.username || '');
-  const isGlobalAdmin = currentUser?.role === 'admin' || currentUser?.username.toLowerCase() === 'lev123' || currentUser?.username.toLowerCase() === 'yaniv123';
+  const managerDept = getDepartment(currentUser);
+  const isGlobalAdmin = currentUser?.role === 'admin';
 
   // ── Data Calculations ──
-  const allEmployees = users.filter(u => u.role === 'employee');
+  // The management view follows everyone who takes part in the learning program:
+  // employees and managers alike. System admins are intentionally excluded.
+  const allLearners = users.filter((user) => ['employee', 'manager'].includes(user.role));
   const scopedEmployees = isGlobalAdmin
-    ? allEmployees
-    : allEmployees.filter(emp => getMockDept(emp.username) === managerDept);
+    ? allLearners
+    : allLearners.filter((user) => getDepartment(user) === managerDept);
 
-  const departmentOptions = [...new Set(scopedEmployees.map(emp => getMockDept(emp.username)))].sort();
+  const departmentOptions = [...new Set(scopedEmployees.map(getDepartment))].sort();
   const employees = selectedDepartment === 'all'
     ? scopedEmployees
-    : scopedEmployees.filter(emp => getMockDept(emp.username) === selectedDepartment);
+    : scopedEmployees.filter(emp => getDepartment(emp) === selectedDepartment);
 
   const totalEmployees = employees.length;
+  const managersCount = employees.filter((user) => user.role === 'manager').length;
+  const employeesCount = totalEmployees - managersCount;
 
   // Average Score across all completed quizzes
   let totalScoreSum = 0;
@@ -115,7 +111,7 @@ export default function ManagerDashboard() {
   // Department calculations
   const deptStats = {};
   employees.forEach(emp => {
-    const dept = getMockDept(emp.username);
+    const dept = getDepartment(emp);
     if (!deptStats[dept]) {
       deptStats[dept] = { scoreSum: 0, scoreCount: 0, employeeCount: 0, completedSubjects: 0 };
     }
@@ -207,7 +203,7 @@ export default function ManagerDashboard() {
     : 0;
   const certificationNotifications = employees
     .filter((emp) => emp.progress?.finalExam?.history?.length)
-    .flatMap((emp) => emp.progress.finalExam.history.map((attempt) => ({ ...attempt, username: emp.username, department: getMockDept(emp) })))
+    .flatMap((emp) => emp.progress.finalExam.history.map((attempt) => ({ ...attempt, username: emp.username, department: getDepartment(emp) })))
     .sort((a, b) => new Date(b.attemptedAt) - new Date(a.attemptedAt))
     .slice(0, 8);
   const now = Date.now();
@@ -215,8 +211,6 @@ export default function ManagerDashboard() {
   const learningNow = employees.filter((emp) => isPresenceLive(emp) && emp.presence.activity === 'learning').length;
   const testingNow = employees.filter((emp) => isPresenceLive(emp) && emp.presence.activity === 'final-exam').length;
   const inactiveThisWeek = employees.filter((emp) => !emp.lastActivity || now - new Date(emp.lastActivity).getTime() > 7 * 86400000).length;
-  const completedRecently = employees.filter((emp) => Object.values(emp.analytics?.courses || {}).some((course) => course.completedAt && now - new Date(course.completedAt).getTime() < 24 * 3600000)).length;
-  const certifiedRecently = employees.filter((emp) => emp.progress?.finalExam?.passedAt && now - new Date(emp.progress.finalExam.passedAt).getTime() < 24 * 3600000).length;
   const managementInsights = [
     finalExamPassed > 0 && { tone: 'emerald', icon: '🎓', title: `${finalExamPassed} עובדים מוסמכים`, text: `${finalExamSuccessRate}% הצלחה בניסיונות המבחן המסכם.` },
     finalExamFailed > 0 && { tone: 'rose', icon: '📕', title: `${finalExamFailed} עובדים טרם עברו את המבחן המסכם`, text: 'מומלץ להקצות חזרה ממוקדת על הנושאים החלשים וניסיון נוסף.' },
@@ -227,10 +221,11 @@ export default function ManagerDashboard() {
   ].filter(Boolean);
 
   const exportManagementReport = () => {
-    const headers = ['עובד', 'מחלקה', 'השלמת קורסים', 'ציון ממוצע', 'נקודות XP', 'מבחן מסכם', 'ציון אחרון', 'ניסיונות', 'פעילות אחרונה', 'סטטוס'];
+    const headers = ['משתמש', 'תפקיד', 'מחלקה', 'השלמת קורסים', 'ציון ממוצע', 'נקודות XP', 'מבחן מסכם', 'ציון אחרון', 'ניסיונות', 'פעילות אחרונה', 'סטטוס'];
     const rows = employeeRiskPoints.map(emp => [
       emp.username,
-      getMockDept(emp.username),
+      emp.role === 'manager' ? 'מנהל/ת' : 'עובד/ת',
+      getDepartment(emp),
       `${emp.completionRate}%`,
       emp.hasAssessment ? `${emp.avgScore}%` : 'ללא מבדק',
       emp.progress?.xp || 0,
@@ -282,7 +277,7 @@ export default function ManagerDashboard() {
     const query = searchQuery.toLowerCase();
     const matchesUser = emp.username.toLowerCase().includes(query);
     const matchesEmail = emp.email.toLowerCase().includes(query);
-    const matchesDept = getMockDept(emp.username).toLowerCase().includes(query);
+    const matchesDept = getDepartment(emp).toLowerCase().includes(query);
     const exam = emp.progress?.finalExam;
     const examStatus = exam?.passed ? 'passed' : exam ? 'failed' : 'not-taken';
     const matchesFinalStatus = finalStatusFilter === 'all' || finalStatusFilter === examStatus;
@@ -305,7 +300,7 @@ export default function ManagerDashboard() {
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-800 pb-5">
         <div>
           <h1 className="text-2xl font-extrabold text-white">דשבורד מנהלים</h1>
-          <p className="text-xs text-gray-500 font-semibold mt-1">מעקב התקדמות וציוני אבטחת מידע של העובדים</p>
+          <p className="text-xs text-gray-500 font-semibold mt-1">מעקב התקדמות וציוני אבטחת מידע של עובדים ומנהלים</p>
         </div>
 
         {/* Tab Selector Buttons */}
@@ -324,7 +319,7 @@ export default function ManagerDashboard() {
               activeTab === 'employees' ? 'bg-[#00e6ff] text-black shadow-md' : 'text-gray-400 hover:text-white'
             }`}
           >
-            מעקב עובדים
+            מעקב משתמשים
           </button>
         </div>
       </div>
@@ -349,7 +344,8 @@ export default function ManagerDashboard() {
                   <span className="rounded-lg border border-gray-700 bg-black/20 px-3 py-2 text-gray-300">🚨 {criticalEmployees} עובדים בסיכון</span>
                   <span className="rounded-lg border border-gray-700 bg-black/20 px-3 py-2 text-gray-300">📚 {overallCompletionPct}% השלמה</span>
                   <span className="rounded-lg border border-gray-700 bg-black/20 px-3 py-2 text-gray-300">📝 {passRate}% מעבר</span>
-                  <span className="rounded-lg border border-gray-700 bg-black/20 px-3 py-2 text-gray-300">🟢 {activeEmployeesCount} פעילים</span>
+                  <span className="rounded-lg border border-gray-700 bg-black/20 px-3 py-2 text-gray-300">🟢 {activeEmployeesCount} פעילים ב־30 יום</span>
+                  <span className="rounded-lg border border-gray-700 bg-black/20 px-3 py-2 text-gray-300">🎓 {finalExamPassed} מוסמכים</span>
                 </div>
               </div>
               <div className="flex flex-col gap-3">
@@ -364,18 +360,29 @@ export default function ManagerDashboard() {
           </section>
 
           {/* Stat Cards Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-6">
             
             {/* Card 1 - Employees */}
             <div className="bg-gradient-to-br from-gray-900/80 to-gray-950/80 border border-gray-800 rounded-3xl p-6 flex items-center justify-between relative overflow-hidden shadow-xl">
               <div className="space-y-1 z-10 text-right">
                 <div className="text-3xl font-black text-white">{totalEmployees}</div>
-                <div className="text-[10px] text-gray-500 font-extrabold tracking-wider uppercase">עובדים במחלקה</div>
+                <div className="text-[10px] text-gray-500 font-extrabold tracking-wider uppercase">משתמשים במעקב</div>
+                <div className="text-[9px] text-gray-600 font-bold">{employeesCount} עובדים · {managersCount} מנהלים</div>
               </div>
               <div className="p-4 bg-[#00e6ff]/5 rounded-2xl border border-[#00e6ff]/10 text-[#00e6ff] text-2xl z-10">
                 👥
               </div>
               <div className="absolute -bottom-6 -left-6 w-20 h-20 bg-[#00e6ff]/5 rounded-full blur-xl"></div>
+            </div>
+
+            <div className="bg-gradient-to-br from-gray-900/80 to-gray-950/80 border border-gray-800 rounded-3xl p-6 flex items-center justify-between relative overflow-hidden shadow-xl">
+              <div className="space-y-1 z-10 text-right">
+                <div className="text-3xl font-black text-purple-400">{finalExamPassed}</div>
+                <div className="text-[10px] text-gray-500 font-extrabold tracking-wider uppercase">משתמשים מוסמכים</div>
+                <div className="text-[9px] text-gray-600 font-bold">{finalExamFailed} טרם עברו את ההסמכה</div>
+              </div>
+              <div className="p-4 bg-purple-500/5 rounded-2xl border border-purple-500/10 text-purple-400 text-2xl z-10">🎓</div>
+              <div className="absolute -bottom-6 -left-6 w-20 h-20 bg-purple-500/5 rounded-full blur-xl"></div>
             </div>
 
             {/* Card 2 - Resilience Index */}
@@ -384,10 +391,10 @@ export default function ManagerDashboard() {
                 <div className="text-3xl font-black text-amber-400">{averageScore}%</div>
                 <div className="text-[10px] text-gray-500 font-extrabold tracking-wider uppercase">מדד חוסן ממוצע</div>
               </div>
-              <div className="p-4 bg-amber-400/5 rounded-2xl border border-amber-450/10 text-amber-400 text-2xl z-10">
+              <div className="p-4 bg-amber-400/5 rounded-2xl border border-amber-400/10 text-amber-400 text-2xl z-10">
                 ⚡
               </div>
-              <div className="absolute -bottom-6 -left-6 w-20 h-20 bg-amber-450/5 rounded-full blur-xl"></div>
+              <div className="absolute -bottom-6 -left-6 w-20 h-20 bg-amber-400/5 rounded-full blur-xl"></div>
             </div>
 
             {/* Card 3 - Safe Employees */}
@@ -396,7 +403,7 @@ export default function ManagerDashboard() {
                 <div className="text-3xl font-black text-emerald-400">{safeCount}</div>
                 <div className="text-[10px] text-gray-500 font-extrabold tracking-wider uppercase">עובדים מוגנים (ציונים 80+)</div>
               </div>
-              <div className="p-4 bg-emerald-50/5 rounded-2xl border border-emerald-500/10 text-emerald-405 text-2xl z-10">
+              <div className="p-4 bg-emerald-50/5 rounded-2xl border border-emerald-500/10 text-emerald-400 text-2xl z-10">
                 🛡️
               </div>
               <div className="absolute -bottom-6 -left-6 w-20 h-20 bg-emerald-500/5 rounded-full blur-xl"></div>
@@ -422,7 +429,7 @@ export default function ManagerDashboard() {
               { label: 'השתתפות בלמידה', value: `${participationRate}%`, detail: `${participatingCount} מתוך ${totalEmployees} עובדים`, icon: '🎯', color: 'text-cyan-400' },
               { label: 'השלמת כלל הקורסים', value: `${overallCompletionPct}%`, detail: `${totalCompletedSubjects} השלמות בפועל`, icon: '✅', color: 'text-emerald-400' },
               { label: 'שיעור מעבר במבדקים', value: `${passRate}%`, detail: `${passedAssessments} עברו מתוך ${totalExamsTaken}`, icon: '📝', color: 'text-purple-400' },
-              { label: 'עובדים פעילים ב־30 יום', value: activeEmployeesCount, detail: `${notStartedCount} טרם התחילו ללמוד`, icon: '🟢', color: 'text-amber-400' }
+              { label: 'משתמשים פעילים ב־30 יום', value: activeEmployeesCount, detail: `${inactiveThisWeek} ללא פעילות בשבוע האחרון`, icon: '📈', color: 'text-amber-400' }
             ].map(metric => (
               <div key={metric.label} className="rounded-2xl border border-gray-800 bg-gray-900/40 p-5 text-right shadow-lg">
                 <div className="mb-3 flex items-center justify-between gap-3">
@@ -614,7 +621,7 @@ export default function ManagerDashboard() {
                   <>
                     <h4 className="text-lg font-extrabold text-[#00e6ff] mt-2">{bestStudent.username}</h4>
                     <p className="text-[10px] text-gray-400 mt-1">
-                      מחלקה: <strong>{getMockDept(bestStudent.username)}</strong>
+                      מחלקה: <strong>{getDepartment(bestStudent)}</strong>
                     </p>
                     <p className="text-[10px] text-gray-400 mt-0.5">
                       צברו: <strong>{bestStudent.progress?.xp || 0} XP</strong> • הושלמו <strong>{(bestStudent.progress?.completedSubjects || []).length}</strong> נושאים
@@ -645,7 +652,7 @@ export default function ManagerDashboard() {
                       </span>
                       <span>
                         <strong className="block text-xs text-white">{emp.username}</strong>
-                        <small className="mt-1 block text-[10px] font-semibold text-gray-500">{getMockDept(emp.username)} · {emp.completed} מתוך {subjectsData.length} נושאים</small>
+                        <small className="mt-1 block text-[10px] font-semibold text-gray-500">{getDepartment(emp)} · {emp.completed} מתוך {subjectsData.length} נושאים</small>
                       </span>
                     </button>
                   ))}
@@ -778,11 +785,11 @@ export default function ManagerDashboard() {
         <div className="space-y-6">
           <section className="rounded-3xl border border-gray-800 bg-gray-900/45 p-4">
             <div className="mb-3 flex items-center justify-between gap-3 px-1">
-              <span className="text-[9px] font-bold text-gray-600">נתוני עובדים בלבד · מתעדכן בזמן אמת</span>
-              <h2 className="text-sm font-black text-white">👥 מעקב עובדים בזמן אמת</h2>
+              <span className="text-[9px] font-bold text-gray-600">נתוני עובדים ומנהלים · מתעדכן בזמן אמת</span>
+              <h2 className="text-sm font-black text-white">👥 מעקב משתמשים בזמן אמת</h2>
             </div>
-            <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
-              {[[`🟢 ${learningNow}`, 'עובדים לומדים עכשיו'], [`🟡 ${testingNow}`, 'עובדים במבחן כרגע'], [`🔴 ${inactiveThisWeek}`, 'עובדים שלא התחברו השבוע'], [`🔵 ${completedRecently}`, 'עובדים שסיימו קורס היום'], [`🟣 ${certifiedRecently}`, 'עובדים שהוסמכו היום']].map(([value, label]) => (
+            <div className="grid grid-cols-2 gap-3 md:grid-cols-6">
+              {[[`👥 ${totalEmployees}`, 'סה״כ משתמשים'], [`🧑‍💼 ${managersCount}`, 'מנהלים במעקב'], [`🟢 ${activeEmployeesCount}`, 'פעילים ב־30 יום'], [`🎓 ${finalExamPassed}`, 'עברו הסמכה'], [`🔴 ${finalExamFailed}`, 'טרם עברו הסמכה'], [`📚 ${participatingCount}`, 'התחילו ללמוד']].map(([value, label]) => (
                 <div key={label} className="rounded-2xl border border-gray-800 bg-[#070b13] p-3 text-center">
                   <strong className="block text-lg text-white">{value}</strong>
                   <span className="mt-1 block text-[9px] font-bold text-gray-600">{label}</span>
@@ -793,7 +800,7 @@ export default function ManagerDashboard() {
 
           <div className="bg-gray-900/40 border border-gray-800 rounded-2xl p-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h3 className="text-md font-bold text-gray-200">רשימת עובדים ומעקב למידה</h3>
+            <h3 className="text-md font-bold text-gray-200">רשימת משתמשים ומעקב למידה</h3>
             
             <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
               <select value={finalStatusFilter} onChange={(event) => setFinalStatusFilter(event.target.value)} className="rounded-xl border border-gray-850 bg-gray-950 px-4 py-2 text-xs font-bold text-gray-300 outline-none focus:border-purple-500"><option value="all">כל סטטוסי ההסמכה</option><option value="passed">עבר בהצלחה</option><option value="failed">לא עבר</option><option value="not-taken">טרם ניגש</option></select>
@@ -806,7 +813,8 @@ export default function ManagerDashboard() {
             <table className="min-w-[1150px] w-full text-right border-collapse">
               <thead>
                 <tr className="bg-gray-950/60 border-b border-gray-850 text-xs font-bold text-gray-400">
-                  <th className="p-4">שם עובד</th>
+                  <th className="p-4">שם משתמש</th>
+                  <th className="p-4 text-center">תפקיד</th>
                   <th className="p-4">מחלקה</th>
                   <th className="p-4 text-center">נושאים שהושלמו</th>
                   <th className="p-4 text-center">נקודות XP</th>
@@ -822,8 +830,8 @@ export default function ManagerDashboard() {
               <tbody className="divide-y divide-gray-850 text-xs">
                 {filteredEmployees.length === 0 ? (
                   <tr>
-                    <td colSpan={11} className="p-8 text-center text-gray-500">
-                      לא נמצאו עובדים התואמים את החיפוש.
+                    <td colSpan={12} className="p-8 text-center text-gray-500">
+                      לא נמצאו משתמשים התואמים את החיפוש.
                     </td>
                   </tr>
                 ) : (
@@ -844,7 +852,8 @@ export default function ManagerDashboard() {
                           <div>{emp.username}</div>
                           <div className="text-[10px] text-gray-500 font-semibold">{emp.email}</div>
                         </td>
-                        <td className="p-4 text-gray-300 font-semibold">{getMockDept(emp.username)}</td>
+                        <td className="p-4 text-center"><span className={`rounded-lg px-2.5 py-1 text-[10px] font-black ${emp.role === 'manager' ? 'bg-purple-500/10 text-purple-400' : 'bg-cyan-500/10 text-cyan-400'}`}>{emp.role === 'manager' ? 'מנהל/ת' : 'עובד/ת'}</span></td>
+                        <td className="p-4 text-gray-300 font-semibold">{getDepartment(emp)}</td>
                         <td className="p-4 text-center text-gray-300 font-bold">{completedCount} / 11</td>
                         <td className="p-4 text-center font-bold text-[#9d4edd]">{emp.progress?.xp || 0}</td>
                         <td className="p-4 text-center">
@@ -886,7 +895,7 @@ export default function ManagerDashboard() {
             <div className="p-6 border-b border-gray-850 flex justify-between items-center bg-gray-950/40">
               <div className="text-right">
                 <h3 className="text-lg font-bold text-white">📋 גיליון הישגים וציונים</h3>
-                <p className="text-xs text-gray-500 mt-1">עבור העובד: <strong>{selectedEmployee.username}</strong> ({getMockDept(selectedEmployee.username)})</p>
+                <p className="text-xs text-gray-500 mt-1">עבור העובד: <strong>{selectedEmployee.username}</strong> ({getDepartment(selectedEmployee)})</p>
               </div>
               <button 
                 onClick={() => setSelectedEmployee(null)}
@@ -961,7 +970,7 @@ export default function ManagerDashboard() {
                           </td>
                           <td className="p-3 text-center">
                             {isCompleted ? (
-                              <span className="text-emerald-450 font-bold">✓ הושלם</span>
+                              <span className="text-emerald-400 font-bold">✓ הושלם</span>
                             ) : (
                               <span className="text-gray-600 font-semibold">טרם התחיל</span>
                             )}

@@ -29,13 +29,21 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 24
 
       - name: Install dependencies
         run: |
           npm install
 
+      - name: Validate API deployment URL
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
+        run: |
+          node -e "const value=process.env.VITE_API_BASE_URL;if(!value)throw new Error('Repository variable VITE_API_BASE_URL is required');const url=new URL(value);if(url.protocol!=='https:'||['localhost','127.0.0.1'].includes(url.hostname))throw new Error('VITE_API_BASE_URL must be a public HTTPS URL')"
+
       - name: Build Project
+        env:
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
         run: |
           npm run build
 
@@ -56,4 +64,3 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: ./dist
-

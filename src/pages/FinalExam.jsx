@@ -12,8 +12,9 @@ export default function FinalExam() {
   const [examQuestions, setExamQuestions] = useState(() => createFinalExamQuestionSet(subjectsData));
   const [answers, setAnswers] = useState({});
   const [result, setResult] = useState(null);
+  const [submissionError, setSubmissionError] = useState('');
   const completedCount = userProgress.completedSubjects?.length || 0;
-  const readiness = getCertificationReadiness(userProgress, currentUser?.analytics, subjectsData.length);
+  const readiness = getCertificationReadiness(userProgress, currentUser?.analytics, subjectsData);
   const isUnlocked = readiness.unlocked;
   const previousResult = userProgress.finalExam;
   const answeredCount = Object.keys(answers).length;
@@ -25,9 +26,11 @@ export default function FinalExam() {
     return () => { window.clearInterval(heartbeat); updatePresence('idle'); };
   }, [isUnlocked]);
 
-  const scorePreview = useMemo(() => examQuestions.reduce((total, question, index) => (
-    total + (answers[index] === question.answer ? 10 : 0)
-  ), 0), [answers, examQuestions]);
+  const scorePreview = useMemo(() => {
+    if (examQuestions.length === 0) return 0;
+    const correct = examQuestions.filter((question, index) => answers[index] === question.answer).length;
+    return Math.round((correct / examQuestions.length) * 100);
+  }, [answers, examQuestions]);
 
   const finishExam = () => {
     if (answeredCount !== examQuestions.length) return;
@@ -42,6 +45,10 @@ export default function FinalExam() {
     }));
     const correctCount = answerHistory.filter((answer) => answer.correct).length;
     const submitted = submitFinalExam(scorePreview, { answers: answerHistory, correctCount, wrongCount: examQuestions.length - correctCount });
+    if (!submitted) {
+      setSubmissionError('לא ניתן לשמור את המבחן משום שתנאי ההסמכה אינם מלאים. רענן את העמוד ובדוק את ההתקדמות.');
+      return;
+    }
     setResult({ ...submitted, passed: scorePreview >= FINAL_EXAM_PASS_SCORE, score: scorePreview, currentAttempt: answerHistory, correctCount, wrongCount: examQuestions.length - correctCount });
     updatePresence('idle');
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -59,7 +66,7 @@ export default function FinalExam() {
         </div>
         <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-gray-400">יש להשלים את כל הקורסים לפני שניתן לגשת למבחן המסכם.</p>
         <div className="mx-auto mt-6 max-w-md"><div className="mb-2 flex justify-between text-xs font-bold text-gray-500"><span>{completedCount}/{subjectsData.length}</span><span>התקדמות לפתיחת המבחן</span></div><div className="h-3 overflow-hidden rounded-full bg-gray-950"><div className="h-full rounded-full bg-gradient-to-l from-[#00e6ff] to-[#9d4edd]" style={{ width: `${Math.round((completedCount / subjectsData.length) * 100)}%` }} /></div></div>
-        <div className="mx-auto mt-5 grid max-w-xl grid-cols-2 gap-2 text-[11px] font-bold sm:grid-cols-4">{[['100% קורסים', readiness.coursesDone], ['כל הסרטונים', readiness.videosDone], ['כל התרגולים', readiness.labsDone], ['כל המבדקים', readiness.quizzesDone]].map(([label, done]) => <span key={label} className={`rounded-xl border px-3 py-2 ${done ? 'border-emerald-500/20 bg-emerald-500/8 text-emerald-400' : 'border-gray-800 bg-gray-950 text-gray-600'}`}>{done ? '✓' : '○'} {label}</span>)}</div>
+        <div className="mx-auto mt-5 grid max-w-2xl grid-cols-2 gap-2 text-[11px] font-bold sm:grid-cols-5">{[['כל השיעורים', readiness.lessonsDone], ['100% קורסים', readiness.coursesDone], ['כל הסרטונים', readiness.videosDone], ['כל התרגולים', readiness.labsDone], ['כל המבדקים', readiness.quizzesDone]].map(([label, done]) => <span key={label} className={`rounded-xl border px-3 py-2 ${done ? 'border-emerald-500/20 bg-emerald-500/8 text-emerald-400' : 'border-gray-800 bg-gray-950 text-gray-600'}`}>{done ? '✓' : '○'} {label}</span>)}</div>
         <Link to="/" className="mt-7 inline-flex rounded-xl bg-[#00e6ff] px-6 py-3 text-sm font-black text-black">חזרה לקורסים</Link>
       </section>
     </div>;
@@ -84,8 +91,9 @@ export default function FinalExam() {
   return <div className="mx-auto max-w-4xl" dir="rtl">
     <div className="mb-6 flex items-start justify-between gap-4"><div><span className="inline-flex items-center gap-2 rounded-full border border-purple-500/20 bg-purple-500/10 px-3 py-1 text-xs font-black text-purple-300"><ShieldCheck size={15} /> מבחן הסמכה</span><h1 className="mt-3 text-3xl font-black text-white">המבחן המסכם של ShieldX</h1><p className="mt-2 text-sm text-gray-400">10 שאלות · 10 נקודות לכל שאלה · ציון מעבר {FINAL_EXAM_PASS_SCORE}</p></div><BackButton /></div>
     {previousResult && <div className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-gray-800 bg-gray-900/45 p-4 text-xs"><span className="text-gray-400">הניסיון הטוב ביותר שלך: <strong className={previousResult.passed ? 'text-emerald-400' : 'text-amber-400'}>{previousResult.bestScore ?? previousResult.score}</strong></span><span className={`rounded-lg px-3 py-1 font-black ${previousResult.passed ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>{previousResult.passed ? 'עבר' : 'לא עבר'}</span></div>}
-    <div className="mb-5 sticky top-24 z-20 rounded-2xl border border-gray-800 bg-[#0a0d17]/95 p-4 shadow-xl backdrop-blur"><div className="flex justify-between text-xs font-bold text-gray-400"><span>{answeredCount}/10 שאלות נענו</span><span>כל שאלה שווה 10 נקודות</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-900"><div className="h-full bg-gradient-to-l from-[#00e6ff] to-purple-500 transition-all" style={{ width: `${answeredCount * 10}%` }} /></div></div>
-    <div className="space-y-5">{examQuestions.map((question, questionIndex) => <section key={question.id} className="rounded-3xl border border-gray-800 bg-gray-900/50 p-6"><div className="mb-4 flex items-center justify-between gap-3"><span className="rounded-lg bg-gray-950 px-2.5 py-1 text-[10px] font-black text-[#00e6ff]">{question.topic}</span><span className="text-xs font-black text-gray-500">שאלה {questionIndex + 1} מתוך 10</span></div><h2 className="text-base font-bold leading-7 text-white">{question.question}</h2><div className="mt-5 grid gap-3">{question.options.map((option, optionIndex) => <button key={option} type="button" onClick={() => setAnswers((current) => ({ ...current, [questionIndex]: optionIndex }))} className={`flex items-center gap-3 rounded-2xl border p-4 text-right text-sm font-semibold transition ${answers[questionIndex] === optionIndex ? 'border-[#00e6ff] bg-[#00e6ff]/10 text-white' : 'border-gray-800 bg-gray-950/35 text-gray-400 hover:border-gray-700 hover:text-gray-200'}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs ${answers[questionIndex] === optionIndex ? 'border-[#00e6ff] bg-[#00e6ff] text-black' : 'border-gray-700'}`}>{String.fromCharCode(1488 + optionIndex)}</span>{option}</button>)}</div></section>)}</div>
-    <div className="mt-7 rounded-3xl border border-gray-800 bg-gray-900/65 p-6 text-center"><button type="button" onClick={finishExam} disabled={answeredCount !== examQuestions.length} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500 px-8 py-4 text-sm font-black text-[#03130e] transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-35"><CheckCircle2 size={19} /> סיום וקבלת ציון</button>{answeredCount !== examQuestions.length && <p className="mt-3 text-[11px] font-bold text-gray-600">יש לענות על כל השאלות לפני הגשת המבחן.</p>}</div>
+    {submissionError && <div className="mb-5 rounded-2xl border border-rose-500/25 bg-rose-500/10 p-4 text-sm font-bold text-rose-300" role="alert">{submissionError}</div>}
+    <div className="mb-5 sticky top-24 z-20 rounded-2xl border border-gray-800 bg-[#0a0d17]/95 p-4 shadow-xl backdrop-blur"><div className="flex justify-between text-xs font-bold text-gray-400"><span>{answeredCount}/{examQuestions.length} שאלות נענו</span><span>ציון המעבר הוא {FINAL_EXAM_PASS_SCORE}</span></div><div className="mt-2 h-2 overflow-hidden rounded-full bg-gray-900"><div className="h-full bg-gradient-to-l from-[#00e6ff] to-purple-500 transition-all" style={{ width: `${Math.round((answeredCount / Math.max(1, examQuestions.length)) * 100)}%` }} /></div></div>
+    <div className="space-y-5">{examQuestions.map((question, questionIndex) => <section key={question.id} className="rounded-3xl border border-gray-800 bg-gray-900/50 p-6"><div className="mb-4 flex items-center justify-between gap-3"><span className="rounded-lg bg-gray-950 px-2.5 py-1 text-[10px] font-black text-[#00e6ff]">{question.topic}</span><span className="text-xs font-black text-gray-500">שאלה {questionIndex + 1} מתוך {examQuestions.length}</span></div><h2 className="text-base font-bold leading-7 text-white">{question.question}</h2><div className="mt-5 grid gap-3">{question.options.map((option, optionIndex) => <button key={option} type="button" onClick={() => setAnswers((current) => ({ ...current, [questionIndex]: optionIndex }))} className={`flex items-center gap-3 rounded-2xl border p-4 text-right text-sm font-semibold transition ${answers[questionIndex] === optionIndex ? 'border-[#00e6ff] bg-[#00e6ff]/10 text-white' : 'border-gray-800 bg-gray-950/35 text-gray-400 hover:border-gray-700 hover:text-gray-200'}`}><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border text-xs ${answers[questionIndex] === optionIndex ? 'border-[#00e6ff] bg-[#00e6ff] text-black' : 'border-gray-700'}`}>{String.fromCharCode(1488 + optionIndex)}</span>{option}</button>)}</div></section>)}</div>
+    <div className="mt-7 rounded-3xl border border-gray-800 bg-gray-900/65 p-6 text-center"><button type="button" onClick={finishExam} disabled={answeredCount !== examQuestions.length || examQuestions.length === 0} className="inline-flex items-center gap-2 rounded-2xl bg-emerald-500 px-8 py-4 text-sm font-black text-[#03130e] transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-35"><CheckCircle2 size={19} /> סיום וקבלת ציון</button>{answeredCount !== examQuestions.length && <p className="mt-3 text-[11px] font-bold text-gray-600">יש לענות על כל השאלות לפני הגשת המבחן.</p>}</div>
   </div>;
 }
