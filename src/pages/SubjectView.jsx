@@ -8,10 +8,12 @@ import Quiz from '../components/Quiz';
 import VideoPlayer from '../components/VideoPlayer';
 import BackButton from '../components/BackButton';
 import ScenarioLab from '../components/ScenarioLab';
+import { subjectsData as builtInSubjects } from '../data/subjectsData';
+import { courseApi } from '../services/apiClient';
 
 export default function SubjectView() {
   const { id } = useParams();
-  const { subjects = [], completeSubject, completeLab, recordQuizAnswer, trackVideoProgress, rateCourse, updatePresence, currentUser, userProgress, setActiveViewRole } = useApp();
+  const { subjects = [], completeLesson, completeSubject, completeLab, recordQuizAnswer, trackVideoProgress, rateCourse, updatePresence, currentUser, userProgress, setActiveViewRole } = useApp();
   const subject = subjects.find(s => String(s.id) === String(id));
   const subjectId = subject?.id;
 
@@ -43,16 +45,22 @@ export default function SubjectView() {
 
   // Status checks for each tab completion
   const isVideoCompleted = Boolean(currentUser?.analytics?.videos?.[subjectId]?.completed);
-  const isLearnCompleted = Boolean(userProgress?.completedSubjects?.includes(subjectId));
+  const isLearnCompleted = Boolean(userProgress?.completedLessons?.includes(subjectId));
   const isLabCompleted = Boolean(userProgress?.completedLabs?.includes(subjectId)) || labDone;
   const isQuizCompleted = Boolean(Number(userProgress?.scores?.[subjectId]) >= 80);
 
   // Automatically mark theory lesson as completed when the user reads to the last slide
   useEffect(() => {
     if (subject?.slides && subject.slides.length > 0 && slideIdx === subject.slides.length - 1) {
-      completeSubject(subjectId, 100);
+      completeLesson(subjectId);
     }
   }, [slideIdx, subject, subjectId]);
+
+  useEffect(() => {
+    setSlideIdx(0);
+    setRevealedBullets([]);
+    setLessonChoice(null);
+  }, [subjectId]);
 
   useEffect(() => {
     updatePresence('learning', { subjectId });
@@ -243,8 +251,15 @@ export default function SubjectView() {
                       </div>
                     )}
                   </div>
-                  {subject.slides[slideIdx].visual && (
-                    <div className="min-h-[250px] rounded-2xl border border-[#00e6ff]/15 bg-gray-950/45 p-5 flex items-center justify-center overflow-hidden" dangerouslySetInnerHTML={{ __html: subject.slides[slideIdx].visual }} />
+                  {subject.slides[slideIdx].visual && builtInSubjects.includes(subject) && (
+                    <div className="min-h-[250px] overflow-hidden rounded-2xl border border-[#00e6ff]/15 bg-gray-950/45 p-3">
+                      <iframe
+                        title={`המחשה לשקופית ${slideIdx + 1}`}
+                        sandbox=""
+                        srcDoc={`<!doctype html><html dir="rtl"><head><meta charset="utf-8"><style>html,body{margin:0;min-height:100%;background:transparent;color:#e5e7eb;font-family:Arial,sans-serif}body{display:flex;align-items:center;justify-content:center;padding:8px;box-sizing:border-box}svg{max-width:100%;height:auto}</style></head><body>${subject.slides[slideIdx].visual}</body></html>`}
+                        className="h-[250px] w-full border-0"
+                      />
+                    </div>
                   )}
                 </div>
 
@@ -345,7 +360,7 @@ export default function SubjectView() {
         )}
 
         {activeTab === 'quiz' && (
-          <div className="space-y-5"><Quiz questions={subject.quizzes} onQuizComplete={handleQuizComplete} onQuestionAnswered={(questionIndex, correct) => recordQuizAnswer(subjectId, questionIndex, correct)} />{showFeedback && <section className="mx-auto max-w-xl rounded-3xl border border-yellow-500/15 bg-yellow-500/5 p-6 text-center"><h3 className="text-base font-black text-white">איך היה הקורס?</h3><p className="mt-1 text-xs font-semibold text-gray-500">הדירוג שלך עוזר לנו לשפר את חוויית הלמידה</p><div className="mt-4 flex justify-center gap-2" dir="ltr">{[1,2,3,4,5].map((star) => <button key={star} type="button" onClick={() => rateCourse(subjectId, star)} className={`text-3xl transition hover:scale-125 ${star <= (currentUser?.progress?.courseRatings?.[subjectId]?.value || 0) ? 'text-yellow-400' : 'text-gray-700'}`} aria-label={`דירוג ${star} מתוך 5`}>★</button>)}</div></section>}</div>
+          <div className="space-y-5"><Quiz questions={subject.quizzes} onQuizComplete={handleQuizComplete} onQuestionAnswered={(questionIndex, correct) => recordQuizAnswer(subjectId, questionIndex, correct)} serverGrader={subject.serverGraded ? (answers) => courseApi.gradeQuiz(subject.courseId, answers) : null} />{showFeedback && <section className="mx-auto max-w-xl rounded-3xl border border-yellow-500/15 bg-yellow-500/5 p-6 text-center"><h3 className="text-base font-black text-white">איך היה הקורס?</h3><p className="mt-1 text-xs font-semibold text-gray-500">הדירוג שלך עוזר לנו לשפר את חוויית הלמידה</p><div className="mt-4 flex justify-center gap-2" dir="ltr">{[1,2,3,4,5].map((star) => <button key={star} type="button" onClick={() => rateCourse(subjectId, star)} className={`text-3xl transition hover:scale-125 ${star <= (currentUser?.progress?.courseRatings?.[subjectId]?.value || 0) ? 'text-yellow-400' : 'text-gray-700'}`} aria-label={`דירוג ${star} מתוך 5`}>★</button>)}</div></section>}</div>
         )}
       </div>
     </div>

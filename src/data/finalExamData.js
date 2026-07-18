@@ -116,17 +116,26 @@ export function createFinalExamQuestionSet(subjects, count = 10) {
   return unique.slice(0, count);
 }
 
-export function getCertificationReadiness(progress = {}, analytics = {}, subjectCount = 11) {
-  const subjectIds = Array.from({ length: subjectCount }, (_, index) => index);
+export function getCertificationReadiness(progress = {}, analytics = {}, subjects = []) {
+  const normalizedSubjects = Array.isArray(subjects)
+    ? subjects
+    : Array.from({ length: Number(subjects) || 0 }, (_, id) => ({ id, videoUrl: true, simulations: [{}] }));
+  const subjectIds = normalizedSubjects.map((subject) => subject.id);
+  const videoSubjectIds = normalizedSubjects.filter((subject) => Boolean(subject.videoUrl)).map((subject) => subject.id);
+  const labSubjectIds = normalizedSubjects.filter((subject) => subject.simulations?.length > 0).map((subject) => subject.id);
   const coursesDone = subjectIds.every((id) => progress.completedSubjects?.includes(id));
-  const videosDone = subjectIds.every((id) => analytics.videos?.[id]?.completed === true);
+  const lessonsDone = subjectIds.every((id) => (
+    progress.completedLessons?.includes(id) || progress.completedSubjects?.includes(id)
+  ));
+  const videosDone = videoSubjectIds.every((id) => analytics.videos?.[id]?.completed === true);
   const quizzesDone = subjectIds.every((id) => Number(progress.scores?.[id]) >= FINAL_EXAM_PASS_SCORE);
-  const labsDone = subjectIds.every((id) => progress.completedLabs?.includes(id));
+  const labsDone = labSubjectIds.every((id) => progress.completedLabs?.includes(id));
   return {
     coursesDone,
+    lessonsDone,
     videosDone,
     quizzesDone,
     labsDone,
-    unlocked: coursesDone && videosDone && quizzesDone && labsDone
+    unlocked: coursesDone && lessonsDone && videosDone && quizzesDone && labsDone
   };
 }

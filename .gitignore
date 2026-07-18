@@ -7,3 +7,7 @@ work/
 .env
 .env.*
 !.env.example
+data/reset_tokens.json
+*.db-journal
+*.db-shm
+*.db-wal

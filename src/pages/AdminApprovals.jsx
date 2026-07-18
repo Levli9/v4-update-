@@ -1,10 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Check, Clock3, Copy, Eye, EyeOff, KeyRound, Lock, ShieldCheck, Sparkles, Star, UserCheck, UserX, X } from 'lucide-react';
+import { Check, Clock3, Copy, ShieldCheck, UserCheck, UserX, X } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 
 // ── User Detail Modal ──────────────────────────────────────────────────────────
 function UserDetailModal({ user, onClose }) {
-  const [showPassword, setShowPassword] = useState(false);
   const [copied, setCopied] = useState('');
 
   const copyToClipboard = (text, label) => {
@@ -61,11 +60,6 @@ function UserDetailModal({ user, onClose }) {
             <div className="pb-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-black text-white">{user.username}</h2>
-                {user.superUser && (
-                  <span className="flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[9px] font-black text-amber-300">
-                    <Star size={9} fill="currentColor" /> Super User
-                  </span>
-                )}
                 {isCertified && (
                   <span className="flex items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-300">
                     🏅 מוסמך
@@ -153,43 +147,6 @@ function UserDetailModal({ user, onClose }) {
                 </div>
               </div>
             </div>
-
-            {/* ── PASSWORD (Super Admin Only) ── */}
-            <div className="rounded-xl border border-amber-500/20 bg-amber-500/5 p-3">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-1.5">
-                  <KeyRound size={12} className="text-amber-400" />
-                  <p className="text-[9px] font-black text-amber-400 uppercase tracking-wider">סיסמת כניסה (Super Admin)</p>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="flex items-center gap-1 rounded-lg border border-amber-500/25 bg-amber-500/10 px-2 py-1 text-[9px] font-bold text-amber-300 hover:bg-amber-500/20 transition"
-                  >
-                    {showPassword ? <EyeOff size={10} /> : <Eye size={10} />}
-                    {showPassword ? 'הסתר' : 'הצג'}
-                  </button>
-                  {user.plainPassword && (
-                    <button type="button" onClick={() => copyToClipboard(user.plainPassword, 'password')}
-                      className="rounded-lg border border-amber-500/25 bg-amber-500/10 p-1 hover:bg-amber-500/20 transition text-amber-400">
-                      {copied === 'password' ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 rounded-lg bg-gray-950/70 px-3 py-2 font-mono">
-                {showPassword
-                  ? <span className="flex-1 text-sm font-bold text-white break-all">{user.plainPassword || '— לא זמין —'}</span>
-                  : <span className="flex-1 text-sm tracking-[0.4em] text-gray-700 select-none">{'•'.repeat(Math.min(user.plainPassword?.length || 8, 14))}</span>
-                }
-                <Lock size={12} className="shrink-0 text-gray-700" />
-              </div>
-
-              {!user.plainPassword && (
-                <p className="mt-1.5 text-[9px] text-gray-600">* עובד שנרשם בעצמו — הסיסמה לא נשמרת בבסיס הנתונים מטעמי אבטחה.</p>
-              )}
-            </div>
           </div>
         </div>
       </div>
@@ -199,20 +156,11 @@ function UserDetailModal({ user, onClose }) {
 
 // ── Main AdminApprovals Component ─────────────────────────────────────────────
 export default function AdminApprovals() {
-  const { users, currentUser, reviewRegistration, getBrevoConfig, saveBrevoConfig, getGeminiConfig, saveGeminiConfig } = useApp();
+  const { users, reviewRegistration } = useApp();
   const [message, setMessage] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
-  
-  const config = getBrevoConfig ? getBrevoConfig() : { key: '', sender: 'security@cyber-academy.com' };
-  const [brevoKey, setBrevoKey] = useState(config.key);
-  const [brevoSender, setBrevoSender] = useState(config.sender);
-  const [brevoSuccess, setBrevoSuccess] = useState('');
-
-  const gConfig = getGeminiConfig ? getGeminiConfig() : { key: '' };
-  const [geminiKey, setGeminiKey] = useState(gConfig.key);
-  const [geminiSuccess, setGeminiSuccess] = useState('');
-  const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [activeFilter, setActiveFilter] = useState('pending');
+  const [reviewingUser, setReviewingUser] = useState('');
 
   const pendingCount = users.filter((user) => user.status === 'pending').length;
   const approvedCount = users.filter((user) => user.status === 'approved' && user.role !== 'admin').length;
@@ -227,8 +175,11 @@ export default function AdminApprovals() {
     }).sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
   }, [users, activeFilter]);
 
-  const review = (username, decision) => {
-    const result = reviewRegistration(username, decision);
+  const review = async (username, decision) => {
+    if (reviewingUser) return;
+    setReviewingUser(username);
+    const result = await reviewRegistration(username, decision);
+    setReviewingUser('');
     if (result.success) {
       if (decision === 'approve') {
         setMessage(`המשתמש ${username} אושר בהצלחה.`);
@@ -256,15 +207,8 @@ export default function AdminApprovals() {
             </div>
             <h1 className="text-2xl font-black text-white sm:text-3xl">ניהול ואישור משתמשים</h1>
             <p className="mt-2 text-xs font-semibold text-gray-500">
-              בדיקת בקשות הרשמה · צפייה בפרטי כניסה · שינוי הרשאות
+              בדיקת בקשות הרשמה · צפייה בפרטי חשבון · שינוי סטטוס
             </p>
-            {/* Super User badge for admin */}
-            {currentUser?.superUser && (
-              <div className="mt-3 inline-flex items-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/8 px-3 py-1.5">
-                <Star size={12} fill="currentColor" className="text-amber-400" />
-                <span className="text-[10px] font-black text-amber-300 uppercase tracking-wider">Super User — גישה מלאה לכל פרטי המערכת</span>
-              </div>
-            )}
           </div>
           
           {/* Clickable Status Filters */}
@@ -335,7 +279,7 @@ export default function AdminApprovals() {
                 {activeFilter === 'approved' ? 'משתמשים מאושרים במערכת' : activeFilter === 'rejected' ? 'בקשות הצטרפות שנדחו' : 'בקשות שממתינות לבדיקה'}
               </h2>
               <p className="text-[10px] font-semibold text-gray-600">
-                לחץ על שם משתמש לצפייה בפרטים המלאים כולל סיסמת כניסה
+                לחץ על שם משתמש לצפייה בפרטי החשבון וההתקדמות
               </p>
             </div>
           </div>
@@ -370,11 +314,6 @@ export default function AdminApprovals() {
                     <div className="min-w-0 flex-1 text-right">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-black text-white group-hover:text-[#00e6ff] transition-colors">{user.username}</h3>
-                        {user.superUser && (
-                          <span className="flex items-center gap-0.5 rounded-full border border-amber-500/30 bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-black text-amber-300">
-                            <Star size={8} fill="currentColor" /> Super
-                          </span>
-                        )}
                         <span className={`rounded-full px-2.5 py-1 text-[9px] font-black ${user.requestedRole === 'manager' || user.role === 'manager' ? 'bg-purple-500/10 text-purple-300' : 'bg-cyan-500/10 text-cyan-300'}`}>
                           {user.requestedRole === 'manager' || user.role === 'manager' ? 'מנהל' : 'עובד רגיל'}
                         </span>
@@ -404,6 +343,7 @@ export default function AdminApprovals() {
                       <button 
                         type="button" 
                         onClick={() => review(user.username, 'approve')} 
+                        disabled={Boolean(reviewingUser)}
                         className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-emerald-500/25 bg-emerald-500/10 px-4 py-2.5 text-xs font-black text-emerald-300 transition hover:bg-emerald-500/20 sm:flex-none"
                       >
                         <Check size={16} /> אישור
@@ -413,6 +353,7 @@ export default function AdminApprovals() {
                       <button 
                         type="button" 
                         onClick={() => review(user.username, 'reject')} 
+                        disabled={Boolean(reviewingUser)}
                         className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-rose-500/25 bg-rose-500/10 px-4 py-2.5 text-xs font-black text-rose-300 transition hover:bg-rose-500/20 sm:flex-none"
                       >
                         <X size={16} /> דחייה
@@ -422,6 +363,7 @@ export default function AdminApprovals() {
                       <button 
                         type="button" 
                         onClick={() => review(user.username, 'pending')} 
+                        disabled={Boolean(reviewingUser)}
                         className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-2.5 text-xs font-black text-amber-300 transition hover:bg-amber-500/20 sm:flex-none"
                       >
                         <Clock3 size={16} /> החזר להמתנה
@@ -435,99 +377,14 @@ export default function AdminApprovals() {
         )}
       </section>
 
-      {/* ── Gemini AI Settings Panel ── */}
-      <section className="overflow-hidden rounded-3xl border border-purple-500/20 bg-purple-500/5 p-6 sm:p-8 space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles size={18} className="text-purple-400" />
-          <h3 className="text-md font-black text-white">הגדרות Gemini AI — יצירת קורסים חכמה</h3>
-          {geminiKey && <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-400">✓ מחובר</span>}
-        </div>
-        <p className="text-xs text-gray-400">
-          הזן מפתח API של <strong className="text-purple-300">Google Gemini</strong> כדי לאפשר יצירת קורסים אמיתיים ב-AI.
-          המפתח נשמר בדפדפן שלך בלבד ולא עובר לשרת.
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="mr-1 text-purple-400 underline hover:text-purple-300">קבל מפתח ב-Google AI Studio →</a>
+      <section className="overflow-hidden rounded-3xl border border-cyan-500/15 bg-cyan-500/5 p-6 sm:p-8 space-y-3">
+        <h3 className="text-md font-black text-white">📧 שירות שחזור סיסמה</h3>
+        <p className="text-xs leading-6 text-gray-400">
+          מטעמי אבטחה, מפתחות Brevo ו־AI וכתובת שרת ה־API מוגדרים רק בסביבת השרת ואינם מוצגים או נשמרים בדפדפן.
+          מנהל התשתית מגדיר את <span dir="ltr" className="font-mono text-cyan-300">BREVO_API_KEY</span>,
+          <span dir="ltr" className="font-mono text-cyan-300"> BREVO_SENDER_EMAIL</span> ו־
+          <span dir="ltr" className="font-mono text-cyan-300">VITE_API_BASE_URL</span> בזמן הפריסה.
         </p>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <input
-              type={showGeminiKey ? 'text' : 'password'}
-              value={geminiKey}
-              onChange={(e) => setGeminiKey(e.target.value)}
-              className="w-full rounded-xl border border-purple-500/25 bg-gray-950 px-4 py-2.5 text-xs text-white focus:border-purple-400 focus:outline-none pr-10"
-              placeholder="AIza..."
-            />
-            <button
-              type="button"
-              onClick={() => setShowGeminiKey(!showGeminiKey)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300 transition"
-            >
-              {showGeminiKey ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (saveGeminiConfig) saveGeminiConfig(geminiKey);
-              setGeminiSuccess(geminiKey ? '✓ מפתח Gemini נשמר! ה-AI מוכן.' : 'המפתח נמחק. AI חזר למצב מקומי.');
-              setTimeout(() => setGeminiSuccess(''), 3000);
-            }}
-            className="rounded-xl bg-purple-600 hover:bg-purple-500 px-5 py-2.5 text-xs font-black text-white transition-colors shrink-0"
-          >
-            שמור
-          </button>
-        </div>
-        {geminiSuccess && <p className="text-[11px] font-bold text-emerald-400">{geminiSuccess}</p>}
-      </section>
-
-      {/* Brevo SMTP Settings Panel */}
-      <section className="overflow-hidden rounded-3xl border border-gray-800 bg-gray-900/40 p-6 sm:p-8 space-y-4">
-        <h3 className="text-md font-black text-white flex items-center gap-2">
-          <span>📧 הגדרות שרת דואר Brevo API</span>
-        </h3>
-        <p className="text-xs text-gray-400">
-          הגדירו את המפתח המזהה ואת כתובת השולח המאושרת של Brevo כדי לשלוח קודי שחזור סיסמה אמיתיים לעובדים במערכת.
-        </p>
-        
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2">Brevo API Key (api-key)</label>
-            <input 
-              type="password" 
-              value={brevoKey}
-              onChange={(e) => setBrevoKey(e.target.value)}
-              className="w-full rounded-xl border border-gray-850 bg-gray-950 px-4 py-2.5 text-xs text-white focus:border-[#00e6ff] focus:outline-none"
-              placeholder="xkeysib-..."
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold text-gray-400 mb-2">Verified Sender Email (אימייל שולח מאומת)</label>
-            <input 
-              type="email" 
-              value={brevoSender}
-              onChange={(e) => setBrevoSender(e.target.value)}
-              className="w-full rounded-xl border border-gray-850 bg-gray-950 px-4 py-2.5 text-xs text-white focus:border-[#00e6ff] focus:outline-none"
-              placeholder="your-email@verified.com"
-            />
-          </div>
-        </div>
-
-        {brevoSuccess && (
-          <p className="text-[11px] font-bold text-emerald-400">{brevoSuccess}</p>
-        )}
-
-        <div className="flex justify-end pt-2">
-          <button
-            type="button"
-            onClick={() => {
-              saveBrevoConfig(brevoKey, brevoSender);
-              setBrevoSuccess('הגדרות Brevo נשמרו בהצלחה בדפדפן!');
-              setTimeout(() => setBrevoSuccess(''), 3000);
-            }}
-            className="rounded-xl bg-purple-600 hover:bg-purple-500 px-5 py-2.5 text-xs font-black text-white transition-colors"
-          >
-            שמור הגדרות דואר
-          </button>
-        </div>
       </section>
 
       <div className="flex items-center gap-2 rounded-2xl border border-gray-800 bg-gray-950/35 p-4 text-[11px] font-semibold text-gray-500">
