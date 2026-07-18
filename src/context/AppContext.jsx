@@ -165,6 +165,7 @@ export const AppProvider = ({ children }) => {
     if (saved && saved.length > 0) {
       let migrated = false;
       saved = saved.map(u => {
+        if (!u || !u.username) return u;
         const usernameLwr = u.username.toLowerCase();
         if (!u.status) {
           u.status = 'approved';
@@ -206,8 +207,9 @@ export const AppProvider = ({ children }) => {
             usersCollection.updateOne({ username: u.username }, { password: u.password });
             migrated = true;
           }
-        } else if (!u.password.startsWith('$2b$12$')) {
-          u.password = hashPassword(u.password);
+        } else if (!u.password || typeof u.password !== 'string' || !u.password.startsWith('$2b$12$')) {
+          const passwordToHash = u.password || '';
+          u.password = hashPassword(passwordToHash);
           usersCollection.updateOne({ username: u.username }, { password: u.password });
           migrated = true;
         }
