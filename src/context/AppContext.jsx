@@ -228,20 +228,8 @@ export const AppProvider = ({ children }) => {
   });
 
   // ── Session State ──
-  const [currentUser, setCurrentUser] = useState(() => {
-    try {
-      const saved = localStorage.getItem('cyber_current_user');
-      if (!saved) return null;
-      const parsed = JSON.parse(saved);
-      if (!parsed?.username) return null;
-      const freshRecord = usersCollection.findOne({ username: parsed.username });
-      const restored = freshRecord || parsed;
-      return { ...restored, progress: normalizeProgress(restored.progress) };
-    } catch {
-      localStorage.removeItem('cyber_current_user');
-      return null;
-    }
-  });
+  // Always start from the login screen on first load.
+  const [currentUser, setCurrentUser] = useState(null);
 
   // The learning portal is always the default landing view, for managers and employees alike.
   const [activeViewRole, setActiveViewRole] = useState('employee');

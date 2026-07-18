@@ -391,9 +391,38 @@ html.theme-day [class*="border-gray-7"] {
 }
 
 html.theme-day [class*="text-white"],
+html.theme-day [class*="text-gray-50"],
 html.theme-day [class*="text-gray-100"],
 html.theme-day [class*="text-gray-200"],
 html.theme-day [class*="text-gray-300"],
+html.theme-day [class*="text-slate-50"],
+html.theme-day [class*="text-slate-100"],
+html.theme-day [class*="text-slate-200"],
+html.theme-day [class*="text-slate-300"],
+html.theme-day [class*="text-zinc-50"],
+html.theme-day [class*="text-zinc-100"],
+html.theme-day [class*="text-zinc-200"],
+html.theme-day [class*="text-zinc-300"],
+html.theme-day [class*="text-neutral-50"],
+html.theme-day [class*="text-neutral-100"],
+html.theme-day [class*="text-neutral-200"],
+html.theme-day [class*="text-neutral-300"],
+html.theme-day [class*="text-stone-50"],
+html.theme-day [class*="text-stone-100"],
+html.theme-day [class*="text-stone-200"],
+html.theme-day [class*="text-stone-300"],
+html.theme-day [class*="text-cyan-50"],
+html.theme-day [class*="text-cyan-100"],
+html.theme-day [class*="text-cyan-200"],
+html.theme-day [class*="text-sky-50"],
+html.theme-day [class*="text-sky-100"],
+html.theme-day [class*="text-sky-200"],
+html.theme-day [class*="text-blue-50"],
+html.theme-day [class*="text-blue-100"],
+html.theme-day [class*="text-blue-200"],
+html.theme-day [class*="text-indigo-50"],
+html.theme-day [class*="text-indigo-100"],
+html.theme-day [class*="text-indigo-200"],
 html.theme-day h2.text-white,
 html.theme-day h3.text-white,
 html.theme-day .text-white {
@@ -510,6 +539,20 @@ html.theme-day [class*="shadow-lg"] {
 
 html.theme-day .shieldx-logo {
   filter: drop-shadow(0 0 12px rgba(0, 147, 176, 0.28));
+}
+
+/* Day theme contrast guardrails: never allow brand text to wash out on light surfaces */
+html.theme-day .shieldx-wordmark {
+  color: #10223a;
+  text-shadow: none;
+}
+
+html.theme-day .shieldx-wordmark__x {
+  color: #0c6b82;
+  border-color: rgba(12, 107, 130, 0.7);
+  background: linear-gradient(135deg, rgba(12, 107, 130, 0.16), rgba(79, 70, 229, 0.06) 52%, rgba(56, 189, 248, 0.14)), #ffffff;
+  box-shadow: inset 0 0 0 1px rgba(12, 107, 130, 0.12), 0 0 0.5em rgba(12, 107, 130, 0.2);
+  text-shadow: none;
 }
 
 /* App-like table-of-contents drawer */
