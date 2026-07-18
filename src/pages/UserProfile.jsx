@@ -33,14 +33,12 @@ export default function UserProfile() {
   const [avatar, setAvatar] = useState(currentUser.avatar || '');
   const [profileMsg, setProfileMsg] = useState(null);
   const [imageError, setImageError] = useState('');
-  const [isSavingProfile, setIsSavingProfile] = useState(false);
 
   // --- Password state ---
   const [currentPwd, setCurrentPwd] = useState('');
   const [newPwd, setNewPwd] = useState('');
   const [confirmPwd, setConfirmPwd] = useState('');
   const [pwdMsg, setPwdMsg] = useState(null);
-  const [isSavingPassword, setIsSavingPassword] = useState(false);
 
   // --- Avatar upload ---
   const handleImageChange = async (event) => {
@@ -50,9 +48,7 @@ export default function UserProfile() {
     setProfileMsg(null);
     try {
       const compressed = await prepareProfileImage(file, 128);
-      setIsSavingProfile(true);
-      const result = await updateCurrentProfile({ username: currentUser.username, avatar: compressed });
-      setIsSavingProfile(false);
+      const result = updateCurrentProfile({ username: currentUser.username, avatar: compressed });
       if (!result.success) throw new Error(result.message);
       setAvatar(compressed);
       setProfileMsg({ type: 'success', text: 'תמונת הפרופיל עודכנה בהצלחה.' });
@@ -62,10 +58,8 @@ export default function UserProfile() {
     event.target.value = '';
   };
 
-  const handleRemoveAvatar = async () => {
-    setIsSavingProfile(true);
-    const result = await updateCurrentProfile({ username: currentUser.username, avatar: '' });
-    setIsSavingProfile(false);
+  const handleRemoveAvatar = () => {
+    const result = updateCurrentProfile({ username: currentUser.username, avatar: '' });
     if (result.success) {
       setAvatar('');
       setProfileMsg({ type: 'success', text: 'תמונת הפרופיל הוסרה.' });
@@ -73,19 +67,15 @@ export default function UserProfile() {
     }
   };
 
-  const handleSaveUsername = async (e) => {
+  const handleSaveUsername = (e) => {
     e.preventDefault();
-    if (isSavingProfile) return;
-    setIsSavingProfile(true);
-    const result = await updateCurrentProfile({ username, avatar });
-    setIsSavingProfile(false);
+    const result = updateCurrentProfile({ username, avatar });
     setProfileMsg({ type: result.success ? 'success' : 'error', text: result.message });
   };
 
   // --- Password change ---
-  const handleChangePassword = async (e) => {
+  const handleChangePassword = (e) => {
     e.preventDefault();
-    if (isSavingPassword) return;
     setPwdMsg(null);
     if (newPwd !== confirmPwd) {
       setPwdMsg({ type: 'error', text: 'הסיסמאות החדשות אינן תואמות.' });
@@ -96,9 +86,7 @@ export default function UserProfile() {
       setPwdMsg({ type: 'error', text: validationError });
       return;
     }
-    setIsSavingPassword(true);
-    const result = await updateCurrentPassword(currentPwd, newPwd);
-    setIsSavingPassword(false);
+    const result = updateCurrentPassword(currentPwd, newPwd);
     if (result.success) {
       setCurrentPwd(''); setNewPwd(''); setConfirmPwd('');
     }

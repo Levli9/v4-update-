@@ -1,15 +1,14 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { 
-  Play, Save, Sparkles, Trash2, Copy, Plus, ArrowLeft, ArrowRight,
-  Upload, CheckCircle2, Loader2, Edit3
+  ChevronLeft, ChevronRight, Clock3, Eye, EyeOff, Play, Save, Sparkles, X, 
+  Trash2, Copy, Plus, ArrowLeft, ArrowRight, Upload, FileText, CheckCircle2, Loader2, Edit3, Key 
 } from 'lucide-react';
 import BackButton from '../components/BackButton';
 import { generatePresentation, refineSlide } from '../services/presentationGenerator';
-import { normalizeDeck, PRESENTATION_THEMES } from '../services/presentationSchema';
 import { useApp } from '../context/AppContext';
 
 export default function AIPresentationStudio() {
-  const { publishCourse, saveCourseDraft } = useApp();
+  const { publishCourse, saveCourseDraft, deleteCourse } = useApp();
 
   // Form States
   const [prompt, setPrompt] = useState('זיהוי מתקפת פישינג והדרך הנכונה לדווח עליה');
@@ -20,7 +19,6 @@ export default function AIPresentationStudio() {
   const [duration, setDuration] = useState(30);
   const [language, setLanguage] = useState('עברית');
   const [passScore, setPassScore] = useState(80);
-  const [theme, setTheme] = useState('cyber');
   const [uploadError, setUploadError] = useState('');
   const [isDragOver, setIsDragOver] = useState(false);
 
@@ -30,10 +28,22 @@ export default function AIPresentationStudio() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState(0);
   const [isRefining, setIsRefining] = useState(false);
-  const [isSavingCourse, setIsSavingCourse] = useState(false);
   const [error, setError] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
   const [activeTab, setActiveTab] = useState('notes'); // 'notes' | 'visual'
+
+  // Gemini API key state (read/write localStorage directly)
+  const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem('shieldx_gemini_api_key') || '');
+  const [showKeyInput, setShowKeyInput] = useState(false);
+  const [showKeyValue, setShowKeyValue] = useState(false);
+  const [keyMsg, setKeyMsg] = useState('');
+
+  const saveGeminiKey = () => {
+    localStorage.setItem('shieldx_gemini_api_key', geminiKey.trim());
+    setKeyMsg(geminiKey.trim() ? '✓ מפתח נשמר! AI אמיתי פעיל.' : 'מפתח נמחק. חזר למצב מקומי.');
+    setTimeout(() => setKeyMsg(''), 3000);
+    setShowKeyInput(false);
+  };
 
   // Load latest draft on component mount
   useEffect(() => {
@@ -83,39 +93,17 @@ export default function AIPresentationStudio() {
     setIsDragOver(false);
   };
 
-  const readSourceFile = async (file) => {
-    setUploadError('');
-    if (!file) return;
-    if (file.size > 1024 * 1024) {
-      setUploadError('קובץ המקור גדול מדי. ניתן להעלות קובץ TXT עד 1MB.');
-      return;
-    }
-    if (file.type !== 'text/plain' && !file.name.toLowerCase().endsWith('.txt')) {
-      setUploadError('בשלב זה נתמכת העלאה בטוחה של קובצי TXT בלבד. תוכן PDF או DOCX ניתן להדביק בתיבת הטקסט.');
-      return;
-    }
-    try {
-      const content = await file.text();
-      if (!content.trim()) {
-        setUploadError('קובץ המקור ריק.');
-        return;
-      }
-      setSourceText(content.slice(0, 50_000));
-      if (content.length > 50_000) setUploadError('נטענו 50,000 התווים הראשונים מהקובץ.');
-    } catch {
-      setUploadError('לא ניתן לקרוא את קובץ המקור.');
-    }
-  };
-
-  const handleDrop = async (e) => {
+  const handleDrop = (e) => {
     e.preventDefault();
     setIsDragOver(false);
-    await readSourceFile(e.dataTransfer.files?.[0]);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      setUploadError('העלאת קבצים אינה נתמכת כרגע בשרת. אנא העתיקו והדביקו את תוכן המסמך ישירות לתיבת הטקסט.');
+    }
   };
 
-  const handleFileChange = async (event) => {
-    await readSourceFile(event.target.files?.[0]);
-    event.target.value = '';
+  const handleFileChange = () => {
+    setUploadError('העלאת קבצים אינה נתמכת כרגע בשרת. אנא העתיקו והדביקו את תוכן המסמך ישירות לתיבת הטקסט.');
   };
 
   // Generate Course API Call
@@ -138,15 +126,21 @@ export default function AIPresentationStudio() {
       });
 
       // Map to standard local schema structure
-      const newDeck = { ...normalizeDeck(result, { prompt, language, theme }), audience, difficulty, duration, passScore };
-      if (result.warning) setSuccessMsg(result.warning);
-      // Progressive rendering: the editor becomes useful as each generated slide arrives.
-      setDeck({ ...newDeck, slides: [] });
-      for (let index = 0; index < newDeck.slides.length; index += 1) {
-        await new Promise((resolve) => window.setTimeout(resolve, 110));
-        setDeck((previous) => ({ ...previous, slides: [...previous.slides, newDeck.slides[index]] }));
-        setGenerationStep(Math.min(3, Math.floor((index / Math.max(1, newDeck.slides.length)) * 4)));
-      }
+      const newDeck = {
+        id: result.id || `deck-${Date.now()}`,
+        title: result.title || prompt,
+        description: result.description || '',
+        learningObjectives: result.learningObjectives || [],
+        slides: result.slides || [],
+        finalExam: result.finalExam || [],
+        audience,
+        difficulty,
+        duration,
+        language,
+        passScore
+      };
+
+      setDeck(newDeck);
       setActiveSlide(0);
     } catch (err) {
       setError(err.message || 'שגיאה בחיבור לשרת ה-AI. אנא נסו שוב.');
@@ -156,34 +150,22 @@ export default function AIPresentationStudio() {
   };
 
   // Save Course Draft
-  const handleSaveDraft = async () => {
-    if (!deck || isSavingCourse) return;
-    setIsSavingCourse(true);
-    const result = await saveCourseDraft(deck);
-    setIsSavingCourse(false);
-    if (!result.success) {
-      setError(result.message || 'לא ניתן לשמור את הטיוטה.');
-      return;
-    }
-    setSuccessMsg('הטיוטה נשמרה בהצלחה במסד הנתונים.');
+  const handleSaveDraft = () => {
+    if (!deck) return;
+    saveCourseDraft(deck);
+    setSuccessMsg('הטיוטה נשמרה בהצלחה מקומית במערכת.');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setTimeout(() => setSuccessMsg(''), 4000);
   };
 
   // Publish Course to Employees
-  const handlePublish = async () => {
-    if (!deck || isSavingCourse) return;
+  const handlePublish = () => {
+    if (!deck) return;
     if (!deck.title || deck.slides.length === 0 || !deck.finalExam || deck.finalExam.length === 0) {
       setError('לא ניתן לפרסם קורס ללא כותרת, שקופיות או שאלות מבחן.');
       return;
     }
-    setIsSavingCourse(true);
-    const result = await publishCourse(deck);
-    setIsSavingCourse(false);
-    if (!result.success) {
-      setError(result.message || 'לא ניתן לפרסם את הקורס.');
-      return;
-    }
+    publishCourse(deck);
     setSuccessMsg('הקורס פורסם בהצלחה וזמין כעת לכל העובדים!');
     window.scrollTo({ top: 0, behavior: 'smooth' });
     setTimeout(() => setSuccessMsg(''), 5000);
@@ -408,7 +390,7 @@ export default function AIPresentationStudio() {
           )}
 
           {/* 3. Slide Canvas Viewer */}
-          {deck && currentSlide && (
+          {deck && !isGenerating && currentSlide && (
             <div className="space-y-6">
               
               {/* Toolbar & Metadata Info */}
@@ -421,10 +403,10 @@ export default function AIPresentationStudio() {
                 </div>
                 
                 <div className="flex gap-2">
-                  <button type="button" onClick={handleSaveDraft} disabled={isSavingCourse} className="flex items-center gap-1.5 rounded-xl border border-gray-800 bg-gray-900/60 px-3.5 py-2 text-xs font-bold text-gray-300 hover:bg-gray-900 transition-colors disabled:opacity-50">
-                    <Save size={14} /> {isSavingCourse ? 'שומר...' : 'שמור טיוטה'}
+                  <button type="button" onClick={handleSaveDraft} className="flex items-center gap-1.5 rounded-xl border border-gray-800 bg-gray-900/60 px-3.5 py-2 text-xs font-bold text-gray-300 hover:bg-gray-900 transition-colors">
+                    <Save size={14} /> שמור טיוטה
                   </button>
-                  <button type="button" onClick={handlePublish} disabled={isSavingCourse} className="flex items-center gap-1.5 rounded-xl bg-gradient-to-l from-[#00e6ff] to-[#5ce1e6] px-4 py-2 text-xs font-black text-black shadow-md hover:brightness-110 transition disabled:opacity-50">
+                  <button type="button" onClick={handlePublish} className="flex items-center gap-1.5 rounded-xl bg-gradient-to-l from-[#00e6ff] to-[#5ce1e6] px-4 py-2 text-xs font-black text-black shadow-md hover:brightness-110 transition">
                     <Play size={14} /> פרסם לעובדים
                   </button>
                 </div>
@@ -682,12 +664,6 @@ export default function AIPresentationStudio() {
 
         {/* SIDEBAR FORM (RIGHT, 400px wide) */}
         <aside className="h-fit rounded-3xl border border-gray-850 bg-[#0c111d]/90 p-5 shadow-2xl space-y-5 order-1 xl:order-2">
-          <div>
-            <label className="mb-2 block text-xs font-bold text-gray-300">ערכת עיצוב</label>
-            <select value={theme} onChange={(event) => setTheme(event.target.value)} className="w-full rounded-xl border border-gray-800 bg-[#070b14] p-2.5 text-xs text-white outline-none">
-              {Object.entries(PRESENTATION_THEMES).map(([id, item]) => <option key={id} value={id}>{item.label}</option>)}
-            </select>
-          </div>
           
           <div>
             <label className="text-xs font-bold text-gray-300 block mb-2">מה הנושא של המצגת והקורס?</label>
@@ -702,7 +678,7 @@ export default function AIPresentationStudio() {
 
           {/* Document File Upload placeholder interface */}
           <div>
-            <label className="text-xs font-bold text-gray-300 block mb-2">חומר מקור להעלאה <span className="font-normal text-gray-600">(TXT)</span></label>
+            <label className="text-xs font-bold text-gray-300 block mb-2">חומר מקור להעלאה <span className="font-normal text-gray-600">(PDF, DOCX, TXT)</span></label>
             <div 
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
@@ -716,14 +692,14 @@ export default function AIPresentationStudio() {
               <input 
                 type="file" 
                 id="file-upload-input" 
-                accept=".txt,text/plain"
+                accept=".pdf,.docx,.txt" 
                 className="hidden" 
                 onChange={handleFileChange}
               />
               <label htmlFor="file-upload-input" className="cursor-pointer">
                 <Upload size={22} className="mx-auto text-gray-500 mb-2" />
                 <span className="block text-[11px] font-bold text-gray-400">גררו לכאן קובץ או לחצו לבחירה</span>
-                <span className="block text-[9px] text-gray-600 mt-1">קובץ TXT יחיד · עד 1MB</span>
+                <span className="block text-[9px] text-gray-600 mt-1">מגבלה של קובץ יחיד · עד 10MB</span>
               </label>
             </div>
             {uploadError && (
@@ -814,8 +790,56 @@ export default function AIPresentationStudio() {
             {isGenerating ? 'בונה את הקורס…' : 'צור קורס חדש באמצעות AI'}
           </button>
 
-          <div className="rounded-2xl border border-emerald-500/15 bg-emerald-500/5 p-3 text-[10px] font-semibold leading-5 text-emerald-300">
-            מפתחות ה־AI נשמרים רק בשרת. הדפדפן שולח את נושא הקורס ומקבל תוכן מאומת ללא חשיפת מפתח.
+          {/* Gemini API Key Panel */}
+          <div className="rounded-2xl border border-gray-800 bg-[#080c14] p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Key size={13} className={geminiKey ? 'text-purple-400' : 'text-gray-600'} />
+                <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Gemini AI</span>
+                {geminiKey
+                  ? <span className="rounded-full border border-purple-500/25 bg-purple-500/10 px-1.5 py-0.5 text-[8px] font-black text-purple-300">✓ מחובר</span>
+                  : <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-black text-amber-400">מקומי</span>
+                }
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowKeyInput(!showKeyInput)}
+                className="text-[9px] font-bold text-gray-600 hover:text-[#00e6ff] transition"
+              >
+                {showKeyInput ? 'סגור' : 'הגדרות'}
+              </button>
+            </div>
+
+            {showKeyInput && (
+              <div className="space-y-2">
+                <p className="text-[9px] text-gray-600 leading-relaxed">
+                  הזן מפתח מ
+                  <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-purple-400 underline mr-0.5 ml-0.5">Google AI Studio</a>
+                  ל-AI אמיתי. בלי מפתח עובד במצב מקומי.
+                </p>
+                <div className="relative">
+                  <input
+                    type={showKeyValue ? 'text' : 'password'}
+                    value={geminiKey}
+                    onChange={(e) => setGeminiKey(e.target.value)}
+                    className="w-full rounded-xl border border-gray-800 bg-gray-950 px-3 py-2 text-[11px] text-white focus:border-purple-500/40 focus:outline-none pr-8"
+                    placeholder="AIza..."
+                  />
+                  <button type="button" onClick={() => setShowKeyValue(!showKeyValue)}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300">
+                    {showKeyValue ? <EyeOff size={12} /> : <Eye size={12} />}
+                  </button>
+                </div>
+                <button
+                  type="button"
+                  onClick={saveGeminiKey}
+                  className="w-full rounded-xl bg-purple-600 hover:bg-purple-500 py-2 text-[11px] font-black text-white transition"
+                >
+                  שמור מפתח
+                </button>
+                {keyMsg && <p className="text-[10px] font-bold text-emerald-400 text-center">{keyMsg}</p>}
+              </div>
+            )}
           </div>
           
           <div className="border-t border-gray-850 pt-4 text-center">

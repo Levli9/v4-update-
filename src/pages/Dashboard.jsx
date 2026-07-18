@@ -10,8 +10,8 @@ export default function Dashboard() {
   const { userProgress, currentUser, subjects = [] } = useApp();
   const totalSubjects = subjects.length;
   const completedCount = userProgress.completedSubjects.length;
-  const progressPct = totalSubjects ? Math.round((completedCount / totalSubjects) * 100) : 0;
-  const readiness = getCertificationReadiness(userProgress, currentUser?.analytics, subjects);
+  const progressPct = Math.round((completedCount / totalSubjects) * 100);
+  const readiness = getCertificationReadiness(userProgress, currentUser?.analytics, totalSubjects);
   const finalExam = userProgress.finalExam;
 
   return (
@@ -79,7 +79,7 @@ export default function Dashboard() {
           </div>
           {readiness.unlocked ? <Link to="/final-exam" className="w-full rounded-xl bg-purple-500 px-6 py-3 text-center text-sm font-black text-white shadow-lg shadow-purple-950/30 sm:w-auto">{finalExam ? 'גישה למבחן נוסף' : 'התחלת מבחן מסכם'}</Link> : <button type="button" disabled className="w-full cursor-not-allowed rounded-xl border border-gray-800 bg-gray-950 px-6 py-3 text-sm font-black text-gray-600 sm:w-auto">מבחן מסכם נעול</button>}
         </div>
-        {!readiness.unlocked && <div className="relative mt-5 grid grid-cols-2 gap-2 text-[10px] font-bold sm:grid-cols-5">{[['שיעורים', readiness.lessonsDone], ['קורסים', readiness.coursesDone], ['סרטונים', readiness.videosDone], ['תרגולים', readiness.labsDone], ['מבדקים', readiness.quizzesDone]].map(([label, done]) => <span key={label} className={`rounded-lg border px-3 py-2 text-center ${done ? 'border-emerald-500/15 bg-emerald-500/5 text-emerald-400' : 'border-gray-800 bg-gray-950/50 text-gray-600'}`}>{done ? '✓' : '○'} {label}</span>)}</div>}
+        {!readiness.unlocked && <div className="relative mt-5 grid grid-cols-2 gap-2 text-[10px] font-bold sm:grid-cols-4">{[['קורסים', readiness.coursesDone], ['סרטונים', readiness.videosDone], ['תרגולים', readiness.labsDone], ['מבדקים', readiness.quizzesDone]].map(([label, done]) => <span key={label} className={`rounded-lg border px-3 py-2 text-center ${done ? 'border-emerald-500/15 bg-emerald-500/5 text-emerald-400' : 'border-gray-800 bg-gray-950/50 text-gray-600'}`}>{done ? '✓' : '○'} {label}</span>)}</div>}
       </section>
     </div>
   );
