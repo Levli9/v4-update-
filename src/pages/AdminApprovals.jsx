@@ -199,7 +199,7 @@ function UserDetailModal({ user, onClose }) {
 
 // ── Main AdminApprovals Component ─────────────────────────────────────────────
 export default function AdminApprovals() {
-  const { users, currentUser, reviewRegistration, getBrevoConfig, saveBrevoConfig, getGeminiConfig, saveGeminiConfig } = useApp();
+  const { users, currentUser, reviewRegistration, getBrevoConfig, saveBrevoConfig, getGeminiConfig, saveGeminiConfig, getBackendConfig, saveBackendConfig } = useApp();
   const [message, setMessage] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   
@@ -207,6 +207,9 @@ export default function AdminApprovals() {
   const [brevoKey, setBrevoKey] = useState(config.key);
   const [brevoSender, setBrevoSender] = useState(config.sender);
   const [brevoSuccess, setBrevoSuccess] = useState('');
+
+  const [backendUrl, setBackendUrl] = useState(getBackendConfig ? getBackendConfig() : 'http://localhost:5001');
+  const [backendSuccess, setBackendSuccess] = useState('');
 
   const gConfig = getGeminiConfig ? getGeminiConfig() : { key: '' };
   const [geminiKey, setGeminiKey] = useState(gConfig.key);
@@ -526,6 +529,45 @@ export default function AdminApprovals() {
             className="rounded-xl bg-purple-600 hover:bg-purple-500 px-5 py-2.5 text-xs font-black text-white transition-colors"
           >
             שמור הגדרות דואר
+          </button>
+        </div>
+      </section>
+
+      {/* Backend URL Settings Panel */}
+      <section className="overflow-hidden rounded-3xl border border-gray-800 bg-gray-900/40 p-6 sm:p-8 space-y-4">
+        <h3 className="text-md font-black text-white flex items-center gap-2">
+          <span>⚙️ הגדרות כתובת שרת Backend API</span>
+        </h3>
+        <p className="text-xs text-gray-400">
+          הגדירו את כתובת שרת ה-API שלכם. המערכת תפנה לכתובת זו לצורך שליחת מיילים ושחזור סיסמאות (ברירת מחדל: http://localhost:5001).
+        </p>
+        
+        <div>
+          <label className="block text-xs font-semibold text-gray-400 mb-2">Backend Base URL</label>
+          <input 
+            type="text" 
+            value={backendUrl}
+            onChange={(e) => setBackendUrl(e.target.value)}
+            className="w-full rounded-xl border border-gray-850 bg-gray-950 px-4 py-2.5 text-xs text-white focus:border-[#00e6ff] focus:outline-none"
+            placeholder="http://localhost:5001"
+          />
+        </div>
+
+        {backendSuccess && (
+          <p className="text-[11px] font-bold text-emerald-400">{backendSuccess}</p>
+        )}
+
+        <div className="flex justify-end pt-2">
+          <button
+            type="button"
+            onClick={() => {
+              saveBackendConfig(backendUrl);
+              setBackendSuccess('כתובת שרת ה-Backend נשמרה בהצלחה!');
+              setTimeout(() => setBackendSuccess(''), 3000);
+            }}
+            className="rounded-xl bg-purple-600 hover:bg-purple-500 px-5 py-2.5 text-xs font-black text-white transition-colors"
+          >
+            שמור כתובת שרת
           </button>
         </div>
       </section>

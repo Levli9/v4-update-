@@ -698,6 +698,16 @@ export const AppProvider = ({ children }) => {
     return { success: true };
   };
 
+  // ── Backend API Configuration ──
+  const getBackendConfig = () => {
+    return localStorage.getItem('shieldx_backend_url') || 'http://localhost:5001';
+  };
+
+  const saveBackendConfig = (url) => {
+    localStorage.setItem('shieldx_backend_url', url.trim());
+    return { success: true };
+  };
+
   const sendBrevoRecoveryCode = async (email, code) => {
     const { key, sender } = getBrevoConfig();
     if (!key) {
@@ -747,14 +757,24 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const getNormalizedApiUrl = (endpoint) => {
+    let base = getBackendConfig().trim();
+    if (base.endsWith('/')) {
+      base = base.slice(0, -1);
+    }
+    if (!base.endsWith('/api')) {
+      base = base + '/api';
+    }
+    return `${base}${endpoint}`;
+  };
+
   const requestPasswordReset = async (email) => {
     const origin = window.location.origin + window.location.pathname;
     const { sender } = getBrevoConfig();
+    const apiUrl = getNormalizedApiUrl('/forgot-password');
     try {
       const response = await fetch(
-        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-          ? `http://localhost:5001/api/forgot-password`
-          : `/api/forgot-password`,
+        apiUrl,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -773,11 +793,10 @@ export const AppProvider = ({ children }) => {
   };
 
   const validateResetToken = async (token) => {
+    const apiUrl = getNormalizedApiUrl('/validate-token');
     try {
       const response = await fetch(
-        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-          ? `http://localhost:5001/api/validate-token`
-          : `/api/validate-token`,
+        apiUrl,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -796,11 +815,10 @@ export const AppProvider = ({ children }) => {
   };
 
   const submitPasswordReset = async (token, newPassword) => {
+    const apiUrl = getNormalizedApiUrl('/reset-password');
     try {
       const response = await fetch(
-        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
-          ? `http://localhost:5001/api/reset-password`
-          : `/api/reset-password`,
+        apiUrl,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -862,6 +880,8 @@ export const AppProvider = ({ children }) => {
       saveBrevoConfig,
       getGeminiConfig,
       saveGeminiConfig,
+      getBackendConfig,
+      saveBackendConfig,
       setActiveViewRole
     }}>
       {children}
