@@ -747,6 +747,85 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const requestPasswordReset = async (email) => {
+    const origin = window.location.origin + window.location.pathname;
+    const { sender } = getBrevoConfig();
+    try {
+      const response = await fetch(
+        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? `http://localhost:5001/api/forgot-password`
+          : `/api/forgot-password`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, origin, senderEmail: sender })
+        }
+      );
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return { success: false, message: err.error || `קוד שגיאה: ${response.status}` };
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('[Forgot Password Error]', error);
+      return { success: false, message: `שגיאת חיבור לשרת: ${error.message}` };
+    }
+  };
+
+  const validateResetToken = async (token) => {
+    try {
+      const response = await fetch(
+        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? `http://localhost:5001/api/validate-token`
+          : `/api/validate-token`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        }
+      );
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return { success: false, message: err.error || `קוד שגיאה: ${response.status}` };
+      }
+      return await response.json();
+    } catch (error) {
+      console.error('[Validate Token Error]', error);
+      return { success: false, message: `שגיאת חיבור לשרת: ${error.message}` };
+    }
+  };
+
+  const submitPasswordReset = async (token, newPassword) => {
+    try {
+      const response = await fetch(
+        window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+          ? `http://localhost:5001/api/reset-password`
+          : `/api/reset-password`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token })
+        }
+      );
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        return { success: false, message: err.error || `קוד שגיאה: ${response.status}` };
+      }
+      const data = await response.json();
+      const email = data.email;
+      const match = users.find(u => u.email.toLowerCase() === email.toLowerCase());
+      if (match) {
+        changePassword(match.username, newPassword);
+        return { success: true };
+      } else {
+        return { success: false, message: 'המשתמש המשויך לטוקן זה לא נמצא במערכת המקומית.' };
+      }
+    } catch (error) {
+      console.error('[Reset Password Error]', error);
+      return { success: false, message: `שגיאת חיבור לשרת: ${error.message}` };
+    }
+  };
+
   // Helper shortcut for employee progress of current session
   const userProgress = normalizeProgress(currentUser?.progress);
 
@@ -776,6 +855,9 @@ export const AppProvider = ({ children }) => {
       trackVideoProgress,
       recordQuizAnswer,
       sendBrevoRecoveryCode,
+      requestPasswordReset,
+      validateResetToken,
+      submitPasswordReset,
       getBrevoConfig,
       saveBrevoConfig,
       getGeminiConfig,
