@@ -65,7 +65,7 @@ export default function Login() {
     }
   };
 
-  const handleRegisterSubmit = (e) => {
+  const handleRegisterSubmit = async (e) => {
     e.preventDefault();
     setRegError('');
     setRegSuccess('');
@@ -92,7 +92,7 @@ export default function Login() {
       return;
     }
 
-    const res = register(regUser, regPass, regEmail, regAvatar, regRole, regDepartment);
+    const res = await register(regUser, regPass, regEmail, regAvatar, regRole, regDepartment);
     if (res.success) {
       setRegSuccess('ההרשמה נשלחה בהצלחה וממתינה לאישור מנהל המערכת. לאחר האישור ניתן יהיה להתחבר.');
       setRegUser('');

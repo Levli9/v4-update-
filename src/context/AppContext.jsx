@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from 'react';
 import { nosqlDb } from '../services/nosqlStorage';
 import { hashPassword, verifyPassword } from '../services/hashService';
+import { supabase } from '../services/supabase';
 import { subjectsData } from '../data/subjectsData';
 
 const AppContext = createContext();
@@ -367,13 +368,20 @@ export const AppProvider = ({ children }) => {
     return { success: false, message: "שם משתמש או סיסמה שגויים!" };
   };
 
-  const register = (username, password, email, avatar = '', role = 'employee', department = 'כללי') => {
+  const register = async (username, password, email, avatar = '', role = 'employee', department = 'כללי') => {
     if (users.some(u => u.username.toLowerCase() === username.toLowerCase())) {
       return { success: false, message: "שם משתמש זה כבר קיים במערכת!" };
     }
     if (users.some(u => u.email.toLowerCase() === email.toLowerCase())) {
       return { success: false, message: "אימייל זה כבר רשום במערכת!" };
     }
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { data: { username } }
+    });
+    if (error) return { success: false, message: error.message };
 
     const newUser = {
       username,
@@ -771,27 +779,10 @@ export const AppProvider = ({ children }) => {
   };
 
   const requestPasswordReset = async (email) => {
-    const origin = window.location.origin + window.location.pathname;
-    const { sender } = getBrevoConfig();
-    const apiUrl = getNormalizedApiUrl('/forgot-password');
-    try {
-      const response = await fetch(
-        apiUrl,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, origin, senderEmail: sender })
-        }
-      );
-      if (!response.ok) {
-        const err = await response.json().catch(() => ({}));
-        return { success: false, message: err.error || `קוד שגיאה: ${response.status}` };
-      }
-      return await response.json();
-    } catch (error) {
-      console.error('[Forgot Password Error]', error);
-      return { success: false, message: `שגיאת חיבור לשרת: ${error.message}` };
-    }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}${window.location.pathname}#/reset-password`
+    });
+    return error ? { success: false, message: error.message } : { success: true };
   };
 
   const validateResetToken = async (token) => {
