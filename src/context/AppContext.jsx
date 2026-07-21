@@ -808,6 +808,23 @@ export const AppProvider = ({ children }) => {
   };
 
   const submitPasswordReset = async (token, newPassword) => {
+    if (token?.startsWith('supabase:')) {
+      const accessToken = token.slice('supabase:'.length);
+      const response = await fetch('https://kjckatnchzetvcpqcswb.supabase.co/auth/v1/user', {
+        method: 'PUT',
+        headers: {
+          apikey: 'sb_publishable_7K2zsZTqipihLKK9hLYhtg_HvJl7rTk',
+          Authorization: `Bearer ${accessToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ password: newPassword })
+      });
+      const user = await response.json().catch(() => ({}));
+      if (!response.ok) return { success: false, message: user.msg || user.message || 'לא ניתן לעדכן את הסיסמה.' };
+      const match = users.find(u => u.email.toLowerCase() === user.email?.toLowerCase());
+      if (match) changePassword(match.username, newPassword);
+      return { success: true };
+    }
     const apiUrl = getNormalizedApiUrl('/reset-password');
     try {
       const response = await fetch(

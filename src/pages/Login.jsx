@@ -123,6 +123,12 @@ export default function Login() {
     // Check if URL hash has token parameter
     const hash = window.location.hash || '';
     if (hash.includes('/reset-password')) {
+      const fragment = hash.split('#').slice(2).join('#');
+      const accessToken = new URLSearchParams(fragment).get('access_token');
+      if (accessToken) {
+        setResetToken(`supabase:${accessToken}`);
+        return;
+      }
       const queryStr = hash.split('?')[1] || '';
       const params = new URLSearchParams(queryStr);
       const token = params.get('token');
