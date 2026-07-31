@@ -813,7 +813,7 @@ export const AppProvider = ({ children }) => {
       const response = await fetch('https://kjckatnchzetvcpqcswb.supabase.co/auth/v1/user', {
         method: 'PUT',
         headers: {
-          apikey: 'sb_publishable_7K2zsZTqipihLKK9hLYhtg_HvJl7rTk',
+          apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqY2thdG5jaHpldHZjcHFjc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NTI0NzgsImV4cCI6MjEwMDIyODQ3OH0.nd3mk6xQjNIp6lklhmzZhiJInc0fodeiohXejYbD1Sw',
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         },
