@@ -1,5 +1,5 @@
-const url = 'https://kjckatnchzetvcpqcswb.supabase.co';
-const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqY2thdG5jaHpldHZjcHFjc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NTI0NzgsImV4cCI6MjEwMDIyODQ3OH0.nd3mk6xQjNIp6lklhmzZhiJInc0fodeiohXejYbD1Sw';
+const url = 'https://hmslyanhdkrhwpfvdqis.supabase.co';
+const key = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhtc2x5YW5oZGtyaHdwZnZkcWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODQ0MzUsImV4cCI6MjEwMTA2MDQzNX0.0EzkIidOlCjqvEAxal2MxEkaWxTpB51aLmxUItlmUwU';
 
 const call = async (path, body) => {
   const response = await fetch(`${url}/auth/v1/${path}`, {
@@ -21,4 +21,5 @@ export const supabase = {
     }
   }
 };
+
 

@@ -810,10 +810,10 @@ export const AppProvider = ({ children }) => {
   const submitPasswordReset = async (token, newPassword) => {
     if (token?.startsWith('supabase:')) {
       const accessToken = token.slice('supabase:'.length);
-      const response = await fetch('https://kjckatnchzetvcpqcswb.supabase.co/auth/v1/user', {
+      const response = await fetch('https://hmslyanhdkrhwpfvdqis.supabase.co/auth/v1/user', {
         method: 'PUT',
         headers: {
-          apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtqY2thdG5jaHpldHZjcHFjc3diIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ2NTI0NzgsImV4cCI6MjEwMDIyODQ3OH0.nd3mk6xQjNIp6lklhmzZhiJInc0fodeiohXejYbD1Sw',
+          apikey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imhtc2x5YW5oZGtyaHdwZnZkcWlzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU0ODQ0MzUsImV4cCI6MjEwMTA2MDQzNX0.0EzkIidOlCjqvEAxal2MxEkaWxTpB51aLmxUItlmUwU',
           Authorization: `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
         },
