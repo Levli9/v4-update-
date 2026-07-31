@@ -214,7 +214,7 @@ export default function Login() {
     
     if (result.success) {
       setBrevoStatus('sent');
-      setRecoveryStatusMsg(`קישור לאיפוס סיסמה נשלח בהצלחה לכתובת ${match.email} באמצעות Brevo API. אנא בדוק את תיבת הדואר הנכנס שלך.`);
+      setRecoveryStatusMsg(`קישור לאיפוס סיסמה נשלח בהצלחה לכתובת ${match.email}. אנא בדוק את תיבת הדואר הנכנס שלך.`);
       setRecoveryStep(2);
     } else {
       setBrevoStatus('error');
@@ -252,7 +252,7 @@ export default function Login() {
 
           {isVerifyingToken && (
             <div className="text-center py-8 text-[#00e6ff] font-bold animate-pulse">
-              מבצע אימות מול שרת Brevo...
+              מבצע אימות...
             </div>
           )}
 
@@ -576,7 +576,7 @@ export default function Login() {
             
             {recoveryStep === 1 ? (
               <div className="space-y-4">
-                <p className="text-xs text-gray-400">הזן את הדואר האלקטרוני הרשום כדי לקבל קישור לאיפוס סיסמה ישירות לתיבת המייל שלך באמצעות Brevo API.</p>
+                <p className="text-xs text-gray-400">הזן את הדואר האלקטרוני הרשום כדי לקבל קישור לאיפוס סיסמה ישירות לתיבת המייל שלך.</p>
                 
                 {recoveryStatusMsg && (
                   <div className={`rounded-xl border p-3 text-center text-xs font-bold ${

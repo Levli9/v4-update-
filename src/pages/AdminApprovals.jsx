@@ -485,10 +485,10 @@ export default function AdminApprovals() {
       {/* Brevo SMTP Settings Panel */}
       <section className="overflow-hidden rounded-3xl border border-gray-800 bg-gray-900/40 p-6 sm:p-8 space-y-4">
         <h3 className="text-md font-black text-white flex items-center gap-2">
-          <span>📧 הגדרות שרת דואר Brevo API</span>
+          <span>📧 הגדרות שרת דואר לשחזור סיסמאות</span>
         </h3>
         <p className="text-xs text-gray-400">
-          הגדירו את המפתח המזהה ואת כתובת השולח המאושרת של Brevo כדי לשלוח קודי שחזור סיסמה אמיתיים לעובדים במערכת.
+          הגדירו את המפתח המזהה ואת כתובת השולח כדי לשלוח קודי שחזור סיסמה אמיתיים לעובדים במערכת.
         </p>
         
         <div className="grid gap-4 sm:grid-cols-2">
