@@ -14,6 +14,11 @@ const call = async (path, body) => {
 export const supabase = {
   auth: {
     signUp: ({ email, password, options }) => call('signup', { email, password, data: options?.data || {} }),
-    resetPasswordForEmail: (email, { redirectTo }) => call('recover', { email, redirect_to: redirectTo })
+    resetPasswordForEmail: (email, { redirectTo }) => call('recover', { email, redirect_to: redirectTo }),
+    signInWithOAuth: ({ provider, options }) => {
+      const redirectTo = options?.redirectTo || window.location.origin;
+      window.location.href = `${url}/auth/v1/authorize?provider=${provider}&redirect_to=${encodeURIComponent(redirectTo)}`;
+    }
   }
 };
+
