@@ -575,6 +575,7 @@ export const AppProvider = ({ children }) => {
       passed: passedThisAttempt,
       correctCount: attemptDetails.correctCount ?? Math.round(score / 10),
       wrongCount: attemptDetails.wrongCount ?? 10 - Math.round(score / 10),
+      durationSeconds: attemptDetails.durationSeconds || null,
       attemptedAt,
       answers: attemptDetails.answers || []
     };
@@ -592,6 +593,14 @@ export const AppProvider = ({ children }) => {
     const badges = [...(previousProgress.badges || [])];
     if (passedThisAttempt && !badges.includes('מוסמך ShieldX')) badges.push('מוסמך ShieldX');
     const updatedProgress = { ...previousProgress, badges, finalExam };
+
+    // Sync exam result to Supabase profiles table
+    try {
+      supabase.from('profiles').update({ progress: updatedProgress, last_activity: attemptedAt }, `username=eq.${currentUser.username}`);
+    } catch (e) {
+      console.warn('Failed syncing exam result to Supabase:', e);
+    }
+
     const updated = usersCollection.updateOne({ username: currentUser.username }, {
       progress: updatedProgress,
       lastActivity: attemptedAt

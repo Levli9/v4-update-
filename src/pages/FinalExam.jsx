@@ -18,6 +18,8 @@ export default function FinalExam() {
   const previousResult = userProgress.finalExam;
   const answeredCount = Object.keys(answers).length;
 
+  const [examStartTime] = useState(() => Date.now());
+
   useEffect(() => {
     if (!isUnlocked) return undefined;
     updatePresence('final-exam');
@@ -31,6 +33,7 @@ export default function FinalExam() {
 
   const finishExam = () => {
     if (answeredCount !== examQuestions.length) return;
+    const timeSpentSeconds = Math.max(1, Math.round((Date.now() - examStartTime) / 1000));
     const answerHistory = examQuestions.map((question, index) => ({
       questionId: question.id,
       topic: question.topic,
@@ -41,8 +44,8 @@ export default function FinalExam() {
       explanation: question.explanation
     }));
     const correctCount = answerHistory.filter((answer) => answer.correct).length;
-    const submitted = submitFinalExam(scorePreview, { answers: answerHistory, correctCount, wrongCount: examQuestions.length - correctCount });
-    setResult({ ...submitted, passed: scorePreview >= FINAL_EXAM_PASS_SCORE, score: scorePreview, currentAttempt: answerHistory, correctCount, wrongCount: examQuestions.length - correctCount });
+    const submitted = submitFinalExam(scorePreview, { answers: answerHistory, correctCount, wrongCount: examQuestions.length - correctCount, durationSeconds: timeSpentSeconds });
+    setResult({ ...submitted, passed: scorePreview >= FINAL_EXAM_PASS_SCORE, score: scorePreview, currentAttempt: answerHistory, correctCount, wrongCount: examQuestions.length - correctCount, durationSeconds: timeSpentSeconds });
     updatePresence('idle');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
