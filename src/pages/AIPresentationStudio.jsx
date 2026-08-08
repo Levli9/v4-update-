@@ -6,9 +6,24 @@ import {
 import BackButton from '../components/BackButton';
 import { generatePresentation, refineSlide } from '../services/presentationGenerator';
 import { useApp } from '../context/AppContext';
+import openNotebookApiClient, { getOpenNotebookServerUrl, setOpenNotebookServerUrl, getOpenNotebookApiKey, setOpenNotebookApiKey } from '../services/openNotebookApiClient';
 
 export default function AIPresentationStudio() {
   const { publishCourse, saveCourseDraft, deleteCourse } = useApp();
+
+  // Open-Notebook Remote Server Config State
+  const [notebookServerUrl, setNotebookServerUrlState] = useState(getOpenNotebookServerUrl);
+  const [notebookApiKey, setNotebookApiKeyState] = useState(getOpenNotebookApiKey);
+  const [showNotebookConfig, setShowNotebookConfig] = useState(false);
+  const [notebookHealthStatus, setNotebookHealthStatus] = useState(null);
+
+  const saveNotebookServerConfig = async () => {
+    setOpenNotebookServerUrl(notebookServerUrl);
+    setOpenNotebookApiKey(notebookApiKey);
+    setNotebookHealthStatus({ testing: true });
+    const health = await openNotebookApiClient.checkHealth();
+    setNotebookHealthStatus(health);
+  };
 
   // Form States
   const [prompt, setPrompt] = useState('זיהוי מתקפת פישינג והדרך הנכונה לדווח עליה');
@@ -850,6 +865,67 @@ export default function AIPresentationStudio() {
                   שמור מפתח
                 </button>
                 {keyMsg && <p className="text-[10px] font-bold text-emerald-400 text-center">{keyMsg}</p>}
+              </div>
+            )}
+          </div>
+
+          {/* Open-Notebook Remote Server Config Panel */}
+          <div className="rounded-2xl border border-cyan-500/20 bg-[#080c14] p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-xs">📖</span>
+                <span className="text-[10px] font-black text-gray-300 uppercase tracking-wider">Open-Notebook Server</span>
+                {notebookHealthStatus?.connected
+                  ? <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-black text-emerald-400">✓ מחובר ענן</span>
+                  : <span className="rounded-full border border-cyan-500/25 bg-cyan-500/10 px-1.5 py-0.5 text-[8px] font-black text-[#00e6ff]">RAG מקומי</span>
+                }
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNotebookConfig(!showNotebookConfig)}
+                className="text-[9px] font-bold text-gray-500 hover:text-[#00e6ff] transition"
+              >
+                {showNotebookConfig ? 'סגור' : 'אירוח ענן'}
+              </button>
+            </div>
+
+            {showNotebookConfig && (
+              <div className="space-y-2 pt-1 border-t border-gray-900">
+                <p className="text-[9px] text-gray-400 leading-relaxed">
+                  חיבור לשרת מרוחק של <strong className="text-white">lfnovo/open-notebook</strong> באירוח חיצוני (Render, Railway, HuggingFace, Docker).
+                </p>
+                <div>
+                  <label className="block text-[9px] font-bold text-gray-400 mb-1">כתובת השרת (Server URL)</label>
+                  <input
+                    type="text"
+                    value={notebookServerUrl}
+                    onChange={(e) => setNotebookServerUrlState(e.target.value)}
+                    className="w-full rounded-xl border border-gray-800 bg-gray-950 px-3 py-1.5 text-[10px] text-white focus:border-[#00e6ff]/40 focus:outline-none"
+                    placeholder="https://my-open-notebook.railway.app"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[9px] font-bold text-gray-400 mb-1">מפתח API (אופציונלי)</label>
+                  <input
+                    type="password"
+                    value={notebookApiKey}
+                    onChange={(e) => setNotebookApiKeyState(e.target.value)}
+                    className="w-full rounded-xl border border-gray-800 bg-gray-950 px-3 py-1.5 text-[10px] text-white focus:border-[#00e6ff]/40 focus:outline-none"
+                    placeholder="מפתח API..."
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={saveNotebookServerConfig}
+                  className="w-full rounded-xl bg-cyan-600 hover:bg-cyan-500 py-1.5 text-[10px] font-black text-black transition"
+                >
+                  {notebookHealthStatus?.testing ? 'בודק חיבור…' : 'שמור ובדוק חיבור לשרת'}
+                </button>
+                {notebookHealthStatus && !notebookHealthStatus.testing && (
+                  <p className={`text-[9px] font-bold text-center p-1 rounded-lg ${notebookHealthStatus.connected ? 'text-emerald-400 bg-emerald-500/10' : 'text-amber-400 bg-amber-500/10'}`}>
+                    {notebookHealthStatus.connected ? `✓ חיבור מוצלח מול ${notebookHealthStatus.info}` : `חיבור מרוחק נכשל (${notebookHealthStatus.error}). עובר למנוע RAG מובנה.`}
+                  </p>
+                )}
               </div>
             )}
           </div>
