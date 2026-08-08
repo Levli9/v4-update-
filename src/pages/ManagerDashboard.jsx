@@ -1,12 +1,14 @@
-// src/pages/ManagerDashboard.jsx
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { subjectsData } from '../data/subjectsData';
 import BackButton from '../components/BackButton';
 import LearningTimeline from '../components/LearningTimeline';
+import ManagerDashboardV2 from '../components/ManagerDashboardV2';
+import { ShieldCheck, LayoutDashboard, BarChart3, Users, Award } from 'lucide-react';
 
 export default function ManagerDashboard() {
   const { users, currentUser, setActiveViewRole } = useApp();
+  const [dashboardVersion, setDashboardVersion] = useState('v2'); // 'v2' (Executive) | 'v1' (Classic)
   const [activeTab, setActiveTab] = useState('stats'); // 'stats' or 'employees'
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
@@ -291,43 +293,84 @@ export default function ManagerDashboard() {
 
   return (
     <div className="space-y-8">
-      {/* Back Button and Title Row */}
+      {/* Back Button and Header Controls Row */}
       <div className="flex justify-between items-center flex-wrap gap-4">
         <BackButton onClick={() => setActiveViewRole('employee')} />
+        
+        {/* Dashboard Version Switcher Tabs */}
+        <div className="flex items-center gap-2 rounded-2xl border border-gray-800 bg-gray-950 p-1.5 shadow-xl">
+          <button
+            type="button"
+            onClick={() => setDashboardVersion('v2')}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${
+              dashboardVersion === 'v2'
+                ? 'bg-gradient-to-l from-cyan-500 to-cyan-400 text-black shadow-[0_0_20px_rgba(0,230,255,0.25)]'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <ShieldCheck size={15} /> דשבורד מנהלים v2 (Executive)
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setDashboardVersion('v1')}
+            className={`flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-black transition-all ${
+              dashboardVersion === 'v1'
+                ? 'bg-gradient-to-l from-cyan-500 to-cyan-400 text-black shadow-[0_0_20px_rgba(0,230,255,0.25)]'
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            <BarChart3 size={15} /> דשבורד קלאסי (v1)
+          </button>
+        </div>
+
         {!isGlobalAdmin && (
           <span className="px-3.5 py-1.5 rounded-lg bg-cyan-950/20 border border-cyan-800/30 text-cyan-400 text-xs font-bold">
-            🛡️ תצוגת מנהל מחלקה: <strong>{managerDept}</strong>
+            תצוגת מנהל מחלקה: <strong>{managerDept}</strong>
           </span>
         )}
       </div>
 
-      {/* Title & Tab Bar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-800 pb-5">
-        <div>
-          <h1 className="text-2xl font-extrabold text-white">דשבורד מנהלים</h1>
-          <p className="text-xs text-gray-500 font-semibold mt-1">מעקב התקדמות וציוני אבטחת מידע של העובדים</p>
-        </div>
+      {/* RENDER V2 DASHBOARD */}
+      {dashboardVersion === 'v2' ? (
+        <ManagerDashboardV2
+          employees={employees}
+          scopedEmployees={scopedEmployees}
+          selectedDepartment={selectedDepartment}
+          setSelectedDepartment={setSelectedDepartment}
+          departmentOptions={departmentOptions}
+          onSelectEmployee={(emp) => setSelectedEmployee(emp)}
+        />
+      ) : (
+        /* RENDER V1 DASHBOARD */
+        <>
+          {/* Title & Tab Bar */}
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-gray-800 pb-5">
+            <div>
+              <h1 className="text-2xl font-extrabold text-white">דשבורד מנהלים קלאסי (v1)</h1>
+              <p className="text-xs text-gray-500 font-semibold mt-1">מעקב התקדמות וציוני אבטחת מידע של העובדים</p>
+            </div>
 
-        {/* Tab Selector Buttons */}
-        <div className="flex bg-gray-900 border border-gray-850 p-1 rounded-xl">
-          <button
-            onClick={() => setActiveTab('stats')}
-            className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'stats' ? 'bg-[#00e6ff] text-black shadow-md' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            סטטיסטיקה ודוחות
-          </button>
-          <button
-            onClick={() => setActiveTab('employees')}
-            className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'employees' ? 'bg-[#00e6ff] text-black shadow-md' : 'text-gray-400 hover:text-white'
-            }`}
-          >
-            מעקב עובדים
-          </button>
-        </div>
-      </div>
+            {/* Tab Selector Buttons */}
+            <div className="flex bg-gray-900 border border-gray-850 p-1 rounded-xl">
+              <button
+                onClick={() => setActiveTab('stats')}
+                className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === 'stats' ? 'bg-[#00e6ff] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                סטטיסטיקה ודוחות
+              </button>
+              <button
+                onClick={() => setActiveTab('employees')}
+                className={`px-5 py-2 rounded-lg text-xs font-bold transition-all ${
+                  activeTab === 'employees' ? 'bg-[#00e6ff] text-black shadow-md' : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                מעקב עובדים
+              </button>
+            </div>
+          </div>
 
       {/* STATS VIEW */}
       {activeTab === 'stats' && (
@@ -875,6 +918,8 @@ export default function ManagerDashboard() {
           </div>
         </div>
       </div>
+      )}
+      </>
       )}
 
       {/* Employee Details Modal */}
