@@ -98,6 +98,32 @@ export default function AIPresentationStudio() {
     return () => clearInterval(interval);
   }, [isGenerating]);
 
+  // Real Client-Side File Processor
+  const processUploadedFile = (file) => {
+    if (!file) return;
+    setUploadError('');
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const text = e.target.result;
+      if (text && typeof text === 'string') {
+        // Clean non-printable binary control characters
+        const cleanedText = text.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, ' ').trim();
+        setSourceText((prev) => prev ? `${prev}\n\n[תוכן מקובץ: ${file.name}]\n${cleanedText}` : `[תוכן מקובץ: ${file.name}]\n${cleanedText}`);
+        setSuccessMsg(`✓ הקובץ "${file.name}" נקרא בהצלחה! תוכן המסמך התווסף למקורות המצגת.`);
+        setTimeout(() => setSuccessMsg(''), 4000);
+      } else {
+        setUploadError(`שגיאה בקריאת תוכן הקובץ ${file.name}.`);
+      }
+    };
+
+    reader.onerror = () => {
+      setUploadError(`שגיאה בטעינת הקובץ ${file.name}.`);
+    };
+
+    reader.readAsText(file);
+  };
+
   // File Drag & Drop Handlers
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -113,12 +139,15 @@ export default function AIPresentationStudio() {
     setIsDragOver(false);
     const files = e.dataTransfer.files;
     if (files.length > 0) {
-      setUploadError('העלאת קבצים אינה נתמכת כרגע בשרת. אנא העתיקו והדביקו את תוכן המסמך ישירות לתיבת הטקסט.');
+      processUploadedFile(files[0]);
     }
   };
 
-  const handleFileChange = () => {
-    setUploadError('העלאת קבצים אינה נתמכת כרגע בשרת. אנא העתיקו והדביקו את תוכן המסמך ישירות לתיבת הטקסט.');
+  const handleFileChange = (e) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      processUploadedFile(files[0]);
+    }
   };
 
   // Generate Course API Call
