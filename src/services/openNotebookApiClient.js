@@ -5,11 +5,21 @@ const SERVER_URL_KEY = 'shieldx_open_notebook_server_url';
 const API_KEY_STORAGE = 'shieldx_open_notebook_api_key';
 
 export const getOpenNotebookServerUrl = () => {
-  return localStorage.getItem(SERVER_URL_KEY) || '';
+  const url = localStorage.getItem(SERVER_URL_KEY) || '';
+  // On HTTPS origins (e.g. Vercel), HTTP localhost requests are blocked by browsers (Mixed Content). Clear local localhost.
+  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && url.includes('localhost')) {
+    localStorage.removeItem(SERVER_URL_KEY);
+    return '';
+  }
+  return url;
 };
 
 export const setOpenNotebookServerUrl = (url) => {
   const cleanUrl = url.trim().replace(/\/+$/, '');
+  if (!cleanUrl) {
+    localStorage.removeItem(SERVER_URL_KEY);
+    return '';
+  }
   localStorage.setItem(SERVER_URL_KEY, cleanUrl);
   return cleanUrl;
 };
@@ -58,13 +68,13 @@ export const openNotebookApiClient = {
   checkHealth: async () => {
     const baseUrl = getOpenNotebookServerUrl();
     if (!baseUrl) {
-      return { connected: false, error: 'אנא הזן כתובת שרת מרוחק' };
+      return { connected: false, error: 'אנא הזן כתובת שרת מרוחקת בענן (HTTPS)' };
     }
     try {
       const data = await apiFetch('/openapi.json');
       return { connected: true, info: data.info?.title || 'Open Notebook API' };
     } catch (e) {
-      return { connected: false, error: 'לא ניתן להתחבר לכתובת זו. ודא שהשרת רץ ונגיש' };
+      return { connected: false, error: 'לא ניתן להתחבר לכתובת זו. ודא שהשרת פעיל ותומך ב-HTTPS' };
     }
   },
 
