@@ -376,10 +376,10 @@ export const AppProvider = ({ children }) => {
       return { success: false, message: "אימייל זה כבר רשום במערכת!" };
     }
 
-    const { error } = await supabase.auth.signUp({
+    const { data: signUpData, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { data: { username } }
+      options: { data: { username, role, department, avatar } }
     });
     if (error) return { success: false, message: error.message };
 
@@ -394,6 +394,21 @@ export const AppProvider = ({ children }) => {
       avatar,
       progress: { completedSubjects: [], scores: {}, badges: [], xp: 0 }
     };
+
+    // Sync to Supabase profiles table
+    try {
+      await supabase.from('profiles').insert({
+        username,
+        email,
+        role: newUser.role,
+        department: newUser.department,
+        status: newUser.status,
+        avatar: newUser.avatar,
+        progress: newUser.progress
+      });
+    } catch (e) {
+      console.warn('Failed inserting profile to Supabase directly:', e);
+    }
 
     usersCollection.insertOne(newUser);
     setUsers(usersCollection.find());

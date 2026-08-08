@@ -11,6 +11,21 @@ const call = async (path, body) => {
   return { data, error: response.ok ? null : { message: data.msg || data.message || 'שגיאת אימות' } };
 };
 
+const restCall = async (table, method, body, query = '') => {
+  const response = await fetch(`${url}/rest/v1/${table}${query}`, {
+    method,
+    headers: {
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+      'Content-Type': 'application/json',
+      Prefer: 'return=representation'
+    },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await response.json().catch(() => ([]));
+  return { data, error: response.ok ? null : { message: data.msg || data.message || 'שגיאת מסד נתונים' } };
+};
+
 export const supabase = {
   auth: {
     signUp: ({ email, password, options }) => call('signup', { email, password, data: options?.data || {} }),
@@ -19,7 +34,13 @@ export const supabase = {
       const redirectTo = options?.redirectTo || window.location.origin;
       window.location.href = `${url}/auth/v1/authorize?provider=${provider}&redirect_to=${encodeURIComponent(redirectTo)}`;
     }
-  }
+  },
+  from: (table) => ({
+    insert: (data) => restCall(table, 'POST', data),
+    select: (query = '') => restCall(table, 'GET', null, query ? `?${query}` : ''),
+    update: (data, matchQuery = '') => restCall(table, 'PATCH', data, matchQuery ? `?${matchQuery}` : '')
+  })
 };
+
 
 
