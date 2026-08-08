@@ -5,7 +5,7 @@ const SERVER_URL_KEY = 'shieldx_open_notebook_server_url';
 const API_KEY_STORAGE = 'shieldx_open_notebook_api_key';
 
 export const getOpenNotebookServerUrl = () => {
-  return localStorage.getItem(SERVER_URL_KEY) || 'http://localhost:5055';
+  return localStorage.getItem(SERVER_URL_KEY) || '';
 };
 
 export const setOpenNotebookServerUrl = (url) => {
@@ -25,6 +25,9 @@ export const setOpenNotebookApiKey = (key) => {
 
 const apiFetch = async (endpoint, options = {}) => {
   const baseUrl = getOpenNotebookServerUrl();
+  if (!baseUrl) {
+    throw new Error('טרם הוזנה כתובת שרת מרוחק');
+  }
   const apiKey = getOpenNotebookApiKey();
 
   const headers = {
@@ -46,7 +49,6 @@ const apiFetch = async (endpoint, options = {}) => {
 
     return await response.json();
   } catch (error) {
-    console.warn(`[Open-Notebook API Fetch Failed] ${endpoint}:`, error.message);
     throw error;
   }
 };
@@ -54,11 +56,15 @@ const apiFetch = async (endpoint, options = {}) => {
 export const openNotebookApiClient = {
   // Test connection to hosted Open-Notebook server
   checkHealth: async () => {
+    const baseUrl = getOpenNotebookServerUrl();
+    if (!baseUrl) {
+      return { connected: false, error: 'אנא הזן כתובת שרת מרוחק' };
+    }
     try {
       const data = await apiFetch('/openapi.json');
       return { connected: true, info: data.info?.title || 'Open Notebook API' };
     } catch (e) {
-      return { connected: false, error: e.message };
+      return { connected: false, error: 'לא ניתן להתחבר לכתובת זו. ודא שהשרת רץ ונגיש' };
     }
   },
 
