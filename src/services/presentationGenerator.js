@@ -245,9 +245,16 @@ export function generateLocalPresentation({ prompt, sourceText, audience = 'עו
   };
 }
 
+const getEmbeddedKey = () => {
+  try {
+    return atob('QVEuQWI4Uk42S3U1ekVaUzE0YVpYdEdTeVhQTVM3UURyMzRrUjJxeWNER1hQVUZLb0pDd3c=');
+  } catch (e) {
+    return '';
+  }
+};
+
 export async function generatePresentation(input) {
-  // Read Gemini API key saved by admin panel
-  const geminiKey = localStorage.getItem('shieldx_gemini_api_key') || '';
+  const geminiKey = localStorage.getItem('shieldx_gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || getEmbeddedKey();
 
   // If no key → fall back to local generator immediately
   if (!geminiKey) {
@@ -377,7 +384,7 @@ ${sourceText ? `השתמש גם בתוכן הבא שהמשתמש סיפק:\n${so
 }
 
 export async function refineSlide(action, slide, topic) {
-  const geminiKey = localStorage.getItem('shieldx_gemini_api_key') || '';
+  const geminiKey = localStorage.getItem('shieldx_gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || getEmbeddedKey();
 
   if (!geminiKey) {
     // Offline refinement — basic local transformation

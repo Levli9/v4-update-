@@ -817,56 +817,13 @@ export default function AIPresentationStudio() {
             {isGenerating ? 'בונה את הקורס…' : 'צור קורס חדש באמצעות AI'}
           </button>
 
-          {/* Gemini API Key Panel */}
-          <div className="rounded-2xl border border-gray-800 bg-[#080c14] p-3 space-y-2">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Key size={13} className={geminiKey ? 'text-purple-400' : 'text-gray-600'} />
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-wider">Gemini AI</span>
-                {geminiKey
-                  ? <span className="rounded-full border border-purple-500/25 bg-purple-500/10 px-1.5 py-0.5 text-[8px] font-black text-purple-300">✓ מחובר</span>
-                  : <span className="rounded-full border border-amber-500/25 bg-amber-500/10 px-1.5 py-0.5 text-[8px] font-black text-amber-400">מקומי</span>
-                }
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowKeyInput(!showKeyInput)}
-                className="text-[9px] font-bold text-gray-600 hover:text-[#00e6ff] transition"
-              >
-                {showKeyInput ? 'סגור' : 'הגדרות'}
-              </button>
+          {/* Gemini AI Status Badge */}
+          <div className="rounded-2xl border border-purple-500/25 bg-purple-950/20 p-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Key size={13} className="text-purple-400" />
+              <span className="text-[10px] font-black text-gray-300 uppercase tracking-wider">Google Gemini AI</span>
             </div>
-
-            {showKeyInput && (
-              <div className="space-y-2">
-                <p className="text-[9px] text-gray-600 leading-relaxed">
-                  הזן מפתח מ
-                  <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="text-purple-400 underline mr-0.5 ml-0.5">Google AI Studio</a>
-                  ל-AI אמיתי. בלי מפתח עובד במצב מקומי.
-                </p>
-                <div className="relative">
-                  <input
-                    type={showKeyValue ? 'text' : 'password'}
-                    value={geminiKey}
-                    onChange={(e) => setGeminiKey(e.target.value)}
-                    className="w-full rounded-xl border border-gray-800 bg-gray-950 px-3 py-2 text-[11px] text-white focus:border-purple-500/40 focus:outline-none pr-8"
-                    placeholder="AIza..."
-                  />
-                  <button type="button" onClick={() => setShowKeyValue(!showKeyValue)}
-                    className="absolute left-2 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300">
-                    {showKeyValue ? <EyeOff size={12} /> : <Eye size={12} />}
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={saveGeminiKey}
-                  className="w-full rounded-xl bg-purple-600 hover:bg-purple-500 py-2 text-[11px] font-black text-white transition"
-                >
-                  שמור מפתח
-                </button>
-                {keyMsg && <p className="text-[10px] font-bold text-emerald-400 text-center">{keyMsg}</p>}
-              </div>
-            )}
+            <span className="rounded-full border border-purple-500/25 bg-purple-500/10 px-2 py-0.5 text-[8px] font-black text-purple-300">✓ מפתח מובנה פעיל</span>
           </div>
           
           <div className="border-t border-gray-850 pt-4 text-center">
