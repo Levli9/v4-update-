@@ -358,14 +358,15 @@ export default function AIPresentationStudio() {
             <div className="grid min-h-[620px] place-items-center rounded-3xl border border-gray-850 bg-[#0a0d17]/70 p-8 text-center backdrop-blur-sm">
               <div className="max-w-md w-full">
                 <Loader2 size={48} className="animate-spin text-[#00e6ff] mx-auto mb-6" />
-                <h3 className="text-xl font-bold text-white mb-6">מייצר קורס באמצעות AI...</h3>
+                <h3 className="text-xl font-bold text-white mb-2">מייצר קורס וסרטון מבוסס Open-Notebook...</h3>
+                <p className="text-xs text-[#00e6ff] font-semibold mb-6">מנוע AI שולף ומבסס תכנים מתוך נהלי הארגון הנסתרים</p>
                 
                 <div className="space-y-4 text-right bg-gray-950/60 p-6 rounded-2xl border border-gray-900">
                   {[
-                    'מנתח את הנושא ודרישות ההדרכה',
-                    'בונה את מבנה הסילבוס המקצועי',
-                    'מנסח שקופיות לימוד מעמיקות',
-                    'מכין שאלות ומבחן הסמכה מבוסס נושא'
+                    '📖 מנוע Open-Notebook: שולף נהלים ומקורות ידע נסתרים',
+                    '✍️ מנסח שקופיות לימוד מעמיקות ומותאמות לארגון',
+                    '🎬 מפיק תסריט סרטון לימודי עם הנחיות קריינות וויזואל',
+                    '🎓 מכין שאלות ומבחן הסמכה מבוסס נושא'
                   ].map((stepText, idx) => (
                     <div key={idx} className="flex items-center gap-3">
                       <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-black transition-colors ${
@@ -665,6 +666,17 @@ export default function AIPresentationStudio() {
         {/* SIDEBAR FORM (RIGHT, 400px wide) */}
         <aside className="h-fit rounded-3xl border border-gray-850 bg-[#0c111d]/90 p-5 shadow-2xl space-y-5 order-1 xl:order-2">
           
+          <div className="rounded-2xl border border-cyan-500/30 bg-cyan-950/20 p-3.5 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="grid h-7 w-7 place-items-center rounded-lg bg-[#00e6ff]/15 text-[#00e6ff] text-xs font-black">📖</span>
+              <div>
+                <span className="block text-xs font-black text-white">Open-Notebook Engine</span>
+                <span className="block text-[9px] text-[#00e6ff] font-bold">מבוסס נהלים ומקורות ידע נסתרים</span>
+              </div>
+            </div>
+            <span className="rounded-full bg-emerald-500/10 border border-emerald-500/25 px-2 py-0.5 text-[9px] font-black text-emerald-400">✓ פעיל</span>
+          </div>
+
           <div>
             <label className="text-xs font-bold text-gray-300 block mb-2">מה הנושא של המצגת והקורס?</label>
             <textarea 

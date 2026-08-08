@@ -1,3 +1,5 @@
+import openNotebookService from './openNotebookService';
+
 const STOP_WORDS = new Set([
   'של', 'על', 'עם', 'את', 'זה', 'זו', 'הוא', 'היא', 'אני', 'איך', 'מה', 'למה', 'כמו',
   'גם', 'או', 'אם', 'כי', 'כל', 'לא', 'כן', 'יותר', 'עבור', 'בנושא', 'מצגת', 'שקופיות'
@@ -92,7 +94,12 @@ const buildCoursePackage = ({ subject, audience, difficulty, duration, language,
 
 export function generateLocalPresentation({ prompt, sourceText, audience = 'עובדי החברה', slideCount = 7, difficulty = 'בינוני', duration = 30, language = 'עברית' }) {
   const subject = clean(prompt) || 'מודעות סייבר ארגונית';
-  const sourceParts = splitSource(sourceText);
+  
+  // Automatically pull from Open-Notebook hidden sources if sourceText is empty
+  const notebookContext = openNotebookService.retrieveKnowledgeContext(subject);
+  const combinedSource = sourceText ? `${sourceText}\n\n${notebookContext.contextText}` : notebookContext.contextText;
+
+  const sourceParts = splitSource(combinedSource);
   const ranked = rankSource(subject, sourceParts);
   const facts = detectFacts(subject);
   const requestedCount = Math.min(12, Math.max(5, Number(slideCount) || 7));
