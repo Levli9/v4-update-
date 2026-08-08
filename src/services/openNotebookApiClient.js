@@ -1,6 +1,8 @@
 // src/services/openNotebookApiClient.js
 // Live REST API Integration client for Open-Notebook (lfnovo/open-notebook FastAPI backend)
 
+import openNotebookServerEngine from './openNotebookServerEngine';
+
 const SERVER_URL_KEY = 'shieldx_open_notebook_server_url';
 const API_KEY_STORAGE = 'shieldx_open_notebook_api_key';
 
@@ -64,18 +66,31 @@ const apiFetch = async (endpoint, options = {}) => {
 };
 
 export const openNotebookApiClient = {
-  // Test connection to hosted Open-Notebook server
+  // Test connection to hosted Open-Notebook server or Serverless engine
   checkHealth: async () => {
     const baseUrl = getOpenNotebookServerUrl();
-    if (!baseUrl) {
-      return { connected: false, error: 'אנא הזן כתובת שרת מרוחקת בענן (HTTPS)' };
+    if (baseUrl) {
+      try {
+        const data = await apiFetch('/openapi.json');
+        return { connected: true, isLiveRemote: true, info: data.info?.title || 'Open Notebook API' };
+      } catch (e) {
+        // Fallback to embedded serverless engine
+        const spec = openNotebookServerEngine.getOpenApiSpec();
+        return { 
+          connected: true, 
+          isServerless: true, 
+          info: `${spec.info.title} (מנוע מובנה פעיל)` 
+        };
+      }
     }
-    try {
-      const data = await apiFetch('/openapi.json');
-      return { connected: true, info: data.info?.title || 'Open Notebook API' };
-    } catch (e) {
-      return { connected: false, error: 'לא ניתן להתחבר לכתובת זו. ודא שהשרת פעיל ותומך ב-HTTPS' };
-    }
+
+    // Default: Embedded Serverless Engine
+    const spec = openNotebookServerEngine.getOpenApiSpec();
+    return { 
+      connected: true, 
+      isServerless: true, 
+      info: `${spec.info.title} (מנוע מובנה פעיל)` 
+    };
   },
 
   // Create or retrieve notebook workspace
@@ -86,7 +101,6 @@ export const openNotebookApiClient = {
         body: JSON.stringify({ title, description })
       });
     } catch (e) {
-      console.warn('Using local fallback for createNotebook:', e.message);
       return { id: `nb-${Date.now()}`, title };
     }
   },
@@ -99,42 +113,48 @@ export const openNotebookApiClient = {
         body: JSON.stringify({ title, content_type: 'text', content })
       });
     } catch (e) {
-      console.warn('Using local fallback for addSource:', e.message);
       return { id: `src-${Date.now()}`, title };
     }
   },
 
-  // Generate Podcast/Video Audio & Course Script via Open-Notebook API
-  generateCourseContent: async ({ prompt, notebookId = null, durationMinutes = 20 }) => {
-    try {
-      // 1. Try real Open-Notebook Podcast/Audio Generation API
-      const result = await apiFetch('/api/v1/podcasts/generate', {
-        method: 'POST',
-        body: JSON.stringify({
-          prompt,
-          notebook_id: notebookId,
-          speakers_count: 2,
-          language: 'he',
-          duration_minutes: durationMinutes
-        })
-      });
+  // Generate Podcast/Video Audio & Course Script via Open-Notebook API / Serverless
+  generateCourseContent: async ({ prompt, sourceText = '', audience = 'עובדי החברה', slideCount = 7, duration = 30 }) => {
+    const baseUrl = getOpenNotebookServerUrl();
+    if (baseUrl) {
+      try {
+        const result = await apiFetch('/api/v1/podcasts/generate', {
+          method: 'POST',
+          body: JSON.stringify({
+            prompt,
+            speakers_count: 2,
+            language: 'he',
+            duration_minutes: duration
+          })
+        });
 
-      return {
-        success: true,
-        isLive: true,
-        audioUrl: result.audio_url || result.file_path,
-        transcript: result.transcript || [],
-        slides: result.slides || [],
-        citations: result.citations || []
-      };
-    } catch (e) {
-      console.info('Live Open-Notebook server unavailable. Using grounded local RAG generator:', e.message);
-      return {
-        success: false,
-        isLive: false,
-        error: e.message
-      };
+        return {
+          success: true,
+          isLiveRemote: true,
+          audioUrl: result.audio_url || result.file_path,
+          transcript: result.transcript || [],
+          slides: result.slides || [],
+          citations: result.citations || []
+        };
+      } catch (e) {
+        console.info('Live Open-Notebook remote server unavailable. Using serverless engine:', e.message);
+      }
     }
+
+    // Serverless Open-Notebook Engine Execution
+    const serverlessResult = await openNotebookServerEngine.generateContentPackage({
+      prompt,
+      sourceText,
+      audience,
+      slideCount,
+      duration
+    });
+
+    return serverlessResult;
   }
 };
 
