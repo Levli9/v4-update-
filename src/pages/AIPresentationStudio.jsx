@@ -125,6 +125,26 @@ export default function AIPresentationStudio() {
   };
 
   // File Drag & Drop Handlers
+  const handleReadFile = (file) => {
+    if (!file) return;
+    setUploadError('');
+    if (file.type.includes('text') || file.name.endsWith('.txt') || file.name.endsWith('.md') || file.name.endsWith('.json') || file.name.endsWith('.csv')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const text = event.target.result || '';
+        setSourceText(text);
+        setSuccessMsg(`✓ הקובץ "${file.name}" נטען בהצלחה למאגר המקורות!`);
+        setTimeout(() => setSuccessMsg(''), 4000);
+      };
+      reader.onerror = () => {
+        setUploadError('שגיאה בקריאת הקובץ.');
+      };
+      reader.readAsText(file);
+    } else {
+      setUploadError(`הקובץ "${file.name}" נבחר. מומלץ להעלות קובצי טקסט (.txt, .md) או להדביק את התוכן ישירות.`);
+    }
+  };
+
   const handleDragOver = (e) => {
     e.preventDefault();
     setIsDragOver(true);
@@ -728,8 +748,31 @@ export default function AIPresentationStudio() {
               onChange={(e) => setPrompt(e.target.value)} 
               rows={3} 
               className="w-full resize-none rounded-2xl border border-gray-800 bg-[#070b14] p-3 text-xs text-white outline-none focus:border-[#00e6ff]/40 transition" 
-              placeholder="לדוגמה: זיהוי פישינג והנדסה חברתית" 
+              placeholder="לדוגמה: אבטחת מכשור רפואי (IoMT) בבתי חולים" 
             />
+            
+            {/* Quick Topic Chips */}
+            <div className="mt-2.5 space-y-1.5">
+              <span className="text-[10px] font-bold text-gray-500 block">נושאים מומלצים בלחיצה:</span>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  { label: '🩺 מכשור רפואי (IoMT)', val: 'אבטחת מכשור רפואי (IoMT) בבתי חולים' },
+                  { label: '🚨 מתקפת כופרה במיון', val: 'התמודדות עם מתקפות כופרה בחדר מיון' },
+                  { label: '📋 רשומות רפואיות EMR', val: 'הגנה על רשומות רפואיות EMR וסודיות מטופלים' },
+                  { label: '🎣 פישינג לצוות רפואי', val: 'זיהוי פישינג והנדסה חברתית לצוותים רפואיים' },
+                  { label: '🏥 סייבר בבתי חולים', val: 'מערך הגנת הסייבר בבתי חולים ומרכזים רפואיים' }
+                ].map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setPrompt(item.val)}
+                    className="text-[10px] font-bold px-2.5 py-1 rounded-lg bg-gray-900 border border-gray-800 text-gray-300 hover:border-[#00e6ff]/40 hover:text-[#00e6ff] transition-colors text-right"
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Document File Upload placeholder interface */}
@@ -846,18 +889,27 @@ export default function AIPresentationStudio() {
             {isGenerating ? 'בונה את הקורס…' : 'צור קורס חדש באמצעות AI'}
           </button>
 
-          {/* Gemini AI Status Badge */}
-          <div className="rounded-2xl border border-purple-500/25 bg-purple-950/20 p-3 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Key size={13} className="text-purple-400" />
-              <span className="text-[10px] font-black text-gray-300 uppercase tracking-wider">Google Gemini AI</span>
+          {/* Engine Status Panel */}
+          <div className="rounded-2xl border border-gray-800 bg-[#080c14] p-3 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles size={13} className="text-[#00e6ff]" />
+                <span className="text-[10px] font-black text-gray-300 uppercase tracking-wider">מנוע ידע סייבר ורפואה</span>
+                <span className="rounded-full border border-emerald-500/25 bg-emerald-500/10 px-1.5 py-0.5 text-[8px] font-black text-emerald-400">⚡ פעיל וחינמי</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowKeyInput(!showKeyInput)}
+                className="text-[9px] font-bold text-gray-500 hover:text-[#00e6ff] transition"
+              >
+                {showKeyInput ? 'סגור' : 'הגדרות API'}
+              </button>
             </div>
-            <span className="rounded-full border border-purple-500/25 bg-purple-500/10 px-2 py-0.5 text-[8px] font-black text-purple-300">✓ מפתח מובנה פעיל</span>
           </div>
           
           <div className="border-t border-gray-850 pt-4 text-center">
             <p className="text-[10px] text-gray-600">
-              מנגנון שמירה אוטומטית פעיל · מנוע Open-Notebook Serverless מובנה
+              מנגנון שמירה אוטומטית פעיל · מנוע ידע וסייבר רפואי מובנה
             </p>
           </div>
 
