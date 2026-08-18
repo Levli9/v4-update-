@@ -1,6 +1,4 @@
-// src/services/presentationGenerator.js
 import openNotebookService from './openNotebookService';
-import { findMatchingHealthcareTopic, HEALTHCARE_CYBER_TOPICS } from '../data/healthcareCyberKnowledge';
 
 const STOP_WORDS = new Set([
   'של', 'על', 'עם', 'את', 'זה', 'זו', 'הוא', 'היא', 'אני', 'איך', 'מה', 'למה', 'כמו',
@@ -62,291 +60,188 @@ const detectFacts = (prompt) => {
   ];
 };
 
-export function generateLocalPresentation({ prompt, sourceText = '', audience = 'עובדי החברה', slideCount = 7, difficulty = 'בינוני', duration = 30, language = 'עברית', passScore = 80 }) {
-  const subject = clean(prompt) || 'אבטחת מידע בארגוני בריאות';
-  const targetCount = Math.max(3, Math.min(20, Number(slideCount) || 7));
-  const sourceParts = splitSource(sourceText);
-  const rankedSources = rankSource(subject, sourceParts);
+const sourceBullet = (ranked, index, fallback) => {
+  const match = ranked[index];
+  return match
+    ? { text: match.text, citation: match.source }
+    : { text: fallback, citation: null };
+};
 
-  // 1. Check if matches Hospital / Healthcare Domain Knowledge Base
-  const matchedHealthcare = findMatchingHealthcareTopic(subject + ' ' + sourceText);
+const buildCoursePackage = ({ subject, audience, difficulty, duration, language, slides }) => ({
+  metadata: { subject, audience, difficulty, duration, language, status: 'draft', version: 1 },
+  modules: slides.slice(1).map((slide, index) => ({ id: index + 1, title: slide.title, objective: slide.subtitle, estimatedMinutes: Math.max(3, Math.round(Number(duration) / Math.max(1, slides.length - 1))) })),
+  videoScript: slides.slice(1).map((slide, index) => ({ scene: index + 1, title: slide.title, narration: `${slide.title}. ${slide.bullets.map((bullet) => bullet.text).join(' ')}`, visualDirection: `אנימציית הדרכה ארגונית בנושא ${slide.title}` })),
+  questionTypes: ['בחירה מרובה', 'גרירת פריטים', 'התאמת זוגות', 'סדר פעולות', 'לחיצה על אזור בתמונה', 'סימולציה', 'תרחיש'],
+  quizzes: [
+    { type: 'multipleChoice', title: 'בחירת התגובה הבטוחה' },
+    { type: 'dragDrop', title: 'מיון התנהגויות לבטוח ומסוכן' },
+    { type: 'match', title: 'התאמת מושג להגדרה' },
+    { type: 'order', title: 'סידור שלבי התגובה לאירוע' },
+    { type: 'hotspot', title: 'איתור סימן חשוד בתמונה' },
+    { type: 'simulation', title: 'סימולציה אינטראקטיבית' },
+    { type: 'scenario', title: 'תרחיש מהעבודה' }
+  ],
+  finalExam: { questions: 10, pointsPerQuestion: 10, passScore: 80, randomized: true },
+  media: {
+    imagePrompts: slides.slice(1, 5).map((slide) => `איור הדרכה מקצועי, ${slide.title}, סגנון ShieldX, ללא טקסט`),
+    charts: ['גרף התקדמות בקורס', 'השוואת ביצועים לפני ואחרי ההדרכה'],
+    narrationLanguage: language,
+    subtitles: true
+  },
+  certificate: { enabled: true, title: `תעודת השלמה — ${subject}`, passScore: 80 },
+  publishing: { status: 'draft', scheduledAt: null, archived: false, versionHistory: [] }
+});
 
-  let rawSlides = [];
-  let finalExamQuestions = [];
-  let courseTitle = subject;
-  let courseDesc = '';
-  let learningObjectives = [];
+export function generateLocalPresentation({ prompt, sourceText, audience = 'עובדי החברה', slideCount = 7, difficulty = 'בינוני', duration = 30, language = 'עברית' }) {
+  const subject = clean(prompt) || 'מודעות סייבר ארגונית';
+  
+  // Automatically pull from Open-Notebook hidden sources if sourceText is empty
+  const notebookContext = openNotebookService.retrieveKnowledgeContext(subject);
+  const combinedSource = sourceText ? `${sourceText}\n\n${notebookContext.contextText}` : notebookContext.contextText;
 
-  if (matchedHealthcare) {
-    courseTitle = matchedHealthcare.title.includes(subject) ? matchedHealthcare.title : `${matchedHealthcare.title} — ${subject}`;
-    courseDesc = matchedHealthcare.overview;
-    learningObjectives = [
-      `הבנת איומי הסייבר ונקודות התורפה הייחודיות ב${matchedHealthcare.title}`,
-      `הכרת נהלי העבודה והנחיות החירום בסביבה קלינית ורפואית`,
-      `יישום מודל הבטיחות והדיווח של ShieldX להגנה על חיי מטופלים וסודיות המידע`
-    ];
+  const sourceParts = splitSource(combinedSource);
+  const ranked = rankSource(subject, sourceParts);
+  const facts = detectFacts(subject);
+  const requestedCount = Math.min(12, Math.max(5, Number(slideCount) || 7));
 
-    // Build slides from Healthcare Base
-    const baseSlides = matchedHealthcare.slidesData || [];
-    
-    // Slide 1: Intro
-    rawSlides.push({
+  const slides = [
+    {
       id: 1,
-      title: courseTitle,
-      content: `הדרכת אבטחת מידע מקצועית המותאמת עבור ${audience}. בהדרכה זו נלמד על עקרונות המפתח, דרכי התמודדות והנחיות עבודה נכונות במוסד רפואי.`,
+      title: subject,
+      content: `ברוכים הבאים לשיעור הדרכה מיוחד בנושא ${subject}. במצגת זו נלמד על עקרונות המפתח, דרכי התמודדות והנחיות עבודה נכונות.`,
       bulletPoints: [
         `קהל יעד: ${audience}`,
-        `רמת קושי: ${difficulty} · משך משוער: ${duration} דקות`,
-        `דגש מרכזי: שמירה על רציפות הטיפול ובטיחות המטופלים`
+        `רמת קושי: ${difficulty}`,
+        'חשוב לשמור על ערנות ולדווח על כל אירוע חריג'
       ],
-      speakerNotes: `ברוכים הבאים לקורס ההדרכה בנושא ${courseTitle}. הדגישו בפני המשתתפים כי שמירה על עקרונות הסייבר היא נדבך בלתי נפרד מבטיחות הטיפול הרפואי.`,
-      visualSuggestion: 'שקף פתיחה מרשים: מגן סייבר כחול-טורקיז עם סמל הרפואה ולוגו ShieldX זוהר.'
-    });
-
-    // Add detailed domain slides
-    baseSlides.forEach((slide) => {
-      rawSlides.push({
-        title: slide.title,
-        content: slide.content,
-        bulletPoints: [...slide.bulletPoints],
-        speakerNotes: slide.speakerNotes,
-        visualSuggestion: slide.visualSuggestion
-      });
-    });
-
-    // If more slides requested, create deep dive scenario slides
-    if (rawSlides.length < targetCount) {
-      rawSlides.push({
-        title: 'תרחיש אמת בבית חולים וניתוח מקרה',
-        content: `בחינת מקרה בוחן מעשי: התמודדות עם אירוע חריג בתחום ${subject} במהלך פעילות שוטפת במחלקה.`,
-        bulletPoints: [
-          'זיהוי מוקדם של הסימנים החשודים בעמדת העבודה או במכשור',
-          'קבלת החלטות מהירה תחת לחץ ומניעת התפשטות האירוע',
-          'תקשורת נכונה מול צוות ה-SOC, הנהלת המחלקה ומערך החירום'
-        ],
-        speakerNotes: 'הציגו את המקרה למשתתפים ובקשו מהם לנתח כיצד היו מגיבים אם האירוע היה מתרחש במשמרת שלהם.',
-        visualSuggestion: 'איור של חדר בקרה וצוות רפואי הפועל בתיאום מול התראת אבטחה.'
-      });
-    }
-
-    if (rawSlides.length < targetCount) {
-      rawSlides.push({
-        title: 'צ\'קליסט נהלים יומי לצוות המחלקה',
-        content: 'רשימת בדיקות יומיומית חיונית להבטחת סביבת עבודה קלינית מאובטחת.',
-        bulletPoints: [
-          'נעילת מסכים בכל עזיבה של עמדת הטיפול (Win + L)',
-          'בדיקה פיזית של תקינות כבלים וחיבורים במכשור הרפואי',
-          'הקפדה על גריסת מסמכים רפואיים המכילים פרטי מטופלים (PHI)',
-          'אימות כל בקשה חריגה להעברת מידע בערוץ טלפוני נפרד'
-        ],
-        speakerNotes: 'עודדו את העובדים לקבע את הצ\'קליסט כהרגל קבוע בכל פתיחת משמרת ובכל סיומה.',
-        visualSuggestion: 'רשימת צ\'קליסט מעוצבת עם תיבות סימון ירוקות וסמלי הגנה.'
-      });
-    }
-
-    // Summary slide
-    rawSlides.push({
-      title: 'סיכום, הנחיות מחייבות ומבחן הסמכה',
-      content: 'הגנה על בית החולים והמטופלים היא מאמץ משותף. כל איש צוות מהווה חוליה קריטית במערך האבטחה.',
+      speakerNotes: 'הציגו את עצמכם והסבירו על חשיבות המודעות לנושא זה בארגון.',
+      visualSuggestion: 'שקף פתיחה מעוצב עם לוגו ShieldX ואנימציה קלה.'
+    },
+    {
+      id: 2,
+      title: 'למה הנושא חשוב?',
+      content: facts[0] || 'טעות אנוש קטנה יכולה להוביל לפגיעה חמורה במערכות המידע של הארגון.',
       bulletPoints: [
-        'עצירה, בדיקה ודיווח מונעים את מרבית אירועי הסייבר',
-        'דיווח מהיר למוקד האבטחה מציל חיים ומאפשר בלימה מיידית',
-        'השלב הבא: מעבר למבחן ההסמכה המסכם (ציון מעבר: ' + passScore + '%)'
+        'טעות אנוש קטנה יכולה להפוך לאירוע אבטחה משמעותי',
+        'המטרה היא לזהות את הסיכון לפני שמבצעים פעולה',
+        'שמירה על סודיות ושלמות המידע היא באחריות כולנו'
       ],
-      speakerNotes: 'הודו לצוות על ההקשבה והמחויבות, והנחו אותם לגשת כעת למבחן המסכם במערכת.',
-      visualSuggestion: 'שקף סיום חגיגי עם חותמת הסמכה מאושרת ופרטי יצירת קשר עם מוקד הסייבר.'
-    });
-
-    finalExamQuestions = [...(matchedHealthcare.examQuestions || [])];
-
-  } else {
-    // 2. Open-Notebook / General Corporate Cyber Knowledge Base
-    const facts = detectFacts(subject);
-    courseTitle = subject;
-    courseDesc = `קורס הדרכה מקיף ומעמיק בנושא ${subject} המיועד עבור ${audience}.`;
-    learningObjectives = [
-      `הבנת עקרונות האבטחה המרכזיים בנושא ${subject}`,
-      'זיהוי סימני אזהרה ודגלים אדומים בשגרת העבודה היומיומית',
-      'פעולה נכונה על פי נהלי הארגון למניעת אירועי סייבר ותגובה מהירה'
-    ];
-
-    rawSlides = [
-      {
-        title: subject,
-        content: `ברוכים הבאים לשיעור הדרכה מיוחד בנושא ${subject}. במצגת זו נלמד על עקרונות המפתח, דרכי התמודדות והנחיות עבודה נכונות.`,
-        bulletPoints: [
-          `קהל יעד: ${audience}`,
-          `רמת קושי: ${difficulty} · משך: ${duration} דקות`,
-          'שמירה על ערנות אישית וציות לנהלי האבטחה הארגוניים'
-        ],
-        speakerNotes: 'הציגו את עצמכם והסבירו על חשיבות המודעות לנושא זה בארגון.',
-        visualSuggestion: 'שקף פתיחה מעוצב עם לוגו ShieldX ואנימציה קלה.'
-      },
-      {
-        title: 'למה הנושא חשוב לארגון?',
-        content: facts[0] || 'טעות אנוש קטנה יכולה להוביל לפגיעה חמורה במערכות המידע של הארגון.',
-        bulletPoints: [
-          'טעות אנוש פשוטה עלולה להפוך לאירוע אבטחה משמעותי',
-          'המטרה היא לזהות את הסיכון מבעוד מועד לפני ביצוע פעולה',
-          'שמירה על סודיות, שלמות וזמינות המידע היא באחריות כולנו'
-        ],
-        speakerNotes: 'הדגישו כי מודעות העובדים היא קו ההגנה הראשון והקריטי ביותר של הארגון.',
-        visualSuggestion: 'תרשים המציג את קווי ההגנה הארגוניים בסגנון סייבר מתקדם.'
-      },
-      {
-        title: 'סימני אזהרה ודגלים אדומים (Red Flags)',
-        content: facts[1] || 'בקשות חריגות, לחץ זמן מוגזם או דרישות לשינוי תהליכים שגרתיים הם סימני אזהרה קלאסיים.',
-        bulletPoints: [
-          'בקשה חריגה או שינוי פתאומי ולא מוסבר בתהליך העבודה',
-          'לחץ זמן מוגזם מצד השולח לקבלת מענה מהיר ללא בדיקה',
-          'אי התאמה בכתובת המייל, בדומיין או בפרטי הקשר'
-        ],
-        speakerNotes: 'עברו על הדוגמאות והסבירו כיצד תוקפים משתמשים במניפולציות פסיכולוגיות והנדסה חברתית.',
-        visualSuggestion: 'צילום מסך של הודעה חשודה עם סימוני אזהרה בטורקיז זוהר.'
-      },
-      {
-        title: 'מודל פעולה מומלץ: "עצור, בדוק, דווח"',
-        content: 'כאשר נתקלים במצב חשוד, יש לפעול לפי מודל שלושת השלבים של ShieldX: עצור, בדוק, דווח.',
-        bulletPoints: [
-          'עצור — אל תלחץ, אל תפתח קבצים ואל תמסור שום מידע רגיש',
-          'בדוק — אמת את פרטי השולח והבקשה בערוץ תקשורת נפרד ומאומת',
-          'דווח — העבר דיווח מפורט לצוות האבטחה והמתן להנחיות'
-        ],
-        speakerNotes: 'פרטו על כל אחד מהשלבים ותנו דוגמה מעשית מהשגרה הארגונית.',
-        visualSuggestion: 'אנימציה של שלושה שלבים מונפשים בסגנון סייבר: תמרור עצור, זכוכית מגדלת ומגן.'
-      },
-      {
-        title: 'תרחיש מהשטח וניתוח אירוע',
-        content: `נניח שקיבלתם הודעה דחופה הקשורה ל־${subject} ובה בקשה לביצוע פעולה שאינה בשגרה.`,
-        bulletPoints: [
-          'האם אתם מזהים בוודאות את המקור ואת כתובת השולח?',
-          'האם הבקשה תואמת את הנהלים הרגילים והמאושרים בארגון?',
-          'האם יש צורך לאמת בערוץ תקשורת נפרד מול הגורם המוסמך?'
-        ],
-        speakerNotes: 'שאלו את המשתתפים כיצד היו פועלים במצב זה ופתחו דיון קצר.',
-        visualSuggestion: 'איור של עובד מול מחשב עם תיבת התראה מהבהבת בטורקיז.'
-      },
-      {
-        title: 'צ\'קליסט בטיחות יומי לעבודה מאובטחת',
-        content: facts[2] || 'יישום בקרות בסיסיות בשגרת העבודה שלכם יצמצם משמעותית את סיכוני האבטחה.',
-        bulletPoints: [
-          'בדיקת שולח וכתובת מייל מלאה לפני פתיחת קישורים או קבצים',
-          'אימות בקשות כספיות, שינויי חשבון או הרשאות בערוץ נפרד',
-          'נעילת מסך המחשב בכל יציאה מהעמדה (Win + L)'
-        ],
-        speakerNotes: 'עודדו את העובדים להדפיס או לשמור את הצ\'קליסט כהרגל עבודה יומיומי.',
-        visualSuggestion: 'צ\'קליסט מעוצב עם תיבות סימון ירוקות ומחווני אבטחה.'
-      },
-      {
-        title: 'סיכום ומסקנות',
-        content: 'הגנה על הארגון היא מאמץ משותף. כל עובד ועובדת מהווים חוליה קריטית בשרשרת האבטחה.',
-        bulletPoints: [
-          'עצירה ובדיקה מונעות את רוב תקיפות הסייבר',
-          'דיווח מהיר מאפשר לצוות האבטחה להגן על כלל החברה',
-          'המשך מודעות ולמידה שוטפת הם המפתח להצלחה'
-        ],
-        speakerNotes: 'הודו למשתתפים על ההקשבה והפנו אותם למבחן המסכם.',
-        visualSuggestion: 'סמל ShieldX זוהר בטורקיז עם הכיתוב תודה רבה.'
-      }
-    ];
-
-    finalExamQuestions = [
-      {
-        question: `מהי המטרה העיקרית של הדרכה בנושא ${subject}?`,
-        answers: [
-          'להגביר את המודעות ולצמצם סיכוני אבטחה בארגון',
-          'להפוך את כל העובדים למתכנתי מחשבים',
-          'לשנות את הגדרות הרשת בכל המחשבים ללא אישור',
-          'להתקין תוכנות חדשות ללא תיאום מראש'
-        ],
-        correctAnswerIndex: 0,
-        explanation: 'הדרכת מודעות מיועדת לצמצם סיכונים על ידי הגברת ערנות העובדים בשגרה.'
-      },
-      {
-        question: 'נתקלתם בהודעה חשודה המבקשת פעולה דחופה. מהי הפעולה הראשונה הנכונה?',
-        answers: [
-          'לעצור, לאמת בערוץ נפרד ולדווח לצוות האבטחה',
-          'לבצע מיד כדי לא לעכב את העבודה',
-          'להשיב להודעה ולשאול אם השולח אמיתי',
-          'להעביר את ההודעה לכל העובדים במחלקה'
-        ],
-        correctAnswerIndex: 0,
-        explanation: 'אימות בערוץ נפרד ודיווח לצוות האבטחה מונעים פגיעה במערכות הארגון.'
-      },
-      {
-        question: 'מה פירוש השלב "עצור" במודל הפעולה הארגוני?',
-        answers: [
-          'לא ללחוץ על קישורים, לא לפתוח קבצים ולא למסור מידע לפני אימות',
-          'לכבות את המחשב מהחשמל וללכת הביתה',
-          'להמתין לסוף יום העבודה לפני שמדווחים',
-          'למחוק את ההודעה ללא דיווח'
-        ],
-        correctAnswerIndex: 0,
-        explanation: 'עצירה מונעת הפעלה מיידית של קוד זדוני או חשיפת פרטי הזדהות.'
-      }
-    ];
-  }
-
-  // 3. Inject custom grounded source bullets if sourceText was provided
-  if (rankedSources.length > 0) {
-    rankedSources.slice(0, 3).forEach((srcItem, idx) => {
-      const targetSlideIdx = Math.min(rawSlides.length - 2, 1 + idx);
-      if (rawSlides[targetSlideIdx]) {
-        rawSlides[targetSlideIdx].bulletPoints.push(`מקור מקצועי: ${srcItem.text.slice(0, 95)}...`);
-      }
-    });
-  }
-
-  // 4. Adjust slide count to match targetCount exactly
-  let selectedSlides = [];
-  if (rawSlides.length <= targetCount) {
-    selectedSlides = rawSlides;
-  } else {
-    selectedSlides.push(rawSlides[0]);
-    const middleCount = targetCount - 2;
-    const availableMiddle = rawSlides.slice(1, rawSlides.length - 1);
-    const step = Math.max(1, Math.floor(availableMiddle.length / middleCount));
-    for (let i = 0; i < middleCount; i++) {
-      const idx = Math.min(availableMiddle.length - 1, i * step);
-      selectedSlides.push(availableMiddle[idx]);
+      speakerNotes: 'הדגישו כי מודעות העובדים היא קו ההגנה הראשון של הארגון.',
+      visualSuggestion: 'תרשים המציג את קווי ההגנה הארגוניים.'
+    },
+    {
+      id: 3,
+      title: 'סימנים שצריך לזהות',
+      content: facts[1] || 'בקשות חריגות, לחץ זמן מוגזם או דרישות לשינוי תהליכים שגרתיים הם סימני אזהרה קלאסיים.',
+      bulletPoints: [
+        'בקשה חריגה או שינוי פתאומי בתהליך העבודה',
+        'לחץ זמן מוגזם מצד השולח לקבלת מענה מהיר',
+        'אי התאמה בכתובת המייל או בפרטי הקשר'
+      ],
+      speakerNotes: 'עברו על הדוגמאות והסבירו כיצד תוקפים משתמשים במניפולציות פסיכולוגיות.',
+      visualSuggestion: 'צילום מסך של הודעה חשודה עם סימוני אזהרה בטורקיז.'
+    },
+    {
+      id: 4,
+      title: 'מודל פעולה מומלץ',
+      content: 'כאשר נתקלים במצב חשוד, יש לפעול לפי מודל שלושת השלבים של ShieldX: עצור, בדוק, דווח.',
+      bulletPoints: [
+        'עצור — אל תלחץ, אל תפתח קבצים ואל תמסור מידע',
+        'בדוק — אמת את פרטי השולח והבקשה בערוץ תקשורת נפרד',
+        'דווח — העבר דיווח מפורט לצוות האבטחה והמתן להנחיות'
+      ],
+      speakerNotes: 'פרטו על כל אחד מהשלבים ותנו דוגמה מעשית.',
+      visualSuggestion: 'אנימציה של שלושה שלבים מונפשים בסגנון סייבר.'
+    },
+    {
+      id: 5,
+      title: 'תרחיש מהשטח',
+      content: `נניח שקיבלתם הודעה דחופה הקשורה ל־${subject} ובה בקשה לביצוע פעולה שאינה בשגרה.`,
+      bulletPoints: [
+        'האם אתם מזהים בוודאות את המקור?',
+        'האם הבקשה תואמת את הנהלים הרגילים?',
+        'האם יש צורך לאמת בערוץ תקשורת נפרד?'
+      ],
+      speakerNotes: 'שאלו את המשתתפים כיצד היו פועלים במצב זה.',
+      visualSuggestion: 'איור של עובד מול מחשב עם תיבת התראה מהבהבת.'
+    },
+    {
+      id: 6,
+      title: 'צ׳קליסט בטיחות יומי',
+      content: facts[2] || 'יישום בקרות בסיסיות בשגרת העבודה שלכם יצמצם משמעותית את סיכוני האבטחה.',
+      bulletPoints: [
+        'בדיקת שולח וכתובת מייל לפני פתיחת קישורים',
+        'אימות בקשות כספיות או הרשאות בערוץ נפרד',
+        'נעילת מסך המחשב בכל יציאה מהעמדה'
+      ],
+      speakerNotes: 'עודדו את העובדים להדפיס או לשמור את הצ׳קליסט.',
+      visualSuggestion: 'צ׳קליסט מעוצב עם תיבות סימון ירוקות.'
+    },
+    {
+      id: 7,
+      title: 'סיכום ומסקנות',
+      content: 'הגנה על הארגון היא מאמץ משותף. כל עובד ועובדת מהווים חוליה קריטית בשרשרת האבטחה.',
+      bulletPoints: [
+        'עצירה ובדיקה מונעות את רוב תקיפות הסייבר',
+        'דיווח מהיר מאפשר לצוות האבטחה להגן על כלל החברה',
+        'המשך מודעות ולמידה שוטפת הם המפתח להצלחה'
+      ],
+      speakerNotes: 'הודו למשתתפים על ההקשבה ופתחו את הבמה לשאלות.',
+      visualSuggestion: 'סמל ShieldX זוהר בטורקיז עם הכיתוב תודה רבה.'
     }
-    selectedSlides.push(rawSlides[rawSlides.length - 1]);
-  }
+  ];
 
-  // Ensure unique consecutive IDs
-  const finalSlides = selectedSlides.map((s, idx) => ({
-    ...s,
-    id: idx + 1
-  }));
+  const selected = slides.slice(0, requestedCount - 1);
+  selected.push(slides[slides.length - 1]);
 
-  // Ensure at least 3-5 exam questions
-  if (finalExamQuestions.length < 3) {
-    finalExamQuestions.push({
-      question: `מהי הפעולה המומלצת בעת חשד לאירוע סייבר הקשור ל-${subject}?`,
+  const finalExam = [
+    {
+      question: `מהי המטרה העיקרית של הדרכה בנושא ${subject}?`,
       answers: [
-        'לנתק את החיבור ולדווח מיידית למוקד האבטחה',
-        'לנסות לתקן את התקלה באופן עצמאי',
-        'להמתין ליום המחרת',
-        'לא לבצע דבר'
+        'להגביר את המודעות ולצמצם סיכוני אבטחה בארגון',
+        'להפוך את כל העובדים למתכנתי מחשבים',
+        'לשנות את הגדרות הרשת בכל המחשבים',
+        'להתקין תוכנות חדשות ללא אישור'
       ],
       correctAnswerIndex: 0,
-      explanation: 'דיווח מהיר מאפשר לצוות האבטחה לבלום את האירוע לפני התפשטותו.'
-    });
-  }
+      explanation: 'הדרכת מודעות מיועדת לצמצם סיכונים על ידי הגברת ערנות העובדים.'
+    },
+    {
+      question: 'נתקלתם בהודעה חשודה המבקשת פעולה דחופה. מהי הפעולה הראשונה הנכונה?',
+      answers: [
+        'לעצור, לאמת בערוץ נפרד ולדווח לצוות האבטחה',
+        'לבצע מיד כדי לא לעכב את העבודה',
+        'להשיב להודעה ולשאול אם זה בטוח',
+        'להעביר את ההודעה לעובדים אחרים במחלקה'
+      ],
+      correctAnswerIndex: 0,
+      explanation: 'אימות בערוץ נפרד ודיווח לצוות האבטחה מונעים פגיעה במערכות.'
+    },
+    {
+      question: 'מה פירוש השלב "עצור" במותג הפעולה הארגוני?',
+      answers: [
+        'לא ללחוץ על קישורים, לא לפתוח קבצים ולא למסור מידע לפני אימות',
+        'לכבות את המחשב וללכת הביתה',
+        'להמתין לסוף יום העבודה לפני שמדווחים',
+        'למחוק את ההודעה ללא בדיקה'
+      ],
+      correctAnswerIndex: 0,
+      explanation: 'עצירה מונעת הפעלה מיידית של קוד זדוני או חשיפת מידע.'
+    }
+  ];
 
   return {
     id: `deck-${Date.now()}`,
-    title: courseTitle,
-    description: courseDesc || `קורס הדרכה בנושא ${subject}`,
-    learningObjectives,
-    slides: finalSlides,
-    finalExam: {
-      questions: finalExamQuestions,
-      pointsPerQuestion: Math.round(100 / Math.max(1, finalExamQuestions.length)),
-      passScore,
-      randomized: true
-    },
-    mode: 'healthcare-knowledge'
+    title: subject,
+    description: `קורס הדרכה מקיף בנושא ${subject} המיועד עבור ${audience}.`,
+    learningObjectives: [
+      `הבנת סיכוני האבטחה הקשורים ל-${subject}`,
+      'זיהוי סימני אזהרה ודגלים אדומים בשגרת העבודה',
+      'פעולה נכונה על פי נהלי ShieldX למניעת אירועי סייבר'
+    ],
+    slides: selected.map((s, idx) => ({ ...s, id: idx + 1 })),
+    finalExam,
+    mode: 'local'
   };
 }
 
@@ -361,17 +256,19 @@ const getEmbeddedKey = () => {
 export async function generatePresentation(input) {
   const geminiKey = localStorage.getItem('shieldx_gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || getEmbeddedKey();
 
+  // If no key → fall back to local generator immediately
   if (!geminiKey) {
-    await new Promise((resolve) => window.setTimeout(resolve, 800));
+    console.info('[AI] No Gemini API key configured — using local generator.');
+    await new Promise((resolve) => window.setTimeout(resolve, 1200));
     return generateLocalPresentation(input);
   }
 
   const { prompt, sourceText = '', audience = 'עובדי החברה', slideCount = 7, difficulty = 'בינוני', duration = 30, language = 'עברית', passScore = 80 } = input;
 
-  const systemPrompt = `אתה מומחה בכיר לאבטחת מידע וסייבר בבתי חולים ובארגונים רפואיים.
-צור מצגת הדרכה מקצועית ומעמיקה בנושא: "${prompt}".
+  const systemPrompt = `אתה מומחה לבניית קורסי הדרכה ארגוניים בתחום אבטחת מידע וסייבר.
+צור מצגת הדרכה מקצועית בנושא: "${prompt}".
 קהל יעד: ${audience}. רמת קושי: ${difficulty}. משך: ${duration} דקות. שפה: ${language}.
-${sourceText ? `השתמש במקורות המידע והנהלים הבאים:\n${sourceText.slice(0, 10000)}` : ''}
+${sourceText ? `השתמש גם בתוכן הבא שהמשתמש סיפק:\n${sourceText.slice(0, 3000)}` : ''}
 
 החזר JSON בדיוק בפורמט הבא (ללא markdown, רק JSON טהור):
 {
@@ -400,7 +297,7 @@ ${sourceText ? `השתמש במקורות המידע והנהלים הבאים:\
   }
 }
 
-צור בדיוק ${Math.min(15, Math.max(3, Number(slideCount)))} שקופיות.
+צור בדיוק ${Math.min(12, Math.max(4, Number(slideCount)))} שקופיות.
 צור בדיוק 5 שאלות מבחן בסוף.
 ציון מעבר: ${passScore}.
 הכל בעברית. אל תוסיף markdown, code blocks או טקסט מחוץ ל-JSON.`;
@@ -423,11 +320,15 @@ ${sourceText ? `השתמש במקורות המידע והנהלים הבאים:\
     );
 
     if (!response.ok) {
-      throw new Error(`שגיאת AI API (${response.status})`);
+      const errData = await response.json().catch(() => ({}));
+      const errMsg = errData?.error?.message || `שגיאת Gemini API (${response.status})`;
+      throw new Error(errMsg);
     }
 
     const geminiData = await response.json();
     const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+    // Parse JSON — strip any accidental markdown fences
     const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
     const parsed = JSON.parse(cleaned);
 
@@ -435,6 +336,7 @@ ${sourceText ? `השתמש במקורות המידע והנהלים הבאים:\
       throw new Error('תגובת ה-AI לא כללה שקופיות תקינות.');
     }
 
+    // Normalise slide schema
     const slides = parsed.slides.map((s, idx) => ({
       id: idx + 1,
       title: s.title || `שקופית ${idx + 1}`,
@@ -444,6 +346,7 @@ ${sourceText ? `השתמש במקורות המידע והנהלים הבאים:\
       visualSuggestion: s.visualSuggestion || ''
     }));
 
+    // Normalise exam questions
     const questions = Array.isArray(parsed.finalExam?.questions)
       ? parsed.finalExam.questions.map((q) => ({
           question: q.question || '',
@@ -469,35 +372,75 @@ ${sourceText ? `השתמש במקורות המידע והנהלים הבאים:\
     };
 
   } catch (err) {
-    console.warn('[AI] Fallback to Local/Domain Knowledge Engine:', err.message);
+    console.warn('[AI] Gemini call failed:', err.message);
+    // Surface API key errors clearly without fallback
+    if (err.message.includes('API_KEY') || err.message.includes('API key') || err.message.includes('401') || err.message.includes('403')) {
+      throw new Error(`🔑 מפתח Gemini API שגוי או לא תקין. בדוק את המפתח בהגדרות Admin. (${err.message})`);
+    }
+    // Other errors → silent fallback to local
+    await new Promise((resolve) => window.setTimeout(resolve, 800));
     return generateLocalPresentation(input);
   }
 }
 
 export async function refineSlide(action, slide, topic) {
-  await new Promise((resolve) => window.setTimeout(resolve, 500));
-  const refined = { ...slide };
-  
-  if (action === 'expand') {
-    refined.content = `${slide.content} דגש קליני נוסף: בסביבת בית חולים, יש לוודא שהנחיות אלו מיושמות בהתאם לנהלי משרד הבריאות ולשמירה על בטיחות המטופל.`;
-    refined.bulletPoints = [...(slide.bulletPoints || []), 'בדיקת התאמה לנוהל החירום המחלקתי'];
-    refined.speakerNotes = `${slide.speakerNotes || ''} הדגישו למשתתפים את חשיבות הציות המלא לנהלים בשגרה ובחירום.`;
-  } else if (action === 'shorten' || action === 'simplify') {
-    const sentences = slide.content.split(/[.!؟]/).filter(s => s.trim().length > 0);
-    refined.content = sentences.length > 1 ? `${sentences[0]}. ${sentences[1]}.` : slide.content;
-    refined.bulletPoints = (slide.bulletPoints || []).slice(0, 3);
-  } else if (action === 'professional') {
-    refined.title = `נוהל מחייב: ${slide.title}`;
-    refined.content = `בהתאם לתקני אבטחת המידע בבריאות (ISO 27799) וחוזרי משרד הבריאות: ${slide.content}`;
-    refined.speakerNotes = `עברו על ההיבט הרגולטורי והמשמעות המשפטית של שמירה על נהלים אלו.`;
-  } else if (action === 'regenerate') {
-    refined.content = `הנחיות עבודה מעודכנות בנושא ${slide.title}. הקפדה על סדר הפעולות מונעת כשלים אבטחתיים ותפעוליים.`;
-    refined.bulletPoints = [
-      'ביצוע אימות כפול לפני ביצוע פעולה רגישה',
-      'דיווח מיידי על כל אנומליה למנהל המשמרת ולמוקד הסייבר',
-      'תיעוד מלא ביומן המחלקה'
-    ];
+  const geminiKey = localStorage.getItem('shieldx_gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || getEmbeddedKey();
+
+  if (!geminiKey) {
+    // Offline refinement — basic local transformation
+    await new Promise((resolve) => window.setTimeout(resolve, 600));
+    const refined = { ...slide };
+    if (action === 'expand') {
+      refined.content = `${slide.content} פירוט נוסף: ניתן להרחיב כאן את ההסבר עם דוגמאות נוספות מהשטח הרלוונטיות ל${topic}.`;
+      refined.bulletPoints = [...(slide.bulletPoints || []), 'נקודה נוספת להרחבה'];
+    } else if (action === 'simplify') {
+      refined.content = slide.content.split('.').slice(0, 1).join('.') + '.';
+    } else if (action === 'example') {
+      refined.bulletPoints = [...(slide.bulletPoints || []), `דוגמה מעשית: מקרה אמיתי בתחום ${topic}`];
+    }
+    return refined;
   }
-  
-  return refined;
+
+  const actionMap = {
+    expand: 'הרחב את תוכן השקופית, הוסף פרטים ודוגמאות',
+    simplify: 'פשט את השקופית לשפה ברורה יותר, קצר כל נקודה',
+    example: 'הוסף דוגמה מעשית אמיתית לשקופית',
+    quiz: 'הפוך את השקופית לשאלה אינטראקטיבית'
+  };
+
+  const refinePrompt = `${actionMap[action] || action} עבור שקופית זו בנושא "${topic}":
+כותרת: ${slide.title}
+תוכן: ${slide.content}
+נקודות: ${(slide.bulletPoints || []).join(' | ')}
+
+החזר JSON בלבד:
+{
+  "title": "...",
+  "content": "...",
+  "bulletPoints": ["...", "...", "..."],
+  "speakerNotes": "...",
+  "visualSuggestion": "..."
+}`;
+
+  const response = await fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: refinePrompt }] }],
+        generationConfig: { temperature: 0.5, maxOutputTokens: 2048, responseMimeType: 'application/json' }
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const errData = await response.json().catch(() => ({}));
+    throw new Error(errData?.error?.message || 'תקלה בעריכת השקופית באמצעות AI.');
+  }
+
+  const geminiData = await response.json();
+  const rawText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  return JSON.parse(cleaned);
 }
