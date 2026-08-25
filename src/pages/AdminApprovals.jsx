@@ -210,11 +210,6 @@ export default function AdminApprovals() {
 
   const [backendUrl, setBackendUrl] = useState(getBackendConfig ? getBackendConfig() : 'http://localhost:5001');
   const [backendSuccess, setBackendSuccess] = useState('');
-
-  const gConfig = getGeminiConfig ? getGeminiConfig() : { key: '' };
-  const [geminiKey, setGeminiKey] = useState(gConfig.key);
-  const [geminiSuccess, setGeminiSuccess] = useState('');
-  const [showGeminiKey, setShowGeminiKey] = useState(false);
   const [activeFilter, setActiveFilter] = useState('pending');
 
   const pendingCount = users.filter((user) => user.status === 'pending').length;
@@ -436,50 +431,6 @@ export default function AdminApprovals() {
             })}
           </div>
         )}
-      </section>
-
-      {/* ── Gemini AI Settings Panel ── */}
-      <section className="overflow-hidden rounded-3xl border border-purple-500/20 bg-purple-500/5 p-6 sm:p-8 space-y-4">
-        <div className="flex items-center gap-2">
-          <Sparkles size={18} className="text-purple-400" />
-          <h3 className="text-md font-black text-white">הגדרות Gemini AI — יצירת קורסים חכמה</h3>
-          {geminiKey && <span className="rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2 py-0.5 text-[9px] font-black text-emerald-400">✓ מחובר</span>}
-        </div>
-        <p className="text-xs text-gray-400">
-          הזן מפתח API של <strong className="text-purple-300">Google Gemini</strong> כדי לאפשר יצירת קורסים אמיתיים ב-AI.
-          המפתח נשמר בדפדפן שלך בלבד ולא עובר לשרת.
-          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="mr-1 text-purple-400 underline hover:text-purple-300">קבל מפתח ב-Google AI Studio →</a>
-        </p>
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <input
-              type={showGeminiKey ? 'text' : 'password'}
-              value={geminiKey}
-              onChange={(e) => setGeminiKey(e.target.value)}
-              className="w-full rounded-xl border border-purple-500/25 bg-gray-950 px-4 py-2.5 text-xs text-white focus:border-purple-400 focus:outline-none pr-10"
-              placeholder="AIza..."
-            />
-            <button
-              type="button"
-              onClick={() => setShowGeminiKey(!showGeminiKey)}
-              className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-600 hover:text-gray-300 transition"
-            >
-              {showGeminiKey ? <EyeOff size={14} /> : <Eye size={14} />}
-            </button>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (saveGeminiConfig) saveGeminiConfig(geminiKey);
-              setGeminiSuccess(geminiKey ? '✓ מפתח Gemini נשמר! ה-AI מוכן.' : 'המפתח נמחק. AI חזר למצב מקומי.');
-              setTimeout(() => setGeminiSuccess(''), 3000);
-            }}
-            className="rounded-xl bg-purple-600 hover:bg-purple-500 px-5 py-2.5 text-xs font-black text-white transition-colors shrink-0"
-          >
-            שמור
-          </button>
-        </div>
-        {geminiSuccess && <p className="text-[11px] font-bold text-emerald-400">{geminiSuccess}</p>}
       </section>
 
       {/* Brevo SMTP Settings Panel */}

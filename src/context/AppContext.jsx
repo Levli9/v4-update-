@@ -721,17 +721,6 @@ export const AppProvider = ({ children }) => {
     return { success: true };
   };
 
-  // ── Gemini AI Integration ──
-  const getGeminiConfig = () => {
-    const key = localStorage.getItem('shieldx_gemini_api_key') || import.meta.env.VITE_GEMINI_API_KEY || '';
-    return { key };
-  };
-
-  const saveGeminiConfig = (key) => {
-    localStorage.setItem('shieldx_gemini_api_key', key.trim());
-    return { success: true };
-  };
-
   // ── Backend API Configuration ──
   const getBackendConfig = () => {
     return localStorage.getItem('shieldx_backend_url') || 'http://localhost:5001';
@@ -912,8 +901,6 @@ export const AppProvider = ({ children }) => {
       submitPasswordReset,
       getBrevoConfig,
       saveBrevoConfig,
-      getGeminiConfig,
-      saveGeminiConfig,
       getBackendConfig,
       saveBackendConfig,
       setActiveViewRole
