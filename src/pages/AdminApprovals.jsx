@@ -199,7 +199,7 @@ function UserDetailModal({ user, onClose }) {
 
 // ── Main AdminApprovals Component ─────────────────────────────────────────────
 export default function AdminApprovals() {
-  const { users, currentUser, reviewRegistration, getBrevoConfig, saveBrevoConfig, getGeminiConfig, saveGeminiConfig, getBackendConfig, saveBackendConfig } = useApp();
+  const { users, currentUser, reviewRegistration, getBrevoConfig, saveBrevoConfig, getBackendConfig, saveBackendConfig } = useApp();
   const [message, setMessage] = useState('');
   const [selectedUser, setSelectedUser] = useState(null);
   
