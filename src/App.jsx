@@ -31,7 +31,6 @@ import ManagerDashboard from './pages/ManagerDashboard';
 import UserSettings from './pages/UserSettings';
 import UserProfile from './pages/UserProfile';
 import AdminApprovals from './pages/AdminApprovals';
-import AIPresentationStudio from './pages/AIPresentationStudio';
 import FinalExam from './pages/FinalExam';
 import KnowledgeLibrary from './pages/KnowledgeLibrary';
 import GlobalSearch from './components/GlobalSearch';
@@ -120,7 +119,6 @@ function AppInner() {
   const canAccessManager = currentUser.role === 'manager' || isAdmin;
   const isManagerView = canAccessManager && location.pathname === '/manager';
   const isAdminView = isAdmin && location.pathname === '/admin';
-  const isAIStudioView = canAccessManager && location.pathname === '/ai-studio';
   const isLearningPortalView = location.pathname === '/';
   const isFinalExamView = location.pathname === '/final-exam';
   const isKnowledgeView = location.pathname === '/knowledge';
@@ -317,18 +315,6 @@ function AppInner() {
                       </span>
                       <ChevronLeft size={17} className="text-gray-600" />
                     </Link>
-                    <Link
-                      to="/ai-studio"
-                      onClick={closeMenu}
-                      className={`shieldx-menu-item mt-2 ${isAIStudioView ? 'shieldx-menu-item--active' : ''}`}
-                    >
-                      <span className="shieldx-menu-item__icon"><Sparkles size={20} /></span>
-                      <span className="flex-1">
-                        <span className="block text-sm font-bold">AI Course Generator</span>
-                        <span className="mt-0.5 block text-[11px] text-gray-500">יצירת קורס מלא מפרומפט ומחומר מקור</span>
-                      </span>
-                      <ChevronLeft size={17} className="text-gray-600" />
-                    </Link>
                     {isAdmin && (
                       <Link
                         to="/admin"
@@ -444,7 +430,6 @@ function AppInner() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/manager" element={canAccessManager ? <ManagerDashboard /> : <Navigate to="/" replace />} />
           <Route path="/admin" element={isAdmin ? <AdminApprovals /> : <Navigate to="/" replace />} />
-          <Route path="/ai-studio" element={canAccessManager ? <AIPresentationStudio /> : <Navigate to="/" replace />} />
           <Route path="/subject/:id" element={<SubjectView />} />
           <Route path="/final-exam" element={<FinalExam />} />
           <Route path="/knowledge" element={<KnowledgeLibrary />} />
